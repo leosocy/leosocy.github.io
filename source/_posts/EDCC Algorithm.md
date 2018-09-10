@@ -4,6 +4,8 @@ title: 关于EDCC算法的诞生、原理、效果
 description: EDCC算法的详细说明
 date: 2017-10-18
 copyright: true
+photos:
+- images/edcc.png
 tags:
   - 算法
 categories:
