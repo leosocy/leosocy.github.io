@@ -2,6 +2,8 @@
 title: '零基础学习kubernetes(一): 基础知识'
 copyright: false
 date: 2018-09-11 12:00:12
+photos:
+- images/Kubernetes_logo.svg
 tags:
 - k8s
 categories:
@@ -56,8 +58,12 @@ Kubernetes集群由两种类型的资源组成:
 
 通过`kubectl run`发布应用程序。我们需要提供发布的`name`和镜像地址(如果镜像不是来自docker hub，则需要完成的url链接)。
 
-1. `kubectl run NAME --image=image [--env="key=value"] [--port=port] [--replicas=replicas] [--dry-run=bool]
-[--overrides=inline-json] [--command] -- [COMMAND] [args...] [options]`
+下面我们将部署y一个Node.js服务
+
+1. 发布应用: `kubectl run kubernetes-bootcamp --image=gcr.io/google-samples/kubernetes-bootcamp:v1 --port=8080`。这个命令中，k8s帮我们干了三件事情:
+    1. 搜索可以运行应用程序实例的合适Node
+    1. 调度应用程序在该节点上运行
+    1. 配置集群以在需要时在新节点上重新调度实例
 1. 查看发布的应用: `kubectl get deployments`
 
 ## 查看Pods和Nodes
@@ -68,7 +74,7 @@ Kubernetes集群由两种类型的资源组成:
 
 - 共享存储，作为卷
 - 网络，作为唯一的集群IP地址
-- 关于如何运行每个容器的信息，例如容器映像版本或要使用的特定端口
+- 共享如何运行每个容器的信息，例如容器映像版本或要使用的特定端口
 
 Pod对特定于应用程序的“逻辑主机”进行建模，并可以包含相对紧密耦合的不同应用程序容器。例如，Pod可能包含一个web服务容器，一个数据库服务容器，一个后端rpc服务容器。Pod中的容器共享一个IP地址和端口空间，它们总是一起定位和调度，并在同一个节点的共享上下文中运行。
 
@@ -86,6 +92,9 @@ Pods是k8s中的原子单位，每个Pod被绑定到预定的节点上，并一�
 1. 一个容器运行时(如Docker, rkt)负责从注册表中提取容器映像，解包容器，并运行应用程序。如果容器是紧密耦合的，并且需要共享磁盘等资源，那么它们应该被安排在一个单独的Pod中。
 
 ![](https://d33wubrfki0l68.cloudfront.net/5cb72d407cbe2755e581b6de757e0d81760d5b86/a9df9/docs/tutorials/kubernetes-basics/public/images/module_03_nodes.svg)
+
+
+
 
 # 参考文章
 
