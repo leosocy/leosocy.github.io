@@ -20,7 +20,7 @@ before_install:
 
 install:
   - npm install
-  - npm hexo-deployer-git --save
+  - npm install hexo-deployer-git --save
 
 
 # 清除缓存，重新生成部署文件
