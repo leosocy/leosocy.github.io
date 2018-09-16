@@ -4,7 +4,7 @@ title: 设计模式Python实现
 date: 2018-05-28
 copyright: true
 photos:
-  - images/design-pattern.jpg
+  - https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/design-pattern.jpg
 tags:
   - Python
   - 设计模式
