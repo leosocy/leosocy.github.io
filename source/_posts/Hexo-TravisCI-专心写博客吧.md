@@ -2,6 +2,8 @@
 title: 'Hexo+TravisCI: 专心写博客吧'
 copyright: true
 date: 2018-09-11 00:03:51
+photos:
+- https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/hexo-logo.png
 tags:
 - Hexo
 - CI
@@ -53,7 +55,7 @@ touch .travis.yml
 ```yaml
 language: node_js
 node_js:
-- node  # latest stable Node.js release
+- 6.14.3
 sudo: required
 cache:
   directories:
@@ -64,11 +66,12 @@ only:
 - blog  # 只有blog分支的提交才会触发ci。如果是不同项目管理的博客则不需要此配置
 
 before_install:
-- npm install -g hexo-cli
+- npm install hexo-cli -g --save
+- npm install hexo --save
 
 install:
-- npm install
-- npm hexo-deployer-git --save
+- npm install && npm audit fix
+- npm install hexo-deployer-git --save && npm audit fix
 
 
 # 清除缓存，重新生成部署文件
@@ -95,8 +98,9 @@ deploy:
 
 将`.travis.yml`和`_config.yml`的变更push到独立的分支或者项目中去，我们就能在travis-ci上看到对应的构建了
 
-
-
 ## 效果
 
+![](https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/20180916224800.png)
+
+CI成功之后，刷新一下你的博客主页，就能看到刚刚写的文章喽(*^▽^*)
 
