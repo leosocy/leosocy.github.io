@@ -4,8 +4,8 @@
 
 `master`分支通过[Travis-CI](https://travis-ci.org/)自动构建发布。写博文只需要关心`markdown`内容即可，大致流程：
 
-1. 在`blog-source`分支写*.md
+1. 在`blog`分支写*.md
 1. `git add .`
 1. `git push origin blog`
 
-剩下的工作部署工作就交个CI来做吧！
+剩下的工作部署工作就交给CI来做吧！
