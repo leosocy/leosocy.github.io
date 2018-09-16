@@ -5,7 +5,7 @@ description: EDCC算法的详细说明
 date: 2017-10-18
 copyright: true
 photos:
-- images/edcc.png
+- https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/edcc.png
 tags:
   - 算法
 categories:

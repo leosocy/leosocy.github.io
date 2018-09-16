@@ -5,7 +5,7 @@ description: 整理一些常用的 Git 指令
 date: 2017-07-21
 copyright: true
 photos:
-  - images/git-goodness.gif
+  - https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/git-goodness.gif
 tags:
   - Git
 categories:

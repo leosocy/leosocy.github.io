@@ -5,7 +5,7 @@ subtitle: 整理CMake常用和进阶的使用方法
 date: 2018-04-05
 copyright: true
 photos:
-  - images/cmake-logo.png
+  - https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/cmake-logo.png
 tags:
   - CMake
 categories:

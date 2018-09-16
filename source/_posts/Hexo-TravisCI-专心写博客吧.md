@@ -3,7 +3,7 @@ title: 'Hexo+TravisCI: 专心写博客吧'
 copyright: true
 date: 2018-09-11 00:03:51
 photos:
-- https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/hexo-header.jpg
+- https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/hexo-header.png
 tags:
 - Hexo
 - CI
