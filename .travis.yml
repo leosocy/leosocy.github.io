@@ -19,8 +19,8 @@ before_install:
   - npm install -g hexo-cli
 
 install:
-  - npm install
-  - npm install hexo-deployer-git --save
+  - npm install && npm audit fix
+  - npm install hexo-deployer-git --save && npm audit fix
 
 
 # 清除缓存，重新生成部署文件
