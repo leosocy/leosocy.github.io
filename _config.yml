@@ -93,6 +93,5 @@ theme: next
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
   type: git
-  repo: https://github.com/Leosocy/leosocy.github.io
+  repo: https://GITHUB_TOKEN@github.com/Leosocy/leosocy.github.io.git
   branch: master
-  message:

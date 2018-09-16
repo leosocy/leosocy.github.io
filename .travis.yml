@@ -1,0 +1,36 @@
+#########################
+#     blog ci config    #
+#########################
+
+
+language: node_js
+node_js:
+  - node  # latest stable Node.js release
+sudo: required
+cache:
+  directories:
+    - node_modules  # npm install will still run on every build and will update/install any new packages added to your package.json file.
+
+branches:
+  only:
+    - blog  # 只有blog分支的提交才会触发ci。如果是不同项目管理的博客则不需要此配置
+
+before_install:
+  - npm install -g hexo-cli
+
+install:
+  - npm install
+  - npm hexo-deployer-git --save
+
+
+# 清除缓存，重新生成部署文件
+script:
+  - hexo clean
+  - hexo generate
+
+after_script:
+  - git config user.name ${GIT_USER_NAME}
+  - git config user.email ${GIT_USER_EMAIL}
+  - sed -i "s/GITHUB_TOKEN/${GITHUB_TOKEN}/g" _config.yml   # 替换hexo配置文件中的deploy配置
+  - hexo d
+
