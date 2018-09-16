@@ -66,12 +66,13 @@ only:
 - blog  # 只有blog分支的提交才会触发ci。如果是不同项目管理的博客则不需要此配置
 
 before_install:
+- export TZ='Asia/Shanghai'   # 设置时区，用于提交到github pages的master分支时显示准确的commit时间
 - npm install hexo-cli -g --save
 - npm install hexo --save
 
 install:
-- npm install && npm audit fix
-- npm install hexo-deployer-git --save && npm audit fix
+- npm install
+- npm install hexo-deployer-git --save
 
 
 # 清除缓存，重新生成部署文件
