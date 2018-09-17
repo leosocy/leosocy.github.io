@@ -1,5 +1,6 @@
 ---
 title: 'Hexo+TravisCI: 专心写博客吧'
+description: 本文介绍了如何通过`Travis CI`简化发布流程，让大家可以专心的写自己的博客！
 copyright: true
 date: 2018-09-11 00:03:51
 photos:
@@ -18,8 +19,6 @@ categories:
 本文介绍了如何通过`Travis CI`简化发布流程，让大家可以专心的写自己的博客！
 
 Let's go~
-
-<!-- more -->
 
 > 偷懒是创造力的源泉
 
