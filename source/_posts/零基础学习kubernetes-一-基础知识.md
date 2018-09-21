@@ -56,7 +56,7 @@ Kubernetes集群由两种类型的资源组成:
 
 ### cmd
 
-通过`kubectl run`发布应用程序。我们需要提供发布的`name`和镜像地址(如果镜像不是来自docker hub，则需要完成的url链接)。
+通过`kubectl run`发布应用程序。我们需要提供发布的`name`和镜像地址(如果镜像不是来自docker hub，则需要完整的url链接)。
 
 下面我们将部署一个Node.js服务
 
@@ -93,7 +93,6 @@ Pods是k8s中的原子单位，每个Pod被绑定到预定的节点上，并一�
 
 ![](https://d33wubrfki0l68.cloudfront.net/5cb72d407cbe2755e581b6de757e0d81760d5b86/a9df9/docs/tutorials/kubernetes-basics/public/images/module_03_nodes.svg)
 
-
 ### 使用常见的kubectl命令进行故障排除
 
 - **kubectl get**: 获取指定资源的列表
@@ -101,17 +100,63 @@ Pods是k8s中的原子单位，每个Pod被绑定到预定的节点上，并一�
 - **kubectl logs**: 打印一个pod的一个容器中的日志
 - **kubectl exec**: 在一个pod的一个容器中执行命令
 
-k8s的资源(resource)类型
+## 使用service暴露应用程序
 
-- node
-- pod
-- deployment
-- replicaset
-- service
-- daemonset
-- secret
-- role
-- rolebinding
+### 服务为何而生
+
+考虑具有3个副本的图像处理后端。那些复制品是可替代的; 前端系统不应该关心后端副本，即使Pod丢失并重新创建。也就是说，Kubernetes集群中的每个Pod都有一个唯一的IP地址，甚至是同一节点上的Pod，因此需要有一种方法可以自动协调Pod之间的更改，以便您的应用程序继续运行。
+
+service是k8s中的一个抽象的概念，它定义了一组逻辑Pod和一个访问它们的策略。service如何选择一组pod通常由`LabelSelector`决定。尽管每个Pod都有一个惟一的IP地址，但如果没有服务，这些IP不会暴露在集群之外。服务允许您的应用程序接收流量。通过在ServiceSpec中指定一个类型，可以以不同的方式公开服务:
+
+- ClusterIP(默认): 在集群中的内部IP上公开服务。这种类型使得服务只能从集群中访问。
+- NodePort: 使用NAT在集群中每个选定节点的相同端口上公开服务，使用`<NodeIP>:<NodePort>`从集群外部访问服务。
+- LoadBalancer: 在当前云中创建一个外部负载均衡器(如果支持的话)，并向服务分配一个固定的外部IP。
+- Ingress: Ingress 事实上不是一种服务类型。相反，它处于多个服务的前端，扮演着“智能路由”或者集群入口的角色。
+
+> 资料来源 [Kubernetes的三种外部访问方式：NodePort、LoadBalancer 和 Ingress](http://dockone.io/article/4884)
+
+
+### cmd
+
+要创建新服务并将其公开给外部通信，我们将使用带有NodePort的expose命令作为参数
+
+1. 暴露服务: `kubectl expose deployment/kubernetes-bootcamp --type="NodePort" --port 8080`
+1. 查看服务: `kubectl get svc`
+1. 查看服务详细信息: `kubectl describe svc kubernetes-bootcamp`
+
+## 扩展应用程序
+
+扩展是通过更改部署中的副本数量来完成的。扩展部署将确保创建新的pod并将其调度到具有可用资源的节点。缩放将增加pod的数量到新的期望状态。
+
+### cmd
+
+scale的基本命令比较简单，只需要指定`replicas`的个数就可以了。
+
+1. 停止指定部署的所有副本: `kubectl scale --replicas=0 deployment/kubernetes-bootcamp`
+
+## 更新应用程序
+
+用户希望应用程序随时可用，开发人员希望每天多次部署新版本的应用程序。在Kubernetes，这是通过滚动更新完成的。滚动更新允许部署的更新在零停机的情况下进行，方法是用新的pod实例增量地更新它们。新的pod将被安排在具有可用资源的节点上。
+
+与应用程序扩展类似，如果部署公开暴露，服务将只在更新期间负载均衡到可用的豆荚。可用Pod是应用程序用户可以使
+用的实例。
+
+滚动更新允许以下操作:
+
+- 将应用程序从一个环境提升到另一个环境(通过容器映像更新)
+- 回滚到以前的版本
+- 持续集成和持续交付应用程序，零停机时间
+
+可以通过指定`maxUnavailable`和`maxSurge`来控制滚动更新策略。
+
+- `maxUnavailable`: 指定在更新过程中不可用Pod的最大数量
+- `maxSurge`: 指定可以超过期望的Pod数量的最大个数
+
+## 总结
+
+本篇介绍了如何使用minikube在本地搭建一个k8s集群，并通过本地集群学习了基本的应用部署、服务暴露、扩展和更新知识。
+
+下一篇，会介绍如何在ECS上(单机)手动部署一个kubernetes集群。
 
 # 参考文章
 
