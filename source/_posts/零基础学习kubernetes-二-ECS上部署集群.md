@@ -165,8 +165,80 @@ Environment="KUBELET_CGROUP_ARGS=--cgroup-driver=systemd"
 sudo systemctl daemon-reload && sudo systemctl restart kubelet
 ```
 
+### 修改kubeadm使用的默认镜像仓储
+
+由于执行`kubeadm init`会默认访问谷歌服务器，所以会出现失败的情况，这里我们需要将kubeadm使用的默认docker仓库改成docker hub上的仓库。
+
+[Google Container Registry(gcr.io) 中国可用镜像(长期维护)](https://anjia0532.github.io/2017/11/15/gcr-io-image-mirror/)
+
+在执行`kubeadm init`时，会报错
+
+![](https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/20180927002610.png)
+
+我们将需要下载的镜像记录到`img.txt`中
+
+```txt
+k8s.gcr.io/kube-apiserver-amd64:v1.11.0
+k8s.gcr.io/kube-controller-manager-amd64:v1.11.0
+k8s.gcr.io/kube-scheduler-amd64:v1.11.0
+k8s.gcr.io/kube-proxy-amd64:v1.11.0
+k8s.gcr.io/etcd-amd64:3.2.18
+k8s.gcr.io/coredns:1.1.3
+```
+
+创建批量下载并打标签镜像的脚本`batch_get_images.sh`
+
+```bash
+# replace gcr.io/google-containers/federation-controller-manager-arm64:v1.3.1-beta.1 to real image
+# this will convert gcr.io/google-containers/federation-controller-manager-arm64:v1.3.1-beta.1
+# to anjia0532/google-containers.federation-controller-manager-arm64:v1.3.1-beta.1 and pull it
+# k8s.gcr.io/{image}/{tag} <==> gcr.io/google-containers/{image}/{tag} <==> anjia0532/google-containers.{image}/{tag}
+
+images=$(cat img.txt)
+#or
+#images=$(cat <<EOF
+# gcr.io/google-containers/federation-controller-manager-arm64:v1.3.1-beta.1
+# gcr.io/google-containers/federation-controller-manager-arm64:v1.3.1-beta.1
+# gcr.io/google-containers/federation-controller-manager-arm64:v1.3.1-beta.1
+#EOF
+#)
+
+eval $(echo ${images}|
+        sed 's/k8s\.gcr\.io/anjia0532\/google-containers/g;s/gcr\.io/anjia0532/g;s/\//\./g;s/ /\n/g;s/anjia0532\./anjia0532\//g' |
+        uniq |
+        awk '{print "docker pull "$1";"}'
+       )
+
+# this code will retag all of anjia0532's image from local  e.g. anjia0532/google-containers.federation-controller-manager-arm64:v1.3.1-beta.1
+# to gcr.io/google-containers/federation-controller-manager-arm64:v1.3.1-beta.1
+# k8s.gcr.io/{image}/{tag} <==> gcr.io/google-containers/{image}/{tag} <==> anjia0532/google-containers.{image}/{tag}
+
+for img in $(docker images --format "{{.Repository}}:{{.Tag}}"| grep "anjia0532"); do
+    n=$(echo ${img}| awk -F'[/.:]' '{printf "gcr.io/%s",$2}')
+    image=$(echo ${img}| awk -F'[/.:]' '{printf "/%s",$3}')
+    tag=$(echo ${img}| awk -F'[:]' '{printf ":%s",$2}')
+    docker tag $img "${n}${image}${tag}"
+    [[ ${n} == "gcr.io/google-containers"  ]] && docker tag $img "k8s.gcr.io${image}${tag}"
+done
+```
+
+执行如下命令
+
+```shell
+chmod u+x batch_get_images.sh
+./batch_get_images.sh
+```
+
+成功后可以看到，`kubeadm init`需要的镜像已经全部下载并打标签成`gcr.io/*`
+
+![](https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/20180927022744.png)
+
 # master/node 组件
 
 # 安装、配置各个组件
 
 # 启动引导集群
+
+这里有一个大坑，由于笔者用的是阿里云的ECS，又没有配置入方向的安全组，导致6443端口无法访问，一致卡在`[init] this might take a minute or longer if the control plane images have to be pulled`这个阶段。解决办法就是去阿里云控制台，配置ECS的6443端口安全组。
+
+![](https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/20180927020134.png)
