@@ -16,7 +16,6 @@ kubernetes官网提供了不同场景下的集群搭建解决方案，包括本�
 
 - 集群master节点和node节点包含的主要组件
 - 各个组件的用途
-- 各个组件如何安装
 - 如何引导启动集群
 
 <!-- more -->
@@ -167,9 +166,9 @@ sudo systemctl daemon-reload && sudo systemctl restart kubelet
 
 ### 修改kubeadm使用的默认镜像仓储
 
-由于执行`kubeadm init`会默认访问谷歌服务器，所以会出现失败的情况，这里我们需要将kubeadm使用的默认docker仓库改成docker hub上的仓库。
+由于执行`kubeadm init`会默认访问谷歌服务器，所以会出现失败的情况，这里我们需要将kubeadm使用的默认docker镜像从另外的仓库中全部下载下来，然后批量打标签成需要的镜像名。
 
-[Google Container Registry(gcr.io) 中国可用镜像(长期维护)](https://anjia0532.github.io/2017/11/15/gcr-io-image-mirror/)
+> 参考：[Google Container Registry(gcr.io) 中国可用镜像(长期维护)](https://anjia0532.github.io/2017/11/15/gcr-io-image-mirror/)
 
 在执行`kubeadm init`时，会报错
 
@@ -229,16 +228,89 @@ chmod u+x batch_get_images.sh
 ./batch_get_images.sh
 ```
 
-成功后可以看到，`kubeadm init`需要的镜像已经全部下载并打标签成`gcr.io/*`
+会下载`img.txt`中的镜像，成功后可以看到，`kubeadm init`需要的镜像已经全部下载并打标签成`gcr.io/*`
 
 ![](https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/20180927022744.png)
 
 # master/node 组件
 
-# 安装、配置各个组件
+## kube-master「控制节点」
+
+kube master主要包含以下组件
+
+- api server
+- scheduler
+- controller manager
+
+各个组件之间的工作配合方式如下
+
+![](https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/kube-master.png)
+
+1. Kubecfg将特定的请求，比如创建Pod，发送给Kubernetes Client。
+1. Kubernetes Client将请求发送给API server。
+1. API Server根据请求的类型，比如创建Pod时storage类型是pods，然后依此选择何种REST Storage API对请求作出处理。
+1. REST Storage API对的请求作相应的处理。
+1. 将处理的结果存入高可用键值存储系统Etcd中。
+1. 在API Server响应Kubecfg的请求后，Scheduler会根据Kubernetes Client获取集群中运行Pod及Minion/Node信息。
+1. 依据从Kubernetes Client获取的信息，Scheduler将未分发的Pod分发到可用的Minion/Node节点上。
+
+### api server
+
+`api server`是资源操作的唯一入口，所有其他的组件如果相对集群资源进行操作都必须通过`api server`。
+
+功能：
+
+1. 提供了集群管理的REST API接口(包括认证授权、数据校验以及集群状态变更)
+1. 提供其他模块之间的数据交互和通信的枢纽(其他模块通过API Server查询或修改数据，只有API Server才直接操作etcd)
+1. 资源配额控制的入口
+
+工作原理图
+
+![](https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/kube-apiserver.png)
+
+### controller manager
+
+Controller Manager作为集群内部的管理控制中心，负责集群内的Node、Pod副本、服务端点（Endpoint）、命名空间（Namespace）、服务账号（ServiceAccount）、资源定额（ResourceQuota）的管理，当某个Node意外宕机时，Controller Manager会及时发现并执行自动化修复流程，确保集群始终处于预期的工作状态。
+
+[Controller Manager详解](https://www.huweihuang.com/article/kubernetes/core-principle/kubernetes-core-principle-controller-manager/)
+
+### scheduler
+
+Scheduler负责Pod调度。在整个系统中起"承上启下"作用，承上：负责接收Controller Manager创建的新的Pod，为其选择一个合适的Node；启下：Node上的kubelet接管Pod的生命周期。
+
+![](https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/kube-scheduler.png)
+
+## kube-node「服务节点」
+
+结构图
+
+![](https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/kube-node.png)
+
+### kubelet
+
+在kubernetes集群中，每个Node节点都会启动kubelet进程，用来处理Master节点下发到本节点的任务，管理Pod和其中的容器。kubelet会在API Server上注册节点信息，定期向Master汇报节点资源使用情况，并通过cAdvisor监控容器和节点资源。可以把kubelet理解成【Server-Agent】架构中的agent，是Node上的pod管家。
+
+功能
+
+1. 负责Node节点上pod的创建、修改、监控、删除等全生命周期的管理
+1. 定时上报本Node的状态信息给API Server
+1. kubelet是Master API Server和Minion/Node之间的桥梁，接收Master API Server分配给它的commands和work，通过kube-apiserver间接与Etcd集群交互，读取配置信息
+
+### proxy
+
+Proxy是为了解决外部网络能够访问集群中容器提供的应用服务而设计的，Proxy 运行在每个Node上。
+
+Proxy提供TCP/UDP两种Sockets连接方式。每创建一个Service，Proxy就会从Etcd获取Services和Endpoints的配置信息（也可以从 File 获取），然后根据其配置信息在Node上启动一个Proxy的进程并监听相应的服务端口。当外部请求发生时，Proxy会根据`Load Balancer`将请求分发到后端正确的容器处理。
 
 # 启动引导集群
 
 这里有一个大坑，由于笔者用的是阿里云的ECS，又没有配置入方向的安全组，导致6443端口无法访问，一致卡在`[init] this might take a minute or longer if the control plane images have to be pulled`这个阶段。解决办法就是去阿里云控制台，配置ECS的6443端口安全组。
 
 ![](https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/20180927020134.png)
+
+
+# 参考文章
+
+https://www.jianshu.com/p/78a5afd0c597
+https://www.huweihuang.com/article/kubernetes/kubernetes-architecture/
+https://juejin.im/post/5b63f4506fb9a04f8856f340
