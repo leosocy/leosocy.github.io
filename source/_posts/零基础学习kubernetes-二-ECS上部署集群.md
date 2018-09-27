@@ -304,10 +304,158 @@ Proxy提供TCP/UDP两种Sockets连接方式。每创建一个Service，Proxy就�
 
 # 启动引导集群
 
-这里有一个大坑，由于笔者用的是阿里云的ECS，又没有配置入方向的安全组，导致6443端口无法访问，一致卡在`[init] this might take a minute or longer if the control plane images have to be pulled`这个阶段。解决办法就是去阿里云控制台，配置ECS的6443端口安全组。
+在第一节，我们准备了运行`kubeadm init`之前的一些环境、软件，第二节中，介绍了k8s集群的基本组件，帮助我们理解了集群中的基本组件。
+
+下面我们将使用`kubeadm`来创建并引导一个集群。
+
+## 创建集群
+
+执行
+
+```shell
+sudo kubeadm init  --kubernetes-version=v1.11.0 --apiserver-advertise-address=your_master_node_ip --pod-network-cidr=10.244.0.0/16
+```
+
+各个参数的含义:
+
+- kubernetes-version: 指定k8s版本，必须与之前导入的镜像版本一致，不然又会去谷歌下载需要的镜像
+- apiserver-advertise-address: 指定api server监听的ip地址，这里笔者填的是ECS的外网地址
+- pod-network-cidr: 根据`https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/`，官方提供了很多可以选择的节点网络类型，这里笔者填写`10.244.0.0/16`表示使用`flannel`网络，同时需要执行`sudo sysctl net.bridge.bridge-nf-call-iptables=1`。
+
+执行成功结果
+
+```shell
+[init] using Kubernetes version: v1.11.0
+[preflight] running pre-flight checks
+I0927 23:50:58.769986   27134 kernel_validator.go:81] Validating kernel version
+I0927 23:50:58.770090   27134 kernel_validator.go:96] Validating kernel config
+        [WARNING SystemVerification]: docker version is greater than the most recently validated version. Docker version: 18.06.1-ce. Max validated version: 17.03
+[preflight/images] Pulling images required for setting up a Kubernetes cluster
+[preflight/images] This might take a minute or two, depending on the speed of your internet connection
+[preflight/images] You can also perform this action in beforehand using 'kubeadm config images pull'
+[kubelet] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[preflight] Activating the kubelet service
+[certificates] Generated ca certificate and key.
+[certificates] Generated apiserver certificate and key.
+[certificates] apiserver serving cert is signed for DNS names [leosocy-ecs1 kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local] and IPs [10.96.0.1 101.xx.xx.124]
+[certificates] Generated apiserver-kubelet-client certificate and key.
+[certificates] Generated sa key and public key.
+[certificates] Generated front-proxy-ca certificate and key.
+[certificates] Generated front-proxy-client certificate and key.
+[certificates] Generated etcd/ca certificate and key.
+[certificates] Generated etcd/server certificate and key.
+[certificates] etcd/server serving cert is signed for DNS names [leosocy-ecs1 localhost] and IPs [127.0.0.1 ::1]
+[certificates] Generated etcd/peer certificate and key.
+[certificates] etcd/peer serving cert is signed for DNS names [leosocy-ecs1 localhost] and IPs [101.xx.xx.124 127.0.0.1 ::1]
+[certificates] Generated etcd/healthcheck-client certificate and key.
+[certificates] Generated apiserver-etcd-client certificate and key.
+[certificates] valid certificates and keys now exist in "/etc/kubernetes/pki"
+[kubeconfig] Wrote KubeConfig file to disk: "/etc/kubernetes/admin.conf"
+[kubeconfig] Wrote KubeConfig file to disk: "/etc/kubernetes/kubelet.conf"
+[kubeconfig] Wrote KubeConfig file to disk: "/etc/kubernetes/controller-manager.conf"
+[kubeconfig] Wrote KubeConfig file to disk: "/etc/kubernetes/scheduler.conf"
+[controlplane] wrote Static Pod manifest for component kube-apiserver to "/etc/kubernetes/manifests/kube-apiserver.yaml"
+[controlplane] wrote Static Pod manifest for component kube-controller-manager to "/etc/kubernetes/manifests/kube-controller-manager.yaml"
+[controlplane] wrote Static Pod manifest for component kube-scheduler to "/etc/kubernetes/manifests/kube-scheduler.yaml"
+[etcd] Wrote Static Pod manifest for a local etcd instance to "/etc/kubernetes/manifests/etcd.yaml"
+[init] waiting for the kubelet to boot up the control plane as Static Pods from directory "/etc/kubernetes/manifests"
+[init] this might take a minute or longer if the control plane images have to be pulled
+[apiclient] All control plane components are healthy after 45.005438 seconds
+[uploadconfig] storing the configuration used in ConfigMap "kubeadm-config" in the "kube-system" Namespace
+[kubelet] Creating a ConfigMap "kubelet-config-1.11" in namespace kube-system with the configuration for the kubelets in the cluster
+[markmaster] Marking the node leosocy-ecs1 as master by adding the label "node-role.kubernetes.io/master=''"
+[markmaster] Marking the node leosocy-ecs1 as master by adding the taints [node-role.kubernetes.io/master:NoSchedule]
+[patchnode] Uploading the CRI Socket information "/var/run/dockershim.sock" to the Node API object "leosocy-ecs1" as an annotation
+[bootstraptoken] using token: 3yl852.cgnsfybbkj01qtbp
+[bootstraptoken] configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order for nodes to get long term certificate credentials
+[bootstraptoken] configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token
+[bootstraptoken] configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
+[bootstraptoken] creating the "cluster-info" ConfigMap in the "kube-public" namespace
+[addons] Applied essential addon: CoreDNS
+[addons] Applied essential addon: kube-proxy
+
+Your Kubernetes master has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+You can now join any number of machines by running the following on each node
+as root:
+
+  kubeadm join 101.xx.xx.124:6443 --token 3yl852.cgnsfybbkj01qtbp --discovery-token-ca-cert-hash sha256:7e4636f999545ccd6468d913565341b22e228922acc999dba825726f710e45a5
+```
+
+这里有一个大坑，由于笔者用的是阿里云的ECS，又没有配置入方向的安全组，导致`6443端口`无法访问，一致卡在`[init] this might take a minute or longer if the control plane images have to be pulled`这个阶段。解决办法就是去阿里云控制台，配置ECS的6443端口安全组。
 
 ![](https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/20180927020134.png)
 
+## 创建kubectl config
+
+如果本机之前没有其他k8s集群的配置，既`$HOME/.kube/config`不存在，则执行如下命令:
+
+```shell
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+
+如果本机还有其他集群的配置，则需要合并/etc/kubernetes/admin.conf到现有配置上，执行如下命令:
+
+```shell
+export KUBECONFIG=$HOME/.kube/config:/etc/kubernetes/admin.conf
+sudo chown $(id -u):$(id -g) /etc/kubernetes/admin.conf
+kubectl config view --flatten > $HOME/.kube/config_new
+mv $HOME/.kube/config_new $HOME/.kube/config    # 覆盖旧的配置
+export KUBECONFIG=~/.kube/config        # 恢复配置
+```
+
+## 配置pod网络
+
+根据`kubeadm init`配置选择的网络类型，创建对应的网络pod，笔者选用的是`flannel`，根据[官网](https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/)配置，执行
+
+```shell
+kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/c5d10c8/Documentation/kube-flannel.yml
+```
+
+指定`k get po -n kube-system`，查看运行的pod如下
+
+![](https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/20180928003155.png)
+
+可以看到，master需要的组件都已经启动成功了
+
+## 集群设置
+
+### 设置master为工作节点
+
+scheduler默认不会将pod调度到master上，可以执行如下操作将master设置成工作节点
+
+```shell
+kubectl taint nodes --all node-role.kubernetes.io/master-
+```
+
+## 发布一个应用试一试
+
+基于yaml文件创建一个发布
+
+```shell
+kubectl apply -f https://k8s.io/examples/application/deployment.yamlk
+```
+
+![](https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/20180928005347.png)
+
+# 总结
+
+本篇介绍了如何基于单节点搭建一个k8s集群，并介绍了master/node的基本组件。
+
+下一篇，我们将会介绍如何划分`namespace`、限定`resource`以及权限控制。
 
 # 参考文章
 
