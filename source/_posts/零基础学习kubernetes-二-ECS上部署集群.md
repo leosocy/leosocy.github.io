@@ -455,7 +455,7 @@ kubectl apply -f https://k8s.io/examples/application/deployment.yamlk
 
 本篇介绍了如何基于单节点搭建一个k8s集群，并介绍了master/node的基本组件。
 
-下一篇，我们将会介绍如何划分`namespace`、限定`resource`以及权限控制。
+下一篇，我们将会一起学习一些k8s中的名词解释。
 
 # 参考文章
 
