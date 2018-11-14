@@ -133,9 +133,83 @@ k8s支持三种方式来执行探针：
   - tcpSocket: 对指定的容器IP及端口执行一个TCP检查，如果端口是开放的则表示探测成功，否则表示失败
   - httpGet: 对指定的容器IP、端口及路径执行一个HTTP Get请求，如果返回的状态码在`[200,400)`之间则表示探测成功，否则表示失败
 
+### Init Container
+
+Init容器在所有容器运行之前执行，常用来初始化配置。如果为一个Pod指定了多个Init容器，那些容器会顺序一次运行一个。每个Init容器必须运行成功，下一个才能够运行。当所有Init同期运行完成时，k8s初始化Pod并像平常一样运行应用容器。
+
+### 容器声明周期钩子
+
+容器声明周期钩子监听容器生命周期的特定时间，并在事件发生时执行已注册的回调函数。支持两种钩子：
+
+  - postStart: 容器创建后立即执行，注意由于是异步执行，它无法保证一定在`ENTRYPOINT`之前运行。
+  - preStop: 容器终止前执行，常用于资源清理。如果失败，容器同样也会被杀死
+
+而钩子的回调函数支持两种方式：
+  - exec
+  - httpGet
+
+### 自定义hosts
+
+可以通过`pod.spec.hostAliases`来增加hosts内容，如
+
+```yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hostaliases-pod
+spec:
+  hostAliases:
+  - ip: "10.1.2.3"
+    hostnames:
+    - "foo.remote"
+    - "bar.remote"
+  containers:
+  - name: cat-hosts
+    image: busybox
+    command:
+    - cat
+    args:
+    - "/etc/hosts"
+```
+
+### Pod时区
+
+很多容器都是配置了UTC时区，与国内集群的Node所在时区有可能不一致，可以通过HostPath存储插件给容器配置与Node一样的时区：
+
+```yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-tz
+spec:
+  containers:
+  - image: alpine
+    name: pod-tz
+    stdin: true
+    tty: true
+    volumeMounts:
+    - mountPath: /etc/localtime
+      name: time
+      readOnly: true
+  volumes:
+  - name: time
+    hostPath:
+      path: /etc/localtime
+      type: ""
+```
+
 ## Deployment
 
-## Services
+有如下一些功能：
+
+- 使用Deployment来创建ReplicaSet。ReplicaSet在后台创建Pod。检查启动状态，看它是成功还是失败。
+- 更新Deployment的PodTemplateSpec字段来声明Pod的新状态。这会创建一个新的ReplicaSet，Deployment会按照控制的速率将Pod从旧的ReplicaSet移动到新的ReplicaSet中。
+- 如果当前状态不稳定，回滚到之前的Deployment revision。每次回滚都会更新Deployment的revision。
+- scale/autoscale
+- 暂停Deployment来应用PodTemplateSpec的多个修复，然后恢复上线
+- 清除旧的不必要的ReplicaSet
+
+## Service
 
 ## Replication Controller
 
