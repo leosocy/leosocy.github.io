@@ -129,7 +129,7 @@ menu:
 # Enable/Disable menu icons / item badges.
 menu_settings:
   icons: true
-  badges: false
+  badges: true
 
 # ---------------------------------------------------------------
 # Scheme Settings
@@ -188,7 +188,7 @@ links_layout: block
 #links_layout: inline
 links:
   EDCC--一种高效、准确的掌纹识别算法: https://github.com/Leosocy/EDCC-Palmprint-Recognition
-  复杂环境下的掌纹感兴趣区域提取算法: https://github.com/Leosocy/RobustPalmRoi
+  RPR--一个鲁棒的掌纹ROI提取算法: https://github.com/Leosocy/RobustPalmRoi
   C++11实现的智能线程池库: https://github.com/Leosocy/SmartThreadPool
   PalmID: https://github.com/PalmID
 
@@ -238,8 +238,8 @@ sidebar:
   #  - always  expand for all pages automatically
   #  - hide    expand only when click on the sidebar toggle icon.
   #  - remove  Totally remove sidebar including sidebar toggle.
-  display: post
-  #display: always
+  # display: post
+  display: always
   #display: hide
   #display: remove
 

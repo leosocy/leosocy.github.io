@@ -8,7 +8,7 @@ categories:
 - kubernetes
 ---
 
-在学习使用k8s的过程中，我们不免看到许许多多的名词，包括`deploy`、`svc`、`rc`等等，它们通常代表着k8s中不同的资源对象。本文会介绍这些名词，同时会给出部署的yml文件，供实战部署，加深对这些名词的理解。
+在学习使用k8s的过程中，我们不免看到许许多多的名词，包括`deploy`、`svc`、`rs`等等，它们通常代表着k8s中不同的资源对象。本文会介绍这些资源，同时会给出部署的yml文件，供实战部署，加深对这些名词的理解。
 
 <!-- more -->
 
@@ -278,9 +278,15 @@ spec:
 
 > 图片来源：https://feisky.gitbooks.io/kubernetes/content/concepts/service.html
 
-## ReplicaSets
+## ReplicaSet
 
+ReplicaSet用来确保容器应用的副本数始终保持在用户定义的副本数，即如果有容器异常退出，会自动创建新的Pod来替代。虽然ReplicaSet可以独立使用，但建议使用Deployment来自动管理ReplicaSet，这样就无需担心跟其他机制的不兼容问题（比如ReplicaSet不支持rolling-update但Deployment支持），并且还支持版本记录、回滚、暂停升级等高级特性。
 
+### ReplicaSet定义
+
+```yml
+
+```
 
 ## DaemonSet
 
