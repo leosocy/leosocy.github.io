@@ -209,11 +209,78 @@ spec:
 - 暂停Deployment来应用PodTemplateSpec的多个修复，然后恢复上线
 - 清除旧的不必要的ReplicaSet
 
+### Deployment定义
+
+```yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.7.9
+        ports:
+        - containerPort: 80
+```
+
+功能对应的cmd
+
+- 扩容：`kubectl scale deployment nginx-deployment --replicas 10`
+- 自动扩容：`kubectl autoscale deployment nginx-deployment --min=10 --max=15 --cpu-percent=80`
+- 更新镜像：`kubectl set image deployment/nginx-deployment nginx=nginx:1.9.1`
+- 回滚：`kubectl rollout undo deployment/nginx-deployment --to-revision=1`
+
 ## Service
 
-## Replication Controller
+Service是对一组提供相同功能的Pods的抽象，并为它们提供一个统一的入口。
+
+四种类型
+
+- ClusterIP: 默认类型，自动分配一个仅cluster内部可以访问的虚拟IP
+- NodePort: 在ClusterIP基础上为Service在每台机器上绑定一个端口，这样就可以通过`<NodeIP>:NodePort`来访问该服务
+- LoadBalancer: 在NodePort的基础上，借助cloud provider创建一个外部的负载均衡器，并将请求转发到`<NodeIP>:NodePort`
+- ExternalName: 将服务通过DNS CNAME记录方式转发到指定的域名。
+
+### Service定义
+
+Service 的定义也是通过`yaml`或`json`，比如下面定义了一个名为`nginx`的服务，将服务的`80`端口转发到`default namespace`中带有标签`app=nginx,tier=ingress`的Pod的80端口
+
+```yml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: nginx
+  name: nginx
+  namespace: default
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: nginx
+    tier: ingress
+  sessionAffinity: None
+  type: ClusterIP
+```
+
+### 工作原理
+
+![](https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/service-flow.png)
+
+> 图片来源：https://feisky.gitbooks.io/kubernetes/content/concepts/service.html
 
 ## ReplicaSets
+
+
 
 ## DaemonSet
 
