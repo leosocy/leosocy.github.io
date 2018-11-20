@@ -209,7 +209,7 @@ spec:
 - 暂停Deployment来应用PodTemplateSpec的多个修复，然后恢复上线
 - 清除旧的不必要的ReplicaSet
 
-### Deployment定义
+### 示例
 
 ```yml
 apiVersion: apps/v1
@@ -248,7 +248,7 @@ Service是对一组提供相同功能的Pods的抽象，并为它们提供一个
 - LoadBalancer: 在NodePort的基础上，借助cloud provider创建一个外部的负载均衡器，并将请求转发到`<NodeIP>:NodePort`
 - ExternalName: 将服务通过DNS CNAME记录方式转发到指定的域名。
 
-### Service定义
+### 示例
 
 Service 的定义也是通过`yaml`或`json`，比如下面定义了一个名为`nginx`的服务，将服务的`80`端口转发到`default namespace`中带有标签`app=nginx,tier=ingress`的Pod的80端口
 
@@ -272,6 +272,23 @@ spec:
   type: ClusterIP
 ```
 
+### 协议
+
+Service、Endpoints 和 Pod 支持三种类型的协议：
+
+- TCP（Transmission Control Protocol，传输控制协议）是一种面向连接的、可靠的、基于字节流的传输层通信协议。
+- UDP（User Datagram Protocol，用户数据报协议）是一种无连接的传输层协议，用于不可靠信息传送服务。
+- SCTP（Stream Control Transmission Protocol，流控制传输协议），用于通过IP网传输SCN（Signaling Communication Network，信令通信网）窄带信令消息。
+
+### Headless服务
+
+Headless 服务即不需要 Cluster IP 的服务，即在创建服务的时候指定 spec.clusterIP=None。包括两种类型
+
+- 不指定 Selectors，但设置 externalName，即上面的（2），通过 CNAME 记录处理
+- 指定 Selectors，通过 DNS A 记录设置后端 endpoint 列表
+
+因为没有ClusterIP，kube-proxy 并不处理此类服务，因为没有load balancing或 proxy 代理设置，在访问服务的时候回返回后端的全部的Pods IP地址，主要用于开发者自己根据pods进行负载均衡器的开发(设置了selector)。
+
 ### 工作原理
 
 ![](https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/service-flow.png)
@@ -282,15 +299,84 @@ spec:
 
 ReplicaSet用来确保容器应用的副本数始终保持在用户定义的副本数，即如果有容器异常退出，会自动创建新的Pod来替代。虽然ReplicaSet可以独立使用，但建议使用Deployment来自动管理ReplicaSet，这样就无需担心跟其他机制的不兼容问题（比如ReplicaSet不支持rolling-update但Deployment支持），并且还支持版本记录、回滚、暂停升级等高级特性。
 
-### ReplicaSet定义
-
-```yml
-
-```
-
 ## DaemonSet
 
+DaemonSet保证在每个Node上都运行一个容器副本，常用来部署一些集群的日志、监控或者其他系统管理应用。典型的应用包括：
+
+- 日志收集：logstash，fluentd
+- 系统监控：Prometheus
+- 系统程序：kube-proxy，glusterd
+
+### Fluentd示例
+
+```yml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd-elasticsearch
+  namespace: kube-system
+  labels:
+    k8s-app: fluentd-logging
+spec:
+  selector:
+    matchLabels:
+      name: fluentd-elasticsearch
+  template:
+    metadata:
+      labels:
+        name: fluentd-elasticsearch
+    spec:
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      containers:
+      - name: fluentd-elasticsearch
+        image: gcr.io/google-containers/fluentd-elasticsearch:1.20
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+```
+
+### 滚动更新
+
+通过`spec.updateStrategy.type`设置更新策略。目前支持两种策略
+
+- OnDelete：默认策略，更新模板后，只有手动删除了旧的Pod后才会创建新的Pod
+- RollingUpdate: 更新DaemonSet模板后，自动删除旧的Pod并创建新的Pod
+
+在使用RollingUpdate策略时，还可以设置
+
+- spec.updateStrategy.rollingUpdate.maxUnavailable，默认1
+- spec.minReadySeconds，默认0
+
+### 指定Node节点
+
+DaemonSet 会忽略 Node 的 unschedulable 状态，有两种方式来指定 Pod 只运行在指定的 Node 节点上：
+
+- nodeSelector：只调度到匹配指定 label 的 Node 上
+- nodeAffinity：功能更丰富的 Node 选择器，比如支持集合操作
+- podAffinity：调度到满足条件的 Pod 所在的 Node 上
+
 ## StatefulSet
+
+### Zookeeper示例
 
 ## CronJob
 
