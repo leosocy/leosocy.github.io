@@ -402,6 +402,31 @@ Kubernetes 支持以下几种 Job：
 - `.spec.parallelism`标志并行运行的Pod的个数，默认为1
 - `.spec.activeDeadlineSeconds`标志失败Pod的重试最大时间，超过这个时间不会继续重试
 
+## LocalVolume
+
+本地数据卷（Local Volume）代表一个本地存储设备，比如磁盘、分区或者目录等。主要的应用场景包括分布式存储和数据库等需要高性能和高可靠性的环境里。
+
+本地数据卷只能以静态创建的 PV 使用。本地数据卷可以直接以持久化的方式使用（它总是通过 NodeAffinity 调度在某个指定的节点上）。
+
+## Namespace
+
+Namespace 是对一组资源和对象的抽象集合，比如可以用来将系统内部的对象划分为不同的项目组或用户组。常见的 pod, service, replication controller 和 deployment 等都是属于某一个 namespace 的（默认是 default），而 node, persistent volume，namespace 等资源则不属于任何 namespace。
+
+Namespace 常用来隔离不同的用户，比如 Kubernetes 自带的服务一般运行在 kube-system namespace 中。
+
+### Namespace操作
+
+- 查询：`k get ns`
+- 创建：`k create ns new-ns`
+- 删除：`k delete ns new-ns`
+    
+    注意：
+    1. 删除一个namespace会自动删除所有属于该ns的资源
+    1. default和kube-system命名空间不可删除
+    1. PersistentVolume 是不属于任何 namespace 的，但 PersistentVolumeClaim 是属于某个特定 namespace 的。
+
+给namespace增加资源配额，请见`ResourceQuota`
+
 ## Pods
 
 ### Pod的特征
@@ -767,11 +792,7 @@ $ kubectl delete pvc www-web-0 www-web-1
 
 ## Node
 
-## Namespace
-
 ## Resource Quotas
-
-## Volumes
 
 ## PV/PVC/StorageClass
 
