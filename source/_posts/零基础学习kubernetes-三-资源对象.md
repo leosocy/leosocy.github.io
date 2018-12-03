@@ -2,6 +2,8 @@
 title: '零基础学习kubernetes(三): 资源对象'
 copyright: false
 date: 2018-11-12 22:34:07
+photos:
+- images/Kubernetes_logo.svg
 tags:
 - k8s
 categories:
