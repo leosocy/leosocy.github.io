@@ -2,6 +2,8 @@
 title: 'ServiceMesh初探（一）：What, Why, How'
 copyright: false
 date: 2018-11-12 16:40:37
+photos:
+- https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/service_mesh_logo.jpg
 tags:
 - ServiceMesh
 - 微服务

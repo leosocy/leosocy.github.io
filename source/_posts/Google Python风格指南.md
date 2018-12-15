@@ -5,12 +5,12 @@ subtitle: 养成良好的编程习惯和风格，让代码像诗一样优美
 date: 2018-05-20
 copyright: true
 photos:
-  - images/tabs-or-spaces.png
+- images/tabs-or-spaces.png
 tags:
-  - Python
-  - 代码风格
+- Python
+- 代码风格
 categories:
-  - 编码技能
+- 编码技能
 ---
 
 # Google Python Code Style

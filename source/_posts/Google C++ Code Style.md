@@ -5,12 +5,12 @@ subtitle: 养成良好的编程习惯和风格，让代码像诗一样优美
 date: 2018-04-26
 copyright: true
 photos:
-  - images/tabs-or-spaces.png
+- images/tabs-or-spaces.png
 tags:
-  - C++
-  - 代码风格
+- C++
+- 代码风格
 categories:
-  - 编码技能
+- 编码技能
 ---
 
 # Google C++ Code Style

@@ -4,12 +4,12 @@ title: 设计模式Python实现
 date: 2018-05-28
 copyright: true
 photos:
-  - https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/design-pattern.jpg
+- https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/design-pattern.jpg
 tags:
-  - Python
-  - 设计模式
+- Python
+- 设计模式
 categories:
-  - 编码技能
+- 编码技能
 ---
 
 > 最近找到了一篇容易理解的关于设计模式的文章，比较深刻地讲解了设计模式 [史上最全设计模式导学目录（完整版）](https://blog.csdn.net/lovelion/article/details/17517213)。 为了加深自己对设计模式的理解，同时熟悉Python面向对象编程的技巧，遂写下此篇文章，记录每种设计模式对应的一个练习题，并附上Python代码实现。

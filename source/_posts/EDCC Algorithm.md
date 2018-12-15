@@ -7,9 +7,9 @@ copyright: true
 photos:
 - https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/edcc.png
 tags:
-  - 算法
+- 算法
 categories:
-  - 我的开源项目
+- 我的开源项目
 ---
 
 # EDCC(Enhanced and Discriminative Competitive Code): 高效、准确的掌纹识别算法

@@ -5,11 +5,11 @@ description: 整理一些常用的 Git 指令
 date: 2017-07-21
 copyright: true
 photos:
-  - https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/git-goodness.gif
+- https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/git-goodness.gif
 tags:
-  - Git
+- Git
 categories:
-  - 基础知识/技能
+- 基础知识/技能
 ---
 
 # GitHub创建仓库提示代码

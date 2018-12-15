@@ -2,6 +2,8 @@
 title: Pipenv——它是Python包管理的大救星
 copyright: false
 date: 2018-12-10 11:40:04
+photos:
+- https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/intro_to_pipenv.jpg
 tags:
 - Python
 - Tool
@@ -13,7 +15,7 @@ categories:
 
 除了解决一些常见问题之外，它还将开发过程合并并简化为单个命令行工具。
 
-本指南将介绍Pipenv解决了哪些问题，以及如何管理与Pipenv的Python依赖关系。此外，它还将介绍Pipenv如何与以前的包分发方法相适应。
+本指南将介绍Pipenv解决了哪些问题，以及如何管理与Pipenv的Python依赖关系。此外，它还将介绍如何从以前的requirements.txt转为使用Pipenv管理包。
 
 <!-- more -->
 

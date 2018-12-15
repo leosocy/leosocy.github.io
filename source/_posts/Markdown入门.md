@@ -6,10 +6,10 @@ copyright: true
 photos:
   - images/markdown-syntax-language.png
 tags:
-  - Markdown
-  - 入门
+- Markdown
+- 入门
 categories:
-  - 基础知识/技能
+- 基础知识/技能
 ---
 
 # <hw id="1">一、认识Markdown</h2>
