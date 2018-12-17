@@ -42,9 +42,9 @@ Kubernetes集群由两种类型的资源组成:
     - Linux: `curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo cp minikube /usr/local/bin/ && rm minikube`
 1. 启动集群: `minikube start`，minikube会在本地启动一个虚拟机，然后在虚拟机中运行k8s集群。
 1. 查看集群信息: `kubectl cluster-info`
-1. 查看所有节点: `kubectl get nodes`
+1. 查看所有节点: `kubectl get nodes`
 
-## 使用`kubectl`创建发布应用
+## 使用`kubectl`创建发布应用
 
 ### k8s部署
 
@@ -60,7 +60,7 @@ Kubernetes集群由两种类型的资源组成:
 
 下面我们将部署一个Node.js服务
 
-1. 发布应用: `kubectl run kubernetes-bootcamp --image=gcr.io/google-samples/kubernetes-bootcamp:v1 --port=8080`。这个命令中，k8s帮我们干了三件事情:
+1. 发布应用: `kubectl run kubernetes-bootcamp --image=gcr.io/google-samples/kubernetes-bootcamp:v1 --port=8080`。这个命令中，k8s帮我们干了三件事情:
     1. 搜索可以运行应用程序实例的合适Node
     1. 调度应用程序在该节点上运行
     1. 配置集群以在需要时在新节点上重新调度实例

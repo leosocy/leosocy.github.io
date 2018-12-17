@@ -46,7 +46,7 @@ session1启动，这里我们显示的启动事务，select语句会对user表�
 
 之后session3需要对表进行DDL操作，请求MDL写锁，但是session1的事务还没有提交，MDL读锁并没有释放，所以被阻塞。
 
-最可怕的是，在session3之后的读请求都会被阻塞，也就是说user表现在完全不可以读写了。你们可能会问，session3也并没有拿到写锁啊，为什么会阻塞后面的读请求呢？这里读者猜想，应该是MySQL内部维护了一个MDL队列，避免MDL写锁一致请求不到。
+最可怕的是，在session3之后的读请求都会被阻塞，也就是说user表现在完全不可以读写了。你们可能会问，session3也并没有拿到写锁啊，为什么会阻塞后面的读请求呢？这里读者猜想，应该是MySQL内部维护了一个MDL队列，避免MDL写锁一致请求不到。
 
 如果某个表上的查询语句频繁，而且客户端有重试机制，也就是说超时后会再起一个新session再请求的话，这个库的线程很快就会爆满。
 
@@ -66,7 +66,7 @@ session1启动，这里我们显示的启动事务，select语句会对user表�
 |select unknown from user;||
 ||alter table user add column address varchar(20)|
 
-我们发现，session2阻塞，等待获取MDL写锁。查看正在运行的事务，发现并没有事务在运行。
+我们发现，session2阻塞，等待获取MDL写锁。查看正在运行的事务，发现并没有事务在运行。
 
 ```SQL
 mysql> mysql> select * from information_schema.innodb_trx\G;
@@ -85,14 +85,14 @@ Empty set (0.00 sec)
 
 |操作|SQL|原因|处理|
 |:-:|:-:|:--:|:-:|
-|查看当前是否有正在执行的长事务或者未提交的事务|select * from information_schema.innodb_trx\G|显示(begin;)或者隐式(set autocommit=0)开启事务后未提交或回滚，MDL读锁未释放|暂停DDL或者kill掉事务|
+|查看当前是否有正在执行的长事务或者未提交的事务|select * from information_schema.innodb_trx\G|显示(begin;)或者隐式(set autocommit=0)开启事务后未提交或回滚，MDL读锁未释放|暂停DDL或者kill掉事务|
 |查看是否有执行失败的事务|select * from performance_schema.events_statements_current\G  select * from performance_schema.threads where thread_id=xx\G|表上有失败的查询事务，比如查询不存在的列，语句失败返回，但是事务没有提交|kill掉|
 
 ## 如何预防
 
 上一节讲到了如何解决MDL写锁等待超长的情况。我们知道DDL阻塞会影响后面正常的读写操作，这对一些业务场景来说是完全不可以接受的。所以有些时候我们在执行DDL操作之前，可以执行以下操作检查
 
-1. 检查是否有长事务或者失败的事务未提交，如果有可以等待一段时间再执行
+1. 检查是否有长事务或者失败的事务未提交，如果有可以等待一段时间再执行
 1. 通过设置session的`lock_wait_timeout`，指定MDL锁等待时间，如果在这个指定的等待时间里面拿到MDL写锁最好，拿不到也不要阻塞后面的业务语句，先放弃。
 
 ## 总结

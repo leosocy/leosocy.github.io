@@ -98,7 +98,7 @@ UUID=20ca01ff-c5eb-47bc-99a0-6527b8cb246e /boot                   xfs     defaul
 
 ## k8s相关环境
 
-根据[官方文档](https://kubernetes.io/docs/setup/independent/install-kubeadm/)，准备k8s集群部署相关的软件、环境设置等。
+根据[官方文档](https://kubernetes.io/docs/setup/independent/install-kubeadm/)，准备k8s集群部署相关的软件、环境设置等。
 
 ### 关闭SELinux
 
@@ -166,11 +166,11 @@ sudo systemctl daemon-reload && sudo systemctl restart kubelet
 
 ### 修改kubeadm使用的默认镜像仓储
 
-由于执行`kubeadm init`会默认访问谷歌服务器，所以会出现失败的情况，这里我们需要将kubeadm使用的默认docker镜像从另外的仓库中全部下载下来，然后批量打标签成需要的镜像名。
+由于执行`kubeadm init`会默认访问谷歌服务器，所以会出现失败的情况，这里我们需要将kubeadm使用的默认docker镜像从另外的仓库中全部下载下来，然后批量打标签成需要的镜像名。
 
 > 参考：[Google Container Registry(gcr.io) 中国可用镜像(长期维护)](https://anjia0532.github.io/2017/11/15/gcr-io-image-mirror/)
 
-在执行`kubeadm init`时，会报错
+在执行`kubeadm init`时，会报错
 
 ![](https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/20180927002610.png)
 
