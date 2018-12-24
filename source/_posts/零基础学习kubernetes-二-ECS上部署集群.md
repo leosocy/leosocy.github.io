@@ -166,6 +166,10 @@ sudo systemctl daemon-reload && sudo systemctl restart kubelet
 
 ### 修改kubeadm使用的默认镜像仓储
 
+Change: 2018-12-14
+
+kubeadm支持`--image-repository`参数，可以指定镜像仓库，所以下面的方法可以作废。我们使用dockerhub上的一些仓库即可完成pull images。e.g.  [bluenet13](https://hub.docker.com/u/bluenet13) (support v1.13.1)
+
 由于执行`kubeadm init`会默认访问谷歌服务器，所以会出现失败的情况，这里我们需要将kubeadm使用的默认docker镜像从另外的仓库中全部下载下来，然后批量打标签成需要的镜像名。
 
 > 参考：[Google Container Registry(gcr.io) 中国可用镜像(长期维护)](https://anjia0532.github.io/2017/11/15/gcr-io-image-mirror/)

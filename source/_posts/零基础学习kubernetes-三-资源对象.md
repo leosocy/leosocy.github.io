@@ -663,7 +663,7 @@ Service、Endpoints 和 Pod 支持三种类型的协议：
 Headless 服务即不需要 Cluster IP 的服务，即在创建服务的时候指定 spec.clusterIP=None。包括两种类型
 
 - 不指定 Selectors，但设置 externalName，即上面的（2），通过 CNAME 记录处理
-- 指定 Selectors，通过 DNS A 记录设置后端 endpoint 列表，DNS格式为`serviceName.namespace.svc.cluster.local`
+- 指定 Selectors，通过 DNS A 记录设置后端 endpoint 列表，DNS格式为`<serviceName>.<namespace>.svc.cluster.local`
 
 因为没有ClusterIP，kube-proxy 并不处理此类服务，因为没有load balancing或 proxy 代理设置，在访问服务的时候回返回后端的全部的Pods IP地址，主要用于开发者自己根据pods进行负载均衡器的开发(设置了selector)。
 
