@@ -2,6 +2,8 @@
 title: 零基础学习kubernetes(四)：利用闲置主机搭建并暴露本地k8s集群
 copyright: true
 date: 2018-12-25 21:24:10
+photos:
+- https://blog-images-1257621236.cos.ap-shanghai.myqcloud.com/kubernetes_tutorials.png
 tags:
 - k8s cluster
 - NAT
