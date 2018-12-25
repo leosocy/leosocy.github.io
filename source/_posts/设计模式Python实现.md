@@ -24,7 +24,7 @@ XX软件公司欲基于Python语言开发一套图表库，该图表库可以为
 
 #### 改进前
 
-```Python
+```python
 class Chart(object):
 
     def __init__(self, type):
@@ -57,7 +57,7 @@ if __name__ == '__main__':
 
 #### 改进后
 
-```Python
+```python
 from abc import abstractmethod, ABCMeta
 
 class Chart(metaclass=ABCMeta):
