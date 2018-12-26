@@ -237,9 +237,75 @@ ssh xxx@xx.xx.xx -p 10022
 
 ## 使用kubeadm在本地搭建cluster
 
-### 安装kubelet、kubeadm
+*基本配置*
+
+- 安装docker
+- 关闭swap
+- 关闭SELinux
+- 确认cgroup drive
+
+以上具体配置可以参考[零基础学习 kubernetes(二): 在 ECS 上部署集群](./零基础学习kubernetes-二-ECS上部署集群.md)
+
+### 安装kubelet、kubeadm、kubectl
+
+您需要在每台机器上都安装以下的软件包：
+
+- `kubeadm`: 用来初始化集群的指令
+- `kubelet`: 在集群中的每个节点上用来启动pod和container等
+- `kubectl`: 用来与集群通信的命令行工具
+
+*安装CNI插件*
+
+```shell
+CNI_VERSION="v0.6.0"
+mkdir -p /opt/cni/bin
+curl -L "https://github.com/containernetworking/plugins/releases/download/${CNI_VERSION}/cni-plugins-amd64-${CNI_VERSION}.tgz" | tar -C /opt/cni/bin -xz
+```
+
+*安装crictl(kubeadm/Kubelet的容器运行时接口(CRI)要求)*
+
+```shell
+CRICTL_VERSION="v1.11.1"
+mkdir -p /opt/bin
+curl -L "https://github.com/kubernetes-incubator/cri-tools/releases/download/${CRICTL_VERSION}/crictl-${CRICTL_VERSION}-linux-amd64.tar.gz" | tar -C /opt/bin -xz
+```
+
+*安装`kubeadm`,`kubelet`,`kubectl`并且添加一个`kubelet`systemd服务*
+
+```shell
+RELEASE="$(curl -sSL https://dl.k8s.io/release/stable.txt)"
+
+mkdir -p /opt/bin
+cd /opt/bin
+curl -L --remote-name-all https://storage.googleapis.com/kubernetes-release/release/${RELEASE}/bin/linux/amd64/{kubeadm,kubelet,kubectl}
+chmod +x {kubeadm,kubelet,kubectl}
+
+curl -sSL "https://raw.githubusercontent.com/kubernetes/kubernetes/${RELEASE}/build/debs/kubelet.service" | sed "s:/usr/bin:/opt/bin:g" > /etc/systemd/system/kubelet.service
+mkdir -p /etc/systemd/system/kubelet.service.d
+curl -sSL "https://raw.githubusercontent.com/kubernetes/kubernetes/${RELEASE}/build/debs/10-kubeadm.conf" | sed "s:/usr/bin:/opt/bin:g" > /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+```
+
+*启用并启动`kubelet`*
+
+```shell
+systemctl enable kubelet && systemctl start kubelet
+```
+
+kubelet 现在每隔几秒就会重启，因为它陷入了一个等待 kubeadm 指令的死循环。
 
 ### 启动集群
+
+```
+kubeadm init --kubernetes-version=v1.13.1 --image-repository=bluenet13 --apiserver-advertise-address=0.0.0.0 --pod-network-cidr=10.244.0.0/16 --apiserver-cert-extra-sans=k8s-pro.leosocy.top
+```
+
+*Options*
+
+- --kubernetes-version: 截止笔者撰写此博客时，最新的stable版本为1.13.1
+- --image-repository: 配置指定的docker registry，避免默认的`k8s.gcr.io`由于被墙导致的镜像拉取失败
+- --apiserver-advertise-address: 指定“0.0.0.0”来使用默认网络接口的地址
+- --apiserver-cert-extra-sans: 用于apiserver服务证书的可选额外SANs，可以是IP地址和DNS名称。还记得我们在上面配置的frpc的`k8s-router`的https路由规则，以笔者的配置为例，当外网用户配置好了`kubectl`的cluster、签名用户、以及context后，请求操作apiserver `https://k8s-pro.leosocy.top`时，阿里云DNS解析首先将请求根据域名解析到配置的ECS公网IP上，然后frps根据客户端配置，将请求路由到指定的内网端口上(即内网k8s apiserver)，apiserver根据Host判断是否在证书的SANs中，如果在则执行响应操作并响应。所以外界根本感知不到是在操作一个内网的k8s集群
+- --pod-network-cidr: 选择pod网络对应的cidr
 
 ### 使用kubectl在公网上操作内网cluster
 
