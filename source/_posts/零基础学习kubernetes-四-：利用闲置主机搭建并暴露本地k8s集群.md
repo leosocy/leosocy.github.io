@@ -301,18 +301,168 @@ kubeadm init --kubernetes-version=v1.13.1 --image-repository=bluenet13 --apiserv
 
 *Options*
 
-- --kubernetes-version: 截止笔者撰写此博客时，最新的stable版本为1.13.1
-- --image-repository: 配置指定的docker registry，避免默认的`k8s.gcr.io`由于被墙导致的镜像拉取失败
-- --apiserver-advertise-address: 指定“0.0.0.0”来使用默认网络接口的地址
-- --apiserver-cert-extra-sans: 用于apiserver服务证书的可选额外SANs，可以是IP地址和DNS名称。还记得我们在上面配置的frpc的`k8s-router`的https路由规则，以笔者的配置为例，当外网用户配置好了`kubectl`的cluster、签名用户、以及context后，请求操作apiserver `https://k8s-pro.leosocy.top`时，阿里云DNS解析首先将请求根据域名解析到配置的ECS公网IP上，然后frps根据客户端配置，将请求路由到指定的内网端口上(即内网k8s apiserver)，apiserver根据Host判断是否在证书的SANs中，如果在则执行响应操作并响应。所以外界根本感知不到是在操作一个内网的k8s集群
-- --pod-network-cidr: 选择pod网络对应的cidr
+- `--kubernetes-version`: 截止笔者撰写此博客时，最新的stable版本为1.13.1
+- `--image-repository`: 配置指定的docker registry，避免默认的`k8s.gcr.io`由于被墙导致的镜像拉取失败
+- `--apiserver-advertise-address`: 指定“0.0.0.0”来使用默认网络接口的地址
+- `--apiserver-cert-extra-sans`: 用于apiserver服务证书的可选额外SANs，可以是IP地址和DNS名称。还记得我们在上面配置的frpc的`k8s-router`的https路由规则，以笔者的配置为例，当外网用户配置好了`kubectl`的cluster、签名用户、以及context后，请求操作apiserver `https://k8s-pro.leosocy.top`时，阿里云DNS解析首先将请求根据域名解析到配置的ECS公网IP上，然后frps根据客户端配置，将请求路由到指定的内网端口上(即内网k8s apiserver)，apiserver根据Host判断是否在证书的SANs中，如果在则执行响应操作并响应。所以外界根本感知不到是在操作一个内网的k8s集群
+- `--pod-network-cidr`: 选择pod网络对应的cidr(笔者这里选择的是flannel)
+
+稍等几分钟之后，cluster master就安装成功了，启动成功之后还要创建pod网络、设置工作节点等等，具体可以参考[零基础学习kubernetes(二): 在ECS上部署集群](./零基础学习kubernetes-二-ECS上部署集群.md)
 
 ### 使用kubectl在公网上操作内网cluster
 
+上面我们已经成功的在内网搭建了一个k8s集群(虽然只有一个master节点)，现在如果我们想通过公网的ip/域名操作这个集群该怎么办呢？
+
+#### 创建用户凭证
+
+集群启动后，k8s帮我们创建了一个master账号，拥有操作集群的超级权限，很显然如果想在外部网络操作集群，是不可能配置这个账号的。所以，我们要按需创建用户账号(即RBAC)，并赋予相关权限。
+
+1. 为用户创建私钥。在这个例子中，我们将命名文件`employee.key`:
+    ```shell
+    openssl genrsa -out employee.key 2048
+    ```
+1. 创建证书签名请求`employee.csr`使用刚刚创建的私钥`employee.key`。确保在`-subj`部分中指定了用户名(CN是用户名)
+    ```shell
+    openssl req -new -key employee.key -out employee.csr -subj "/CN=employee"
+    ```
+1. 使用集群证书颁发机构(CA)给employee.csr签发证书，ca根证书一般在集群master的`/etc/kubernetes/pki/`下
+    ```shell
+    openssl x509 -req -in employee.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out employee.crt -days 3650
+    ```
+1. 将`ca.crt`, `employee.key`, `employee.crt`保存到需要操作集群的机器上(例如你的ECS)的一个目录下，例如`~/.kube/crts`
+1. 设置cluster、credentials以及context
+    ```shell
+    k config set-cluster `your-cluster-name` --server=`your-cluster-domain` --certificate-authority=~/.kube/crts/cluster/ca.key
+    k config set-credentials employee --client-certificate=~/.kube/crts/user/employee.crt --client-key=~/.kube/crts/user/employee.key
+    k config set-context employee-context --cluster=`your-cluster-name` --user=employee
+    ```
+
+现在，在使用带有此配置文件的kubectl CLI时，应该会出现访问拒绝错误。这是预期的，因为我们还没有为该用户定义任何允许的操作。
+
+#### 根据需求创建RoleBinding/ClusterRoleBinding
+
+1. 创建一个名为`office`的命名空间
+    ```shell
+    k create ns office
+    ```
+
+1. 创建一个`role-deployment-manager.yml`文件包含以下内容。在这个yaml文件中，我们创建了一个规则，允许用户在`Deployment`、`Pod`和`ReplicaSets`(创建Deployment所必需的)上执行一些操作，这些操作属于核心(在yaml文件中以“”表示)、应用程序和扩展API组:
+    ```yaml
+    kind: Role
+    apiVersion: rbac.authorization.k8s.io/v1beta1
+    metadata:
+    namespace: office
+    name: deployment-manager
+    rules:
+    - apiGroups: ["", "extensions", "apps"]
+    resources: ["deployments", "replicasets", "pods"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"] # You can also use ["*"]
+    ```
+    ```shell
+    k apply -f role-deployment-manager.yml
+    ```
+
+1. 绑定角色到employee用户，创建一个`rolebinding-deployment-manager.yml`文件包含以下内容。在这个文件中，我们将`deployment-manager`角色绑定到office名称空间中的用户帐户employee:
+    ```yaml
+    kind: RoleBinding
+    apiVersion: rbac.authorization.k8s.io/v1beta1
+    metadata:
+      name: deployment-manager-binding
+      namespace: office
+    subjects:
+    - kind: User
+      name: employee
+      apiGroup: ""
+    roleRef:
+      kind: Role
+      name: deployment-manager
+      apiGroup: ""
+    ```
+    ```shell
+    k apply -f rolebinding-deployment-manager.yaml
+    ```
+
+1. 测试RBAC角色，可以看到employee用户已经有了相应的操作资源的权限了
+    ```shell
+    k config use-context employee-context   # 切换context
+    k run --image nginx mynginx
+    ```
+
 ### 效果
 
+搭建一个nginx service试试
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: office
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: office
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: nginx
+  type: ClusterIP
+  clusterIP: None
+```
+
+然后`port-forward`将服务的端口映射到本地端口
+
+```shell
+k port-forward svc/nginx-service 8080:80
+```
+
+curl下看看
+
+```shell
+curl localhost:8080
+```
+
+可以看到如下输出
+
+```txt
+...
+Welcome to nginx!
+If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.
+...
+```
+
 ## 使用效果
+
+通过上面的一顿操作，我们在内网的机器上部署了k8s集群，然后通过`frp`工具，将来自外网的请求通过具有公网ip的ECS转发到了内网，从而实现了调用内网k8s apiserver。
+
+现在你就可以丢掉资源受限的ECS k8s了，将家里闲置的笔记本电脑(例如笔者已经服役五年依旧坚挺的Dell)重新利用起来，搭建一个真正意义上的k8s集群，并在其上部署/监控你的应用吧！
+
+## What's next?
+
+部署Ingress，让外部请求(HTTP/HTTPS)通过ECS上的frps转发到内网的指定端口，同时Ingress根据host、path等，将请求路由到对应的svc，然后通过kube-proxy负载均衡到后端Pod中。
 
 ## 参考文章
 
 https://lolico.moe/tutorial/frp.html
+https://docs.bitnami.com/kubernetes/how-to/configure-rbac-in-your-kubernetes-cluster/
