@@ -20,7 +20,7 @@ Protobuf（全称Protocol Buffers）用于序列化数据结构，描述数据�
 
 #### 基本格式
 
-```proto
+```protobuf
 syntax = "proto3";
 
 package = test_message;
@@ -61,7 +61,7 @@ message MessageName {
 
 举例
 
-```proto
+```protobuf
 message SearchRequest {
   string query = 1;
   int32 page_number = 2;
@@ -85,7 +85,7 @@ message SearchRequest {
 
 e.g.
 
-```proto
+```protobuf
 enum EnumAllowingAlias {
   option allow_alias = true;
   UNKNOWN = 0;
@@ -124,7 +124,7 @@ message Foo {
 
 可以通过导入其他.proto文件使用定义。要导入另一个.proto的定义，请在文件顶部添加一条import语句:
 
-```proto
+```protobuf
 import "myproject/other_protos.proto";
 ```
 

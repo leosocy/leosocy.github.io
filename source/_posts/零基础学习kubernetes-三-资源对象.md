@@ -31,7 +31,7 @@ ConfigMap 用于保存配置数据的键值对，可以用来保存单个属性�
 
 ### 从yaml文件创建
 
-```yml
+```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -64,7 +64,7 @@ kubectl create configmap env-config --from-literal=log_level=INFO
 
 #### 用作环境变量
 
-```yml
+```yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -103,7 +103,7 @@ log_level=INFO
 
 将创建的 ConfigMap 直接挂载至 Pod 的 / etc/config 目录下，其中每一个 key-value 键值对都会生成一个文件，key 为文件名，value 为内容
 
-```yml
+```yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -150,7 +150,7 @@ DaemonSet保证在每个Node上都运行一个容器副本，常用来部署一�
 
 ### Fluentd示例
 
-```yml
+```yaml
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -228,7 +228,7 @@ DaemonSet 会忽略 Node 的 unschedulable 状态，有两种方式来指定 Pod
 
 ### 示例
 
-```yml
+```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -272,7 +272,7 @@ Ingress 可以给 service 提供集群外部访问的 URL、负载均衡、SSL �
 
 ### Ingress格式
 
-```yml
+```yaml
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
@@ -295,7 +295,7 @@ spec:
 
 单服务 Ingress 即该 Ingress 仅指定一个没有任何规则的后端服务。
 
-```yml
+```yaml
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
@@ -317,7 +317,7 @@ foo.bar.com -> 178.91.123.132 -> / foo    s1:80
 
 可以通过下面的 Ingress 来定义：
 
-```yml
+```yaml
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
@@ -349,7 +349,7 @@ bar.foo.com --|                 |-> bar.foo.com s2:80
 
 下面是一个基于 Host header 路由请求的 Ingress：
 
-```yml
+```yaml
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
@@ -442,7 +442,7 @@ Namespace 常用来隔离不同的用户，比如 Kubernetes 自带的服务一�
 
 一个nginx Pod的yaml配置
 
-```yml
+```yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -464,7 +464,7 @@ spec:
 
 Volume可以为容器提供持久化存储，比如
 
-```yml
+```yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -512,7 +512,7 @@ k8s通过`cgroups`限制容器的CPU和内存等计算资源，包括`requests`(
 
 比如nginx容器请求30%的CPU和56MB的内存，但限制最多只能使用50%的CPU和128MB的内存：
 
-```yml
+```yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -569,7 +569,7 @@ Init容器在所有容器运行之前执行，常用来初始化配置。如果�
 
 可以通过`pod.spec.hostAliases`来增加hosts内容，如
 
-```yml
+```yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -593,7 +593,7 @@ spec:
 
 很多容器都是配置了UTC时区，与国内集群的Node所在时区有可能不一致，可以通过HostPath存储插件给容器配置与Node一样的时区：
 
-```yml
+```yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -630,7 +630,7 @@ Service是对一组提供相同功能的Pods的抽象，并为它们提供一个
 
 Service 的定义也是通过`yaml`或`json`，比如下面定义了一个名为`nginx`的服务，将服务的`80`端口转发到`default namespace`中带有标签`app=nginx,tier=ingress`的Pod的80端口
 
-```yml
+```yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -663,7 +663,7 @@ Service、Endpoints 和 Pod 支持三种类型的协议：
 Headless 服务即不需要 Cluster IP 的服务，即在创建服务的时候指定 spec.clusterIP=None。包括两种类型
 
 - 不指定 Selectors，但设置 externalName，即上面的（2），通过 CNAME 记录处理
-- 指定 Selectors，通过 DNS A 记录设置后端 endpoint 列表，DNS格式为`serviceName.namespace.svc.cluster.local`
+- 指定 Selectors，通过 DNS A 记录设置后端 endpoint 列表，DNS格式为`<serviceName>.<namespace>.svc.cluster.local`
 
 因为没有ClusterIP，kube-proxy 并不处理此类服务，因为没有load balancing或 proxy 代理设置，在访问服务的时候回返回后端的全部的Pods IP地址，主要用于开发者自己根据pods进行负载均衡器的开发(设置了selector)。
 
@@ -705,7 +705,7 @@ StatefulSet中每个Pod的DNS格式为`statefulSetName-{0..N-1}.serviceName.name
 
 以一个简单的nginx服务为例
 
-```yml
+```yaml
 apiVersion: v1
 kind: Service
 metadata:

@@ -161,6 +161,7 @@ docker info | grep 'Cgroup Driver'
 ```shell
 Environment="KUBELET_CGROUP_ARGS=--cgroup-driver=systemd"
 
+# 然后执行
 sudo systemctl daemon-reload && sudo systemctl restart kubelet
 ```
 

@@ -41,7 +41,7 @@ post_asset_folder: false
 relative_link: false
 future: true
 highlight:
-  enable: true
+  enable: false
   line_number: true
   auto_detect: false
   tab_replace:
@@ -88,6 +88,11 @@ search:
 ## Plugins: https://hexo.io/plugins/
 ## Themes: https://hexo.io/themes/
 theme: next
+
+prism_plugin:
+  mode: 'preprocess'    # realtime/preprocess
+  theme: 'atom-dark'
+  line_number: true
 
 # Deployment
 ## Docs: https://hexo.io/docs/deployment.html
