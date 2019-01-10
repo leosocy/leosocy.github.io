@@ -482,10 +482,19 @@ pangu: true
 
 # Disqus
 disqus:
-  enable: true
+  enable: false
   shortname: leosocy
   count: true
   lazyload: false
+
+gitalk:
+  enable: true
+  githubID: leosocy
+  repo: leosocy.github.io
+  adminUser: leosocy
+  distractionFreeMode: true
+  ClientID: 16c4bc2719bc57ba6401
+  ClientSecret: d859d840980afcbc6eb30bafabfc9e2f9b690b5a
 
 # changyan
 changyan:
