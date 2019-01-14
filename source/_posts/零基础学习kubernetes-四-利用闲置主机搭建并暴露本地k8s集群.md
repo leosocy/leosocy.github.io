@@ -460,7 +460,7 @@ working. Further configuration is required.
 
 ## What's next?
 
-部署Ingress，让外部请求(HTTP/HTTPS)通过ECS上的frps转发到内网的指定端口，同时Ingress根据host、path等，将请求路由到对应的svc，然后通过kube-proxy负载均衡到后端Pod中。
+在集群中部署Istio，让外部请求(HTTP/HTTPS)通过ECS上的frps转发到内网集群的指定端口，进而将请求路由进入mesh，并根据路由策略，路由到对应的svc。
 
 ## 参考文章
 
