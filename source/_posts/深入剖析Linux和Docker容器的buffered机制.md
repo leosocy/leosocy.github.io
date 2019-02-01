@@ -1,5 +1,5 @@
 ---
-title: I/O的buffered缓冲机制
+title: 深入剖析Linux和Docker容器的buffered机制
 copyright: true
 date: 2019-01-30 13:30:09
 photos:
