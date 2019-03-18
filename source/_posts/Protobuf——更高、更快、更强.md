@@ -7,7 +7,7 @@ photos:
 tags:
 - 序列化
 categories:
-- serializer
+- 基础知识/技能
 ---
 
 Protobuf（全称Protocol Buffers）用于序列化数据结构，描述数据组织结构，支持大部分目前流行的语言。相较于XML，Protobuf使用更简单，清晰，序列化后的数据占用空间小3\~10倍，解析速度快20\~100倍。
