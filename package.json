@@ -25,5 +25,9 @@
     "hexo-wordcount": "^6.0.1",
     "hoek": "^6.1.2",
     "pangu": "^3.3.0"
+  },
+  "devDependencies": {
+    "lodash": "^4.17.11",
+    "morgan": "^1.9.1"
   }
 }
