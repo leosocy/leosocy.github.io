@@ -133,7 +133,7 @@ The `docker logs` command batch-retrieves logs present at the time of execution.
 
 那我不禁要问了，这个日志是哪来的呢？别急我们继续看，官网上罗列了一些支持的[logging drivers](https://docs.docker.com/config/containers/logging/configure/)，默认使用的是`json-file` driver。并且除了`json-file`和`journald`之外，`docker logs`命令对其他驱driver不可用。
 
-所以如果使用了json-file driver，Docker daemon会在container启动的时候创建一个`container.ID-json.log`文件，用于写入此container相关进程的STDOUT，见下面一段源码
+所以如果使用了json-file driver，Docker daemon会在container启动的时候创建一个`container.ID-json.log`文件，用于写入此container相关进程的STDOUT，见下面一段源码
 
 ```go
 switch cfg.Type {
@@ -146,7 +146,7 @@ case jsonfilelog.Name:
     container.LogPath = info.LogPath
 ```
 
-[这篇文章](https://cloud.tencent.com/developer/article/1140079)有对logging-driver更详细的源码级分析。
+[这篇文章](https://cloud.tencent.com/developer/article/1140079)有对logging-driver更详细的源码级分析。
 
 下面一些截图是对上面文章的实践分析
 
@@ -220,7 +220,7 @@ func (w *LogFile) ReadLogs(config logger.ReadConfig, watcher *logger.LogWatcher)
 
 上一节我们从源码级别剖析了`docker logs`的traceback，那回到本节刚开始的问题，为什么没有看到任何输出？而cat该进程的stdout文件描述符却能看到输出？通过上面一部分我们可以推断一定是输出没有被写入到json-file中，我们如法炮制，看看源码吧
 
-我们看到copier.go文件的[第21行](https://github.com/moby/moby/blob/master/daemon/logger/copier.go#L21), [第99行](https://github.com/moby/moby/blob/master/daemon/logger/copier.go#L99)和[第133行](https://github.com/moby/moby/blob/master/daemon/logger/copier.go#L133)，有如下发现
+我们看到copier.go文件的[第21行](https://github.com/moby/moby/blob/master/daemon/logger/copier.go#L21), [第99行](https://github.com/moby/moby/blob/master/daemon/logger/copier.go#L99)和[第133行](https://github.com/moby/moby/blob/master/daemon/logger/copier.go#L133)，有如下发现
 
 1. 每个容器都为stdout/stderr分配了一个16K的日志读缓冲区
 1. 遇到换行会将缓冲区换行前的数据格式化并写入日志文件
