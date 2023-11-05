@@ -1,0 +1,633 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>零基础学习kubernetes(三): 资源对象 | Leosocy's Blog</title><meta name="description" content="在学习使用k8s的过程中，我们不免看到许许多多的名词，包括deploy、svc、rs等等，它们通常代表着k8s中不同的资源对象。本文会介绍这些资源，同时会给出部署的yml文件，供实战部署，加深对这些名词的理解。   AutoscalingHorizontal Pod Autoscaling (HPA) 可以根据 CPU 使用率或应用自定义 metrics 自动扩展 Pod 数量（支持 replic"><meta name="keywords" content="k8s"><meta name="author" content="Leosocy,leosocy@gmail.com"><meta name="copyright" content="Leosocy"><meta name="format-detection" content="telephone=no"><link rel="shortcut icon" href="https://cdn.leosocy.top/img/LEO-logo.jpg"><link rel="canonical" href="https://blog.leosocy.top/posts/9327/"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="preconnect" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//www.google-analytics.com" crossorigin="crossorigin"><link rel="preconnect" href="//fonts.googleapis.com" crossorigin="crossorigin"><meta name="google-site-verification" content="oh1OfqVAIxCAFZ8w5KBBtK7tJK48Z0HuFl2XXbRiM-E"><meta name="baidu-site-verification" content="code-7jpxSWptMj"><meta property="og:type" content="article"><meta property="og:title" content="零基础学习kubernetes(三): 资源对象"><meta property="og:url" content="https://blog.leosocy.top/posts/9327/"><meta property="og:site_name" content="Leosocy's Blog"><meta property="og:description" content="在学习使用k8s的过程中，我们不免看到许许多多的名词，包括deploy、svc、rs等等，它们通常代表着k8s中不同的资源对象。本文会介绍这些资源，同时会给出部署的yml文件，供实战部署，加深对这些名词的理解。   AutoscalingHorizontal Pod Autoscaling (HPA) 可以根据 CPU 使用率或应用自定义 metrics 自动扩展 Pod 数量（支持 replic"><meta property="og:image" content="https://blog.leosocy.top/img/k8s-3.png"><meta property="article:published_time" content="2018-11-12T14:34:07.000Z"><meta property="article:modified_time" content="2023-11-05T07:26:20.240Z"><meta name="twitter:card" content="summary"><script>var activateDarkMode = function () {
+  document.documentElement.setAttribute('data-theme', 'dark')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#000')
+  }
+}
+var activateLightMode = function () {
+  document.documentElement.setAttribute('data-theme', 'light')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#fff')
+  }
+}
+
+var getCookies = function (name) {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop().split(';').shift()
+}
+
+var autoChangeMode = 'false'
+var t = getCookies('theme')
+if (autoChangeMode === '1') {
+  var isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+  var isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+  var isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+  var hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+
+  if (t === undefined) {
+    if (isLightMode) activateLightMode()
+    else if (isDarkMode) activateDarkMode()
+    else if (isNotSpecified || hasNoSupport) {
+      console.log('You specified no preference for a color scheme or your browser does not support it. I Schedule dark mode during night time.')
+      var now = new Date()
+      var hour = now.getHours()
+      var isNight = hour <= 6 || hour >= 18
+      isNight ? activateDarkMode() : activateLightMode()
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+      if (Cookies.get('theme') === undefined) {
+        e.matches ? activateDarkMode() : activateLightMode()
+      }
+    })
+  } else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else if (autoChangeMode === '2') {
+  now = new Date()
+  hour = now.getHours()
+  isNight = hour <= 6 || hour >= 18
+  if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+  else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else {
+  if (t === 'dark') activateDarkMode()
+  else if (t === 'light') activateLightMode()
+}</script><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css"><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-8EGQPPW7GQ"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-8EGQPPW7GQ');
+</script><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Titillium+Web&amp;display=swap"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  bookmark: {
+    message_prev: '按',
+    message_next: '键将本页加入书签'
+  },
+  runtime_unit: '天',
+  runtime: false,
+  copyright: undefined,
+  ClickShowText: undefined,
+  medium_zoom: false,
+  fancybox: true,
+  Snackbar: {"bookmark":{"message_prev":"按","message_next":"键将本页加入书签"},"chs_to_cht":"你已切换为繁体","cht_to_chs":"你已切换为简体","day_to_night":"你已切换为深色模式","night_to_day":"你已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#121212","position":"bottom-left"},
+  justifiedGallery: {
+    js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+    css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+  },
+  baiduPush: false,
+  highlightCopy: true,
+  highlightLang: true,
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: false    
+}</script><script>(function(win, export_obj) {
+win['TeaAnalyticsObject'] = export_obj;
+if (!win[export_obj]) {
+function _collect() {
+_collect.q.push(arguments);
+}
+_collect.q = _collect.q || [];
+win[export_obj] = _collect;
+}
+win[export_obj].l = +new Date();
+})(window, 'collectEvent');</script><script async src="https://sf1-scmcdn-tos.pstatp.com/goofy/log-sdk/collect/collect-autotrack-rangers.js"></script><script>window.collectEvent('init', {
+app_id: 190292,//  必须替换成申请的 app_id
+channel: 'cn',
+log: true, // 开启调试日志
+autotrack: true // 开启全埋点采集，默认关闭，需要热力图及圈选功能可开启
+});
+window.collectEvent('start');</script><script>var _wr = function(type) {
+  var orig = history[type];
+  return function() {
+    var rv = orig.apply(this, arguments);
+    var e = new Event(type);
+    e.arguments = arguments;
+    window.dispatchEvent(e);
+    return rv;
+  };
+};
+history.pushState = _wr('pushState');
+history.replaceState = _wr('replaceState');
+window.addEventListener("popstate", function(event) {
+  window.collectEvent('predefinePageView');
+});
+window.addEventListener("pushState", function(event) {
+  window.collectEvent('predefinePageView');
+});</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isSidebar: true,
+  postUpdate: '2023-11-05 15:26:20'
+}</script><noscript><style>
+#nav {
+  opacity: 1
+}
+.justified-gallery img {
+  opacity: 1
+}
+</style></noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/leosocy.min.css"><meta name="referrer" content="no-referrer-when-downgrade"><meta name="generator" content="Hexo 7.0.0"></head><body><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" data-lazy-src="https://cdn.leosocy.top/img/avatar-leosocy.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">文章</div><div class="length_num">26</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">标签</div><div class="length_num">40</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">分类</div><div class="length_num">21</div></a></div></div></div><hr><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div></div></div><div id="body-wrap"><div id="web_bg" data-type="photo"></div><div id="sidebar"><i class="fas fa-arrow-right on" id="toggle-sidebar"></i><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar">     </div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Autoscaling"><span class="toc-number">1.</span> <span class="toc-text">Autoscaling</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ConfigMap"><span class="toc-number">2.</span> <span class="toc-text">ConfigMap</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%8Eyaml%E6%96%87%E4%BB%B6%E5%88%9B%E5%BB%BA"><span class="toc-number">2.1.</span> <span class="toc-text">从yaml文件创建</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ConfigMap%E4%BD%BF%E7%94%A8"><span class="toc-number">2.2.</span> <span class="toc-text">ConfigMap使用</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%94%A8%E4%BD%9C%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F"><span class="toc-number">2.2.1.</span> <span class="toc-text">用作环境变量</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8-volume-%E5%B0%86-ConfigMap-%E4%BD%9C%E4%B8%BA%E6%96%87%E4%BB%B6%E6%88%96%E7%9B%AE%E5%BD%95%E7%9B%B4%E6%8E%A5%E6%8C%82%E8%BD%BD"><span class="toc-number">2.2.2.</span> <span class="toc-text">使用 volume 将 ConfigMap 作为文件或目录直接挂载</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CronJob"><span class="toc-number">3.</span> <span class="toc-text">CronJob</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DaemonSet"><span class="toc-number">4.</span> <span class="toc-text">DaemonSet</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Fluentd%E7%A4%BA%E4%BE%8B"><span class="toc-number">4.1.</span> <span class="toc-text">Fluentd示例</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0"><span class="toc-number">4.2.</span> <span class="toc-text">滚动更新</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8C%87%E5%AE%9ANode%E8%8A%82%E7%82%B9"><span class="toc-number">4.3.</span> <span class="toc-text">指定Node节点</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Deployment"><span class="toc-number">5.</span> <span class="toc-text">Deployment</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A4%BA%E4%BE%8B"><span class="toc-number">5.1.</span> <span class="toc-text">示例</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Ingress"><span class="toc-number">6.</span> <span class="toc-text">Ingress</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFIngress"><span class="toc-number">6.1.</span> <span class="toc-text">什么是Ingress</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Ingress%E6%A0%BC%E5%BC%8F"><span class="toc-number">6.2.</span> <span class="toc-text">Ingress格式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Ingress%E7%B1%BB%E5%9E%8B"><span class="toc-number">6.3.</span> <span class="toc-text">Ingress类型</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8D%95%E6%9C%8D%E5%8A%A1Ingress"><span class="toc-number">6.3.1.</span> <span class="toc-text">单服务Ingress</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A4%9A%E6%9C%8D%E5%8A%A1%E7%9A%84Ingress"><span class="toc-number">6.3.2.</span> <span class="toc-text">多服务的Ingress</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%99%9A%E6%8B%9F%E4%B8%BB%E6%9C%BAIngress"><span class="toc-number">6.3.3.</span> <span class="toc-text">虚拟主机Ingress</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Ingress-Controller"><span class="toc-number">6.4.</span> <span class="toc-text">Ingress Controller</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Job"><span class="toc-number">7.</span> <span class="toc-text">Job</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%B1%BB%E5%9E%8B"><span class="toc-number">7.1.</span> <span class="toc-text">类型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Job-Spec%E6%A0%BC%E5%BC%8F"><span class="toc-number">7.2.</span> <span class="toc-text">Job Spec格式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#LocalVolume"><span class="toc-number">8.</span> <span class="toc-text">LocalVolume</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Namespace"><span class="toc-number">9.</span> <span class="toc-text">Namespace</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Namespace%E6%93%8D%E4%BD%9C"><span class="toc-number">9.1.</span> <span class="toc-text">Namespace操作</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Pods"><span class="toc-number">10.</span> <span class="toc-text">Pods</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Pod%E7%9A%84%E7%89%B9%E5%BE%81"><span class="toc-number">10.1.</span> <span class="toc-text">Pod的特征</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Pod%E5%AE%9A%E4%B9%89"><span class="toc-number">10.2.</span> <span class="toc-text">Pod定义</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8Volume%E6%8C%81%E4%B9%85%E5%8C%96%E6%95%B0%E6%8D%AE"><span class="toc-number">10.3.</span> <span class="toc-text">使用Volume持久化数据</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#RestartPolicy"><span class="toc-number">10.4.</span> <span class="toc-text">RestartPolicy</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ImagePullPolicy"><span class="toc-number">10.5.</span> <span class="toc-text">ImagePullPolicy</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%B5%84%E6%BA%90%E9%99%90%E5%88%B6"><span class="toc-number">10.6.</span> <span class="toc-text">资源限制</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5"><span class="toc-number">10.7.</span> <span class="toc-text">健康检查</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Init-Container"><span class="toc-number">10.8.</span> <span class="toc-text">Init Container</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%B9%E5%99%A8%E5%A3%B0%E6%98%8E%E5%91%A8%E6%9C%9F%E9%92%A9%E5%AD%90"><span class="toc-number">10.9.</span> <span class="toc-text">容器声明周期钩子</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%87%AA%E5%AE%9A%E4%B9%89hosts"><span class="toc-number">10.10.</span> <span class="toc-text">自定义hosts</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Pod%E6%97%B6%E5%8C%BA"><span class="toc-number">10.11.</span> <span class="toc-text">Pod时区</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Service"><span class="toc-number">11.</span> <span class="toc-text">Service</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A4%BA%E4%BE%8B-1"><span class="toc-number">11.1.</span> <span class="toc-text">示例</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8D%8F%E8%AE%AE"><span class="toc-number">11.2.</span> <span class="toc-text">协议</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Headless%E6%9C%8D%E5%8A%A1"><span class="toc-number">11.3.</span> <span class="toc-text">Headless服务</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86"><span class="toc-number">11.4.</span> <span class="toc-text">工作原理</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ReplicaSet"><span class="toc-number">12.</span> <span class="toc-text">ReplicaSet</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#StatefulSet"><span class="toc-number">13.</span> <span class="toc-text">StatefulSet</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AE%80%E5%8D%95%E7%A4%BA%E4%BE%8B"><span class="toc-number">13.1.</span> <span class="toc-text">简单示例</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9B%B4%E6%96%B0StatefulSet"><span class="toc-number">13.2.</span> <span class="toc-text">更新StatefulSet</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Pod%E7%AE%A1%E7%90%86%E7%AD%96%E7%95%A5"><span class="toc-number">13.3.</span> <span class="toc-text">Pod管理策略</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Zookeeper%E7%A4%BA%E4%BE%8B"><span class="toc-number">13.4.</span> <span class="toc-text">Zookeeper示例</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Node"><span class="toc-number">14.</span> <span class="toc-text">Node</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Resource-Quotas"><span class="toc-number">15.</span> <span class="toc-text">Resource Quotas</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PV-PVC-StorageClass"><span class="toc-number">16.</span> <span class="toc-text">PV&#x2F;PVC&#x2F;StorageClass</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Secret"><span class="toc-number">17.</span> <span class="toc-text">Secret</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Service-Account"><span class="toc-number">18.</span> <span class="toc-text">Service Account</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Security-Context"><span class="toc-number">19.</span> <span class="toc-text">Security Context</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Network-Policy"><span class="toc-number">20.</span> <span class="toc-text">Network Policy</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PodPreset"><span class="toc-number">21.</span> <span class="toc-text">PodPreset</span></a></li></ol></div></div></div><header class="post-bg" id="page-header" style="background-image: url(https://cdn.leosocy.topimg/k8s-3.png)"><nav id="nav"><span class="pull-left" id="blog_name"><a class="blog_title" id="site-name" href="/">Leosocy's Blog</a></span><span class="pull-right menus"><div id="search_button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div><span class="toggle-menu close"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><div id="post-title"><div class="posttitle">零基础学习kubernetes(三): 资源对象</div></div><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="fa-fw post-meta-icon far fa-calendar-alt"></i><span class="post-meta-label">发表于</span><time datetime="2018-11-12T14:34:07.000Z" title="undefined 2018-11-12 22:34:07">2018-11-12</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/Kubernetes/">Kubernetes</a></span></div><div class="meta-secondline"> <span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">5.2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>26分钟</span></span><span class="post-meta-separator">|</span><span class="leancloud_visitors" id="/posts/9327/" data-flag-title="零基础学习kubernetes(三): 资源对象"><i class="far fa-fire fa-fw post-meta-icon"></i><span class="post-meta-label">热度:</span><span class="leancloud-visitors-count"></span><span class="du"> °C</span></span></div></div></div></header><main class="layout_post" id="content-inner"><article id="post"><div class="post-content" id="article-container"><p>在学习使用k8s的过程中，我们不免看到许许多多的名词，包括<code>deploy</code>、<code>svc</code>、<code>rs</code>等等，它们通常代表着k8s中不同的资源对象。本文会介绍这些资源，同时会给出部署的yml文件，供实战部署，加深对这些名词的理解。</p>
+<span id="more"></span>
+
+<h2 id="Autoscaling"><a href="#Autoscaling" class="headerlink" title="Autoscaling"></a>Autoscaling</h2><p>Horizontal Pod Autoscaling (HPA) 可以根据 CPU 使用率或应用自定义 metrics 自动扩展 Pod 数量（支持 replication controller、deployment 和 replica set ）。</p>
+<ul>
+<li>控制管理器每隔 30s（可以通过 –horizontal-pod-autoscaler-sync-period 修改）查询 metrics 的资源使用情况</li>
+<li>支持三种 metrics 类型<ul>
+<li>预定义 metrics（比如 Pod 的 CPU）以利用率的方式计算</li>
+<li>自定义的 Pod metrics，以原始值（raw value）的方式计算</li>
+<li>自定义的 object metrics</li>
+</ul>
+</li>
+<li>支持两种 metrics 查询方式：Heapster 和自定义的 REST API</li>
+<li>支持多 metrics</li>
+</ul>
+<h2 id="ConfigMap"><a href="#ConfigMap" class="headerlink" title="ConfigMap"></a>ConfigMap</h2><p>ConfigMap 用于保存配置数据的键值对，可以用来保存单个属性，也可以用来保存配置文件。ConfigMap 跟 secret 很类似，但它可以更方便地处理不包含敏感信息的字符串。</p>
+<h3 id="从yaml文件创建"><a href="#从yaml文件创建" class="headerlink" title="从yaml文件创建"></a>从yaml文件创建</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ConfigMap</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">special-config</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">data:</span></span><br><span class="line">  <span class="attr">env:</span> <span class="string">&quot;testing&quot;</span></span><br><span class="line">  <span class="attr">port:</span> <span class="string">&quot;80&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="ConfigMap使用"><a href="#ConfigMap使用" class="headerlink" title="ConfigMap使用"></a>ConfigMap使用</h3><p>三种分别方式为：</p>
+<ol>
+<li>设置环境变量</li>
+<li>设置容器命令行参数</li>
+<li>在 Volume 中直接挂载文件或目录。</li>
+</ol>
+<blockquote>
+<p>Tips</p>
+<ul>
+<li>ConfigMap 必须在 Pod 引用它之前创建</li>
+<li>使用<code>envFrom</code>时，将会自动忽略无效的键</li>
+<li>Pod 只能使用同一个命名空间内的 ConfigMap</li>
+</ul>
+</blockquote>
+<p>首先创建 ConfigMap：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">kubectl create configmap special-config --from-literal=special.how=very --from-literal=special.type=charm</span><br><span class="line">kubectl create configmap env-config --from-literal=log_level=INFO</span><br></pre></td></tr></table></figure>
+
+<h4 id="用作环境变量"><a href="#用作环境变量" class="headerlink" title="用作环境变量"></a>用作环境变量</h4><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">test-pod</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">test-container</span></span><br><span class="line">      <span class="attr">image:</span> <span class="string">gcr.io/google_containers/busybox</span></span><br><span class="line">      <span class="attr">command:</span> [<span class="string">&quot;/bin/sh&quot;</span>, <span class="string">&quot;-c&quot;</span>, <span class="string">&quot;env&quot;</span>]</span><br><span class="line">      <span class="attr">env:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">SPECIAL_LEVEL_KEY</span></span><br><span class="line">          <span class="attr">valueFrom:</span></span><br><span class="line">            <span class="attr">configMapKeyRef:</span></span><br><span class="line">              <span class="attr">name:</span> <span class="string">special-config</span></span><br><span class="line">              <span class="attr">key:</span> <span class="string">special.how</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">SPECIAL_TYPE_KEY</span></span><br><span class="line">          <span class="attr">valueFrom:</span></span><br><span class="line">            <span class="attr">configMapKeyRef:</span></span><br><span class="line">              <span class="attr">name:</span> <span class="string">special-config</span></span><br><span class="line">              <span class="attr">key:</span> <span class="string">special.type</span></span><br><span class="line">      <span class="attr">envFrom:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">configMapRef:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">env-config</span></span><br><span class="line">  <span class="attr">restartPolicy:</span> <span class="string">Never</span></span><br></pre></td></tr></table></figure>
+
+<p>当 Pod 结束后会输出</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">SPECIAL_LEVEL_KEY=very</span><br><span class="line">SPECIAL_TYPE_KEY=charm</span><br><span class="line">log_level=INFO</span><br></pre></td></tr></table></figure>
+
+<h4 id="使用-volume-将-ConfigMap-作为文件或目录直接挂载"><a href="#使用-volume-将-ConfigMap-作为文件或目录直接挂载" class="headerlink" title="使用 volume 将 ConfigMap 作为文件或目录直接挂载"></a>使用 volume 将 ConfigMap 作为文件或目录直接挂载</h4><p>将创建的 ConfigMap 直接挂载至 Pod 的 / etc/config 目录下，其中每一个 key-value 键值对都会生成一个文件，key 为文件名，value 为内容</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">vol-test-pod</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">test-container</span></span><br><span class="line">      <span class="attr">image:</span> <span class="string">gcr.io/google_containers/busybox</span></span><br><span class="line">      <span class="attr">command:</span> [<span class="string">&quot;/bin/sh&quot;</span>, <span class="string">&quot;-c&quot;</span>, <span class="string">&quot;cat /etc/config/special.how&quot;</span>]</span><br><span class="line">      <span class="attr">volumeMounts:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">config-volume</span></span><br><span class="line">        <span class="attr">mountPath:</span> <span class="string">/etc/config</span></span><br><span class="line">  <span class="attr">volumes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">config-volume</span></span><br><span class="line">      <span class="attr">configMap:</span></span><br><span class="line">        <span class="attr">name:</span> <span class="string">special-config</span></span><br><span class="line">  <span class="attr">restartPolicy:</span> <span class="string">Never</span></span><br></pre></td></tr></table></figure>
+
+<p>当 Pod 结束后会输出</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">very</span><br></pre></td></tr></table></figure>
+
+<h2 id="CronJob"><a href="#CronJob" class="headerlink" title="CronJob"></a>CronJob</h2><p>CronJob 即定时任务，就类似于 Linux 系统的 crontab，在指定的时间周期运行指定的任务。</p>
+<p>CronJob Spec</p>
+<ul>
+<li><code>.spec.schedule</code>指定任务运行周期，格式同<a target="_blank" rel="external nofollow noopener noreferrer" href="https://en.wikipedia.org/wiki/Cron">Cron</a></li>
+<li><code>.spec.jobTemplate</code>指定需要运行的任务，格式同Job</li>
+<li><code>.spec.startingDeadlineSeconds</code>指定任务开始的截止期限</li>
+<li><code>.spec.concurrencyPolicy</code>指定任务的并发策略，支持Allow、Forbid和Replace三个选项</li>
+</ul>
+<h2 id="DaemonSet"><a href="#DaemonSet" class="headerlink" title="DaemonSet"></a>DaemonSet</h2><p>DaemonSet保证在每个Node上都运行一个容器副本，常用来部署一些集群的日志、监控或者其他系统管理应用。典型的应用包括：</p>
+<ul>
+<li>日志收集：logstash，fluentd</li>
+<li>系统监控：Prometheus</li>
+<li>系统程序：kube-proxy，glusterd</li>
+</ul>
+<h3 id="Fluentd示例"><a href="#Fluentd示例" class="headerlink" title="Fluentd示例"></a>Fluentd示例</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">DaemonSet</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">fluentd-elasticsearch</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">kube-system</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">k8s-app:</span> <span class="string">fluentd-logging</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">fluentd-elasticsearch</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">name:</span> <span class="string">fluentd-elasticsearch</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">tolerations:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">key:</span> <span class="string">node-role.kubernetes.io/master</span></span><br><span class="line">        <span class="attr">effect:</span> <span class="string">NoSchedule</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">fluentd-elasticsearch</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">gcr.io/google-containers/fluentd-elasticsearch:1.20</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">          <span class="attr">limits:</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">200Mi</span></span><br><span class="line">          <span class="attr">requests:</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">100m</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">200Mi</span></span><br><span class="line">        <span class="attr">volumeMounts:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">varlog</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/var/log</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">varlibdockercontainers</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/var/lib/docker/containers</span></span><br><span class="line">          <span class="attr">readOnly:</span> <span class="literal">true</span></span><br><span class="line">      <span class="attr">terminationGracePeriodSeconds:</span> <span class="number">30</span></span><br><span class="line">      <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">varlog</span></span><br><span class="line">        <span class="attr">hostPath:</span></span><br><span class="line">          <span class="attr">path:</span> <span class="string">/var/log</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">varlibdockercontainers</span></span><br><span class="line">        <span class="attr">hostPath:</span></span><br><span class="line">          <span class="attr">path:</span> <span class="string">/var/lib/docker/containers</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="滚动更新"><a href="#滚动更新" class="headerlink" title="滚动更新"></a>滚动更新</h3><p>通过<code>spec.updateStrategy.type</code>设置更新策略。目前支持两种策略</p>
+<ul>
+<li>OnDelete：默认策略，更新模板后，只有手动删除了旧的Pod后才会创建新的Pod</li>
+<li>RollingUpdate: 更新DaemonSet模板后，自动删除旧的Pod并创建新的Pod</li>
+</ul>
+<p>在使用RollingUpdate策略时，还可以设置</p>
+<ul>
+<li>spec.updateStrategy.rollingUpdate.maxUnavailable，默认1</li>
+<li>spec.minReadySeconds，默认0</li>
+</ul>
+<h3 id="指定Node节点"><a href="#指定Node节点" class="headerlink" title="指定Node节点"></a>指定Node节点</h3><p>DaemonSet 会忽略 Node 的 unschedulable 状态，有两种方式来指定 Pod 只运行在指定的 Node 节点上：</p>
+<ul>
+<li>nodeSelector：只调度到匹配指定 label 的 Node 上</li>
+<li>nodeAffinity：功能更丰富的 Node 选择器，比如支持集合操作</li>
+<li>podAffinity：调度到满足条件的 Pod 所在的 Node 上</li>
+</ul>
+<h2 id="Deployment"><a href="#Deployment" class="headerlink" title="Deployment"></a>Deployment</h2><p>有如下一些功能：</p>
+<ul>
+<li>使用Deployment来创建ReplicaSet。ReplicaSet在后台创建Pod。检查启动状态，看它是成功还是失败。</li>
+<li>更新Deployment的PodTemplateSpec字段来声明Pod的新状态。这会创建一个新的ReplicaSet，Deployment会按照控制的速率将Pod从旧的ReplicaSet移动到新的ReplicaSet中。</li>
+<li>如果当前状态不稳定，回滚到之前的Deployment revision。每次回滚都会更新Deployment的revision。</li>
+<li>scale/autoscale</li>
+<li>暂停Deployment来应用PodTemplateSpec的多个修复，然后恢复上线</li>
+<li>清除旧的不必要的ReplicaSet</li>
+</ul>
+<h3 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx-deployment</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">3</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">nginx:1.7.9</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<p>功能对应的cmd</p>
+<ul>
+<li>扩容：<code>kubectl scale deployment nginx-deployment --replicas 10</code></li>
+<li>自动扩容：<code>kubectl autoscale deployment nginx-deployment --min=10 --max=15 --cpu-percent=80</code></li>
+<li>更新镜像：<code>kubectl set image deployment/nginx-deployment nginx=nginx:1.9.1</code></li>
+<li>回滚：<code>kubectl rollout undo deployment/nginx-deployment --to-revision=1</code></li>
+</ul>
+<h2 id="Ingress"><a href="#Ingress" class="headerlink" title="Ingress"></a>Ingress</h2><p>在本篇文章中你将会看到一些在其他地方被交叉使用的术语，为了防止产生歧义，我们首先来澄清下</p>
+<ul>
+<li>节点（Node）：k8s集群中的服务器</li>
+<li>集群（Cluster）：k8s管理的一组服务器集合</li>
+<li>边界路由器：为局域网和Internet路由数据包的路由器，执行防火墙保护局域网络</li>
+<li>集群网络：遵循k8s网络模型实现集群内的通信的具体实现，比如flannel和OVS</li>
+<li>服务：k8s的服务是使用标签选择器标识的一组Pod Service。</li>
+</ul>
+<h3 id="什么是Ingress"><a href="#什么是Ingress" class="headerlink" title="什么是Ingress"></a>什么是Ingress</h3><p>通常情况下，service 和 pod 的 IP 仅可在集群内部访问。集群外部的请求需要通过负载均衡转发到 service 在 Node 上暴露的 NodePort 上，然后再由 kube-proxy 通过边缘路由器 (edge router) 将其转发给相关的 Pod 或者丢弃。</p>
+<p>Ingress 可以给 service 提供集群外部访问的 URL、负载均衡、SSL 终止、HTTP 路由等。</p>
+<h3 id="Ingress格式"><a href="#Ingress格式" class="headerlink" title="Ingress格式"></a>Ingress格式</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">extensions/v1beta1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">test-ingress</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/testpath</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">serviceName:</span> <span class="string">test</span></span><br><span class="line">          <span class="attr">servicePort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<p>每个 Ingress 都需要配置 rules，目前 Kubernetes <strong>仅支持</strong> http 规则。上面的示例表示请求 /testpath 时转发到服务 test 的 80 端口。</p>
+<h3 id="Ingress类型"><a href="#Ingress类型" class="headerlink" title="Ingress类型"></a>Ingress类型</h3><h4 id="单服务Ingress"><a href="#单服务Ingress" class="headerlink" title="单服务Ingress"></a>单服务Ingress</h4><p>单服务 Ingress 即该 Ingress 仅指定一个没有任何规则的后端服务。</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">extensions/v1beta1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">test-ingress</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">backend:</span></span><br><span class="line">    <span class="attr">serviceName:</span> <span class="string">testsvc</span></span><br><span class="line">    <span class="attr">servicePort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="多服务的Ingress"><a href="#多服务的Ingress" class="headerlink" title="多服务的Ingress"></a>多服务的Ingress</h4><p>路由到多服务的Ingress，即根据请求路径的不同转发到不同的后端服务上，比如</p>
+<figure class="highlight txt"><table><tr><td class="code"><pre><span class="line">foo.bar.com -&gt; 178.91.123.132 -&gt; / foo    s1:80</span><br><span class="line">                                 / bar    s2:80</span><br></pre></td></tr></table></figure>
+
+<p>可以通过下面的 Ingress 来定义：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">extensions/v1beta1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">test</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">foo.bar.com</span></span><br><span class="line">    <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/foo</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">serviceName:</span> <span class="string">s1</span></span><br><span class="line">          <span class="attr">servicePort:</span> <span class="number">80</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/bar</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">serviceName:</span> <span class="string">s2</span></span><br><span class="line">          <span class="attr">servicePort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="虚拟主机Ingress"><a href="#虚拟主机Ingress" class="headerlink" title="虚拟主机Ingress"></a>虚拟主机Ingress</h4><p>虚拟主机 Ingress 即根据名字的不同转发到不同的后端服务上，而他们共用同一个的 IP 地址，如下所示</p>
+<figure class="highlight txt"><table><tr><td class="code"><pre><span class="line">foo.bar.com --|                 |-&gt; foo.bar.com s1:80</span><br><span class="line">              | 178.91.123.132  |</span><br><span class="line">bar.foo.com --|                 |-&gt; bar.foo.com s2:80</span><br></pre></td></tr></table></figure>
+
+<p>下面是一个基于 Host header 路由请求的 Ingress：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">extensions/v1beta1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">test</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">foo.bar.com</span></span><br><span class="line">    <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">serviceName:</span> <span class="string">s1</span></span><br><span class="line">          <span class="attr">servicePort:</span> <span class="number">80</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">bar.foo.com</span></span><br><span class="line">    <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">serviceName:</span> <span class="string">s2</span></span><br><span class="line">          <span class="attr">servicePort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="Ingress-Controller"><a href="#Ingress-Controller" class="headerlink" title="Ingress Controller"></a>Ingress Controller</h3><p>Ingress 正常工作需要集群中运行 Ingress Controller。Ingress Controller 与其他作为 kube-controller-manager 中的在集群创建时自动启动的 controller 成员不同，需要用户选择最适合自己集群的 Ingress Controller，或者自己实现一个。</p>
+<h2 id="Job"><a href="#Job" class="headerlink" title="Job"></a>Job</h2><p>Job 负责批量处理短暂的一次性任务 (short lived one-off tasks)，即仅执行一次的任务，它保证批处理任务的一个或多个 Pod 成功结束。</p>
+<h3 id="类型"><a href="#类型" class="headerlink" title="类型"></a>类型</h3><p>Kubernetes 支持以下几种 Job：</p>
+<ul>
+<li>非并行Job：通常创建一个Pod直至其成功结束</li>
+<li>固定结束册数的Job：设置<code>.spec.completions</code>，创建多个Pod，知道<code>.spec.completions</code>个Pod成功结束</li>
+<li>带有工作队列的并行Job：设置<code>.spec.parallelism</code>但不设置<code>.spec.completions</code>，当所有Pod结束并且至少一个成功时，Job就认为是成功</li>
+</ul>
+<p>根据<code>.spec.completions</code>和<code>.spec.parallelism</code>的设置，可以将Job划分为以下几种pattern</p>
+<table>
+<thead>
+<tr>
+<th align="center">Job类型</th>
+<th align="center">使用示例</th>
+<th align="center">行为</th>
+<th align="center">completions</th>
+<th align="center">parallelism</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">一次性Job</td>
+<td align="center">数据库迁移</td>
+<td align="center">创建一个Pod直至其成功结束</td>
+<td align="center">1</td>
+<td align="center">1</td>
+</tr>
+<tr>
+<td align="center">固定结束次数的Job</td>
+<td align="center">处理工作队列的Pod</td>
+<td align="center">依次创建一个Pod运行直至completions个成功结束</td>
+<td align="center">2+</td>
+<td align="center">1</td>
+</tr>
+<tr>
+<td align="center">固定结束次数的并行Job</td>
+<td align="center">多个Pod同时处理工作队列</td>
+<td align="center">依次创建多个Pod运行直至completions个成功结束</td>
+<td align="center">2+</td>
+<td align="center">2+</td>
+</tr>
+<tr>
+<td align="center">并行Job</td>
+<td align="center">多个Job同时处理工作队列</td>
+<td align="center">创建一个或多个Pod直至有一个成功结束</td>
+<td align="center">1</td>
+<td align="center">2+</td>
+</tr>
+</tbody></table>
+<h3 id="Job-Spec格式"><a href="#Job-Spec格式" class="headerlink" title="Job Spec格式"></a>Job Spec格式</h3><ul>
+<li>spec.template格式同Pod</li>
+<li>RestartPolicy仅支持Never或OnFailure</li>
+<li>单个Pod时，默认Pod成功运行后Job即结束</li>
+<li><code>.spec.completions</code>标志Job结束需要成功运行的Pod个数，默认为1</li>
+<li><code>.spec.parallelism</code>标志并行运行的Pod的个数，默认为1</li>
+<li><code>.spec.activeDeadlineSeconds</code>标志失败Pod的重试最大时间，超过这个时间不会继续重试</li>
+</ul>
+<h2 id="LocalVolume"><a href="#LocalVolume" class="headerlink" title="LocalVolume"></a>LocalVolume</h2><p>本地数据卷（Local Volume）代表一个本地存储设备，比如磁盘、分区或者目录等。主要的应用场景包括分布式存储和数据库等需要高性能和高可靠性的环境里。</p>
+<p>本地数据卷只能以静态创建的 PV 使用。本地数据卷可以直接以持久化的方式使用（它总是通过 NodeAffinity 调度在某个指定的节点上）。</p>
+<h2 id="Namespace"><a href="#Namespace" class="headerlink" title="Namespace"></a>Namespace</h2><p>Namespace 是对一组资源和对象的抽象集合，比如可以用来将系统内部的对象划分为不同的项目组或用户组。常见的 pod, service, replication controller 和 deployment 等都是属于某一个 namespace 的（默认是 default），而 node, persistent volume，namespace 等资源则不属于任何 namespace。</p>
+<p>Namespace 常用来隔离不同的用户，比如 Kubernetes 自带的服务一般运行在 kube-system namespace 中。</p>
+<h3 id="Namespace操作"><a href="#Namespace操作" class="headerlink" title="Namespace操作"></a>Namespace操作</h3><ul>
+<li>查询：<code>k get ns</code></li>
+<li>创建：<code>k create ns new-ns</code></li>
+<li>删除：<code>k delete ns new-ns</code>  注意：<ol>
+<li>删除一个namespace会自动删除所有属于该ns的资源</li>
+<li>default和kube-system命名空间不可删除</li>
+<li>PersistentVolume 是不属于任何 namespace 的，但 PersistentVolumeClaim 是属于某个特定 namespace 的。</li>
+</ol>
+</li>
+</ul>
+<p>给namespace增加资源配额，请见<code>ResourceQuota</code></p>
+<h2 id="Pods"><a href="#Pods" class="headerlink" title="Pods"></a>Pods</h2><h3 id="Pod的特征"><a href="#Pod的特征" class="headerlink" title="Pod的特征"></a>Pod的特征</h3><ul>
+<li>可以直接通过localhost通信</li>
+<li>共享Volume</li>
+<li>直接创建的Pod是与Node绑定的，异常退出后不会被重新调度。因此推荐使用Deployment、Daemonset等控制器来容错</li>
+<li>优雅终止，Pod删除的时候先给其内的进程发送<code>SIGTERM</code>(Unlike SIGKILL, this signal can be blocked, handled, and ignored. It is the normal way to politely ask a program to terminate.)，等待一段时间后才会强制停止依然还在运行的进程。</li>
+</ul>
+<h3 id="Pod定义"><a href="#Pod定义" class="headerlink" title="Pod定义"></a>Pod定义</h3><p>一个nginx Pod的yaml配置</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">tier:</span> <span class="string">ingress</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在生产环境中建议不要直接部署Pod，原因上面已经阐述。</p>
+</blockquote>
+<h3 id="使用Volume持久化数据"><a href="#使用Volume持久化数据" class="headerlink" title="使用Volume持久化数据"></a>使用Volume持久化数据</h3><p>Volume可以为容器提供持久化存储，比如</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">redis</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">redis</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">redis</span></span><br><span class="line">    <span class="attr">volumeMounts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">redis-storage</span></span><br><span class="line">      <span class="attr">mountPath:</span> <span class="string">/data/redis</span></span><br><span class="line">  <span class="attr">volumes:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">redis-storage</span></span><br><span class="line">    <span class="attr">emptyDir:</span> &#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="RestartPolicy"><a href="#RestartPolicy" class="headerlink" title="RestartPolicy"></a>RestartPolicy</h3><ul>
+<li>Always: 只要Pod退出就重启</li>
+<li>OnFailure: Pod异常退出(exit code != 0)时重启</li>
+<li>Never: 退出后不重启</li>
+</ul>
+<p>Tips: 重启只会在所在的Node上本地重启，不会重新调度到别的Node</p>
+<h3 id="ImagePullPolicy"><a href="#ImagePullPolicy" class="headerlink" title="ImagePullPolicy"></a>ImagePullPolicy</h3><ul>
+<li>Always: 不管镜像是否存在都会进行一次拉取</li>
+<li>Never: 不贵镜像是否存在都不会进行拉取</li>
+<li>IfNotPresent: 只有镜像不存在时，才会进行镜像拉取</li>
+</ul>
+<p>Tips:</p>
+<ul>
+<li>默认为<code>IfNotPresent</code>，但<code>:latest</code>标签的镜像默认为<code>Always</code></li>
+<li>拉取竟像是docker会进行校验，如果镜像中的MD5码没有变，则不会拉取镜像数据</li>
+<li>生产环境中应该尽量避免使用<code>:latest</code>标签，而开发环境中可以借助<code>:latest</code>标签自动拉取最新的镜像</li>
+</ul>
+<h3 id="资源限制"><a href="#资源限制" class="headerlink" title="资源限制"></a>资源限制</h3><p>k8s通过<code>cgroups</code>限制容器的CPU和内存等计算资源，包括<code>requests</code>(请求，调度器保证调度到资源充足的<code>Node</code>上，如果无法满足会调度失败)和<code>limits</code>(上限)等:</p>
+<ul>
+<li><code>spec.containers[].resources.limits.cpu</code>: CPU上限，可以短暂超过，容器也不会被停止</li>
+<li><code>spec.containers[].resources.limits.memory</code>: 内存上限，不可以超过，如果超过，容器可能会被终止或调度到其他资源充足的机器上</li>
+<li><code>spec.containers[].resources.limits.ephemeral-storage</code>: 临时存储（容器可写层、日志以及EmptyDir等）的上限，超过后Pod会被驱逐</li>
+<li><code>spec.containers[].resources.requests.cpu</code>: CPU请求，也是调度CPU资源的依据，可以超过</li>
+<li><code>spec.containers[].resources.requests.memory</code>: 内存请求，也是调度内存资源的一句，可以超过；但是如果超过，容器可能会在Node内存不足时清理</li>
+<li><code>spec.containers[].resources.requests.ephemeral-storage</code>: 临时存储（容器可写层、日志以及EmptyDir等）的请求，调度容器存储的依据</li>
+</ul>
+<p>比如nginx容器请求30%的CPU和56MB的内存，但限制最多只能使用50%的CPU和128MB的内存：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">tier:</span> <span class="string">ingress</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">resources:</span></span><br><span class="line">      <span class="attr">requests:</span></span><br><span class="line">        <span class="attr">cpu:</span> <span class="string">300m</span></span><br><span class="line">        <span class="attr">memory:</span> <span class="string">56Mi</span></span><br><span class="line">      <span class="attr">limits:</span></span><br><span class="line">        <span class="attr">cpu:</span> <span class="number">1</span></span><br><span class="line">        <span class="attr">memory:</span> <span class="string">128Mi</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<p>Tips:</p>
+<ul>
+<li>CPU的单位是CPU个数，可以用<code>millicpu(m)</code>表示少于1个CPU的情况，例如<code>500m = 500millicpu = 0.5cpu</code></li>
+<li>内存的单位包括<code>E, P, T, G, M, K, Ei, Pi, Ti, Gi, Mi, Ki</code>等</li>
+</ul>
+<h3 id="健康检查"><a href="#健康检查" class="headerlink" title="健康检查"></a>健康检查</h3><p>为了确保容器在部署后确实处在正常的运行状态，k8s提供了两种探针（Probe）来探测容器的状态：</p>
+<ul>
+<li>LivenessProbe: 探测应用是否处于健康状态，如果不健康则删除并重新创建容器</li>
+<li>ReadinessProbe: 探测应用是否启动完成并且处于正常服务状态，如果不正常则不会接收来自k8s的流量</li>
+</ul>
+<p>k8s支持三种方式来执行探针：</p>
+<ul>
+<li>exec: 在容器中执行一个命令，如果命令退出码返回0则表示探测成功，否则失败</li>
+<li>tcpSocket: 对指定的容器IP及端口执行一个TCP检查，如果端口是开放的则表示探测成功，否则表示失败</li>
+<li>httpGet: 对指定的容器IP、端口及路径执行一个HTTP Get请求，如果返回的状态码在<code>[200,400)</code>之间则表示探测成功，否则表示失败</li>
+</ul>
+<h3 id="Init-Container"><a href="#Init-Container" class="headerlink" title="Init Container"></a>Init Container</h3><p>Init容器在所有容器运行之前执行，常用来初始化配置。如果为一个Pod指定了多个Init容器，那些容器会顺序一次运行一个。每个Init容器必须运行成功，下一个才能够运行。当所有Init同期运行完成时，k8s初始化Pod并像平常一样运行应用容器。</p>
+<h3 id="容器声明周期钩子"><a href="#容器声明周期钩子" class="headerlink" title="容器声明周期钩子"></a>容器声明周期钩子</h3><p>容器声明周期钩子监听容器生命周期的特定时间，并在事件发生时执行已注册的回调函数。支持两种钩子：</p>
+<ul>
+<li>postStart: 容器创建后立即执行，注意由于是异步执行，它无法保证一定在<code>ENTRYPOINT</code>之前运行。</li>
+<li>preStop: 容器终止前执行，常用于资源清理。如果失败，容器同样也会被杀死</li>
+</ul>
+<p>而钩子的回调函数支持两种方式：</p>
+<ul>
+<li>exec</li>
+<li>httpGet</li>
+</ul>
+<h3 id="自定义hosts"><a href="#自定义hosts" class="headerlink" title="自定义hosts"></a>自定义hosts</h3><p>可以通过<code>pod.spec.hostAliases</code>来增加hosts内容，如</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hostaliases-pod</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hostAliases:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">ip:</span> <span class="string">&quot;10.1.2.3&quot;</span></span><br><span class="line">    <span class="attr">hostnames:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">&quot;foo.remote&quot;</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">&quot;bar.remote&quot;</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">cat-hosts</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">busybox</span></span><br><span class="line">    <span class="attr">command:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">cat</span></span><br><span class="line">    <span class="attr">args:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">&quot;/etc/hosts&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="Pod时区"><a href="#Pod时区" class="headerlink" title="Pod时区"></a>Pod时区</h3><p>很多容器都是配置了UTC时区，与国内集群的Node所在时区有可能不一致，可以通过HostPath存储插件给容器配置与Node一样的时区：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">pod-tz</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">image:</span> <span class="string">alpine</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">pod-tz</span></span><br><span class="line">    <span class="attr">stdin:</span> <span class="literal">true</span></span><br><span class="line">    <span class="attr">tty:</span> <span class="literal">true</span></span><br><span class="line">    <span class="attr">volumeMounts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">mountPath:</span> <span class="string">/etc/localtime</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">time</span></span><br><span class="line">      <span class="attr">readOnly:</span> <span class="literal">true</span></span><br><span class="line">  <span class="attr">volumes:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">time</span></span><br><span class="line">    <span class="attr">hostPath:</span></span><br><span class="line">      <span class="attr">path:</span> <span class="string">/etc/localtime</span></span><br><span class="line">      <span class="attr">type:</span> <span class="string">&quot;&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="Service"><a href="#Service" class="headerlink" title="Service"></a>Service</h2><p>Service是对一组提供相同功能的Pods的抽象，并为它们提供一个统一的入口。</p>
+<p>四种类型</p>
+<ul>
+<li>ClusterIP: 默认类型，自动分配一个仅cluster内部可以访问的虚拟IP</li>
+<li>NodePort: 在ClusterIP基础上为Service在每台机器上绑定一个端口，这样就可以通过<code>&lt;NodeIP&gt;:NodePort</code>来访问该服务</li>
+<li>LoadBalancer: 在NodePort的基础上，借助cloud provider创建一个外部的负载均衡器，并将请求转发到<code>&lt;NodeIP&gt;:NodePort</code></li>
+<li>ExternalName: 将服务通过DNS CNAME记录方式转发到指定的域名。</li>
+</ul>
+<h3 id="示例-1"><a href="#示例-1" class="headerlink" title="示例"></a>示例</h3><p>Service 的定义也是通过<code>yaml</code>或<code>json</code>，比如下面定义了一个名为<code>nginx</code>的服务，将服务的<code>80</code>端口转发到<code>default namespace</code>中带有标签<code>app=nginx,tier=ingress</code>的Pod的80端口</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">80</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">tier:</span> <span class="string">ingress</span></span><br><span class="line">  <span class="attr">sessionAffinity:</span> <span class="string">None</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">ClusterIP</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="协议"><a href="#协议" class="headerlink" title="协议"></a>协议</h3><p>Service、Endpoints 和 Pod 支持三种类型的协议：</p>
+<ul>
+<li>TCP（Transmission Control Protocol，传输控制协议）是一种面向连接的、可靠的、基于字节流的传输层通信协议。</li>
+<li>UDP（User Datagram Protocol，用户数据报协议）是一种无连接的传输层协议，用于不可靠信息传送服务。</li>
+<li>SCTP（Stream Control Transmission Protocol，流控制传输协议），用于通过IP网传输SCN（Signaling Communication Network，信令通信网）窄带信令消息。</li>
+</ul>
+<h3 id="Headless服务"><a href="#Headless服务" class="headerlink" title="Headless服务"></a>Headless服务</h3><p>Headless 服务即不需要 Cluster IP 的服务，即在创建服务的时候指定 spec.clusterIP=None。包括两种类型</p>
+<ul>
+<li>不指定 Selectors，但设置 externalName，即上面的（2），通过 CNAME 记录处理</li>
+<li>指定 Selectors，通过 DNS A 记录设置后端 endpoint 列表，DNS格式为<code>&lt;serviceName&gt;.&lt;namespace&gt;.svc.cluster.local</code></li>
+</ul>
+<p>因为没有ClusterIP，kube-proxy 并不处理此类服务，因为没有load balancing或 proxy 代理设置，在访问服务的时候回返回后端的全部的Pods IP地址，主要用于开发者自己根据pods进行负载均衡器的开发(设置了selector)。</p>
+<h3 id="工作原理"><a href="#工作原理" class="headerlink" title="工作原理"></a>工作原理</h3><p><img src="https://cdn.leosocy.top/img/dinosaurloading.gif" data-lazy-src="https://cdn.leosocy.top/img/service-flow.png"></p>
+<blockquote>
+<p>图片来源：<a target="_blank" rel="external nofollow noopener noreferrer" href="https://feisky.gitbooks.io/kubernetes/content/concepts/service.html">https://feisky.gitbooks.io/kubernetes/content/concepts/service.html</a></p>
+</blockquote>
+<h2 id="ReplicaSet"><a href="#ReplicaSet" class="headerlink" title="ReplicaSet"></a>ReplicaSet</h2><p>ReplicaSet用来确保容器应用的副本数始终保持在用户定义的副本数，即如果有容器异常退出，会自动创建新的Pod来替代。虽然ReplicaSet可以独立使用，但建议使用Deployment来自动管理ReplicaSet，这样就无需担心跟其他机制的不兼容问题（比如ReplicaSet不支持rolling-update但Deployment支持），并且还支持版本记录、回滚、暂停升级等高级特性。</p>
+<h2 id="StatefulSet"><a href="#StatefulSet" class="headerlink" title="StatefulSet"></a>StatefulSet</h2><p>StatefulSet是为了解决有状态服务的问题，应用场景包括</p>
+<ul>
+<li>持久化存储，即Pod重新调度后还是能访问到相同的持久化数据，基于<code>PVC</code>实现</li>
+<li>稳定的网络标志，即Pod重新调度后其PodName和HostName不变，基于<code>Headless Service</code>来实现</li>
+<li>有序部署，有序扩展，即Pod是有顺序的，在部署或者扩展的时候要一句定义的顺序依次进行，基于<code>init containers</code>来实现</li>
+<li>有序收缩，有序删除</li>
+</ul>
+<p>从上面的场景可以发现，StatefulSet 由以下几个部分组成：</p>
+<ul>
+<li>用于定义网络标志（DNS domain）的 <code>Headless Service</code></li>
+<li>用于创建 PersistentVolumes 的 <code>volumeClaimTemplates</code></li>
+<li>定义具体应用的 <code>StatefulSet</code></li>
+</ul>
+<p>StatefulSet中每个Pod的DNS格式为<code>statefulSetName-&#123;0..N-1&#125;.serviceName.namespace.svc.cluster.local</code>，其中</p>
+<ul>
+<li><code>statefulSetName</code>为StatefulSet 的名字</li>
+<li><code>0..N-1</code>为Pod所在的序号，从 0 开始到 N-1</li>
+<li><code>serviceName</code>为Headless Service的名字</li>
+<li><code>namespace</code>为服务所在的 namespace，Headless Service 和 StatefulSet 必须在相同的 namespace</li>
+<li><code>.cluster.local</code>为 Cluster Domain</li>
+</ul>
+<h3 id="简单示例"><a href="#简单示例" class="headerlink" title="简单示例"></a>简单示例</h3><p>以一个简单的nginx服务为例</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">web</span></span><br><span class="line">  <span class="attr">clusterIP:</span> <span class="string">None</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StatefulSet</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">web</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">serviceName:</span> <span class="string">&quot;nginx&quot;</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">2</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">k8s.gcr.io/nginx-slim:0.8</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br><span class="line">          <span class="attr">name:</span> <span class="string">web</span></span><br><span class="line">        <span class="attr">volumeMounts:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">www</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/usr/share/nginx/html</span></span><br><span class="line">  <span class="attr">volumeClaimTemplates:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">www</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">accessModes:</span> [<span class="string">&quot;ReadWriteOnce&quot;</span>]</span><br><span class="line">      <span class="attr">resources:</span></span><br><span class="line">        <span class="attr">requests:</span></span><br><span class="line">          <span class="attr">storage:</span> <span class="string">1Gi</span></span><br></pre></td></tr></table></figure>
+
+<p>进行操作</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">扩容</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl scale statefulset web --replicas=5  <span class="comment"># 可以看出Pod是按照次序创建的</span></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">缩容</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl patch statefulset web -p <span class="string">&#x27;&#123;&quot;spec&quot;:&#123;&quot;replicas&quot;:3&#125;&#125;&#x27;</span></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">镜像更新（目前还不支持直接更新 image，需要 patch 来间接实现）</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl patch statefulset web --<span class="built_in">type</span>=<span class="string">&#x27;json&#x27;</span> -p=<span class="string">&#x27;[&#123;&quot;op&quot;:&quot;replace&quot;,&quot;path&quot;:&quot;/spec/template/spec/containers/0/image&quot;,&quot;value&quot;:&quot;gcr.io/google_containers/nginx-slim:0.7&quot;&#125;]&#x27;</span></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">删除 StatefulSet 和 Headless Service</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl delete statefulset web</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl delete service nginx</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">StatefulSet 删除后 PVC 还会保留着，数据不再使用的话也需要删除</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl delete pvc www-web-0 www-web-1</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="更新StatefulSet"><a href="#更新StatefulSet" class="headerlink" title="更新StatefulSet"></a>更新StatefulSet</h3><p>通过<code>.spec.updateStrategy</code>设置更新策略。目前支持两种策略</p>
+<ul>
+<li>OnDelete：当<code>.spec.template</code>更新时，并不立即删除旧的Pod，而是等待用户手动删除这些旧Pod后自动创建新Pod。</li>
+<li>RollingUpdate：当<code>.spec.template</code>更新时，自动删除旧的Pod并创建新Pod替换。在更新时，这些Pod是按逆序的方式进行，依次删除、创建并等待Pod变成Ready状态才进行下一个Pod的更新。</li>
+</ul>
+<h3 id="Pod管理策略"><a href="#Pod管理策略" class="headerlink" title="Pod管理策略"></a>Pod管理策略</h3><p>通过<code>.spec.podManagementPolicy</code>设置Pod管理策略，支持两种方式</p>
+<ul>
+<li>OrderedReady：默认的策略，按照Pod的次序依次创建每个Pod并等待Ready之后才创建后面的Pod</li>
+<li>Parallel：并行创建或删除Pod</li>
+</ul>
+<h3 id="Zookeeper示例"><a href="#Zookeeper示例" class="headerlink" title="Zookeeper示例"></a>Zookeeper示例</h3><p><a target="_blank" rel="external nofollow noopener noreferrer" href="https://kubernetes.io/zh/docs/tutorials/stateful-application/zookeeper/">官网示例</a></p>
+<h2 id="Node"><a href="#Node" class="headerlink" title="Node"></a>Node</h2><h2 id="Resource-Quotas"><a href="#Resource-Quotas" class="headerlink" title="Resource Quotas"></a>Resource Quotas</h2><h2 id="PV-PVC-StorageClass"><a href="#PV-PVC-StorageClass" class="headerlink" title="PV/PVC/StorageClass"></a>PV/PVC/StorageClass</h2><h2 id="Secret"><a href="#Secret" class="headerlink" title="Secret"></a>Secret</h2><h2 id="Service-Account"><a href="#Service-Account" class="headerlink" title="Service Account"></a>Service Account</h2><h2 id="Security-Context"><a href="#Security-Context" class="headerlink" title="Security Context"></a>Security Context</h2><h2 id="Network-Policy"><a href="#Network-Policy" class="headerlink" title="Network Policy"></a>Network Policy</h2><h2 id="PodPreset"><a href="#PodPreset" class="headerlink" title="PodPreset"></a>PodPreset</h2></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a></div><div class="post_share"><div class="social-share" data-image="/img/k8s-3.png" data-sites="wechat,weibo,qq,facebook,twitter"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/posts/57f6/"><img class="prev-cover" data-lazy-src="https://cdn.leosocy.top/img/mysql-lock.png" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">深入理解MySQL——MDL</div></div></a></div><div class="next-post pull-right"><a href="/posts/1a2d/"><img class="next-cover" data-lazy-src="https://cdn.leosocy.topimg/k8s-2.png" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">零基础学习kubernetes(二): 在ECS上部署集群</div></div></a></div></nav><div class="relatedPosts"><div class="relatedPosts_headline"><i class="fas fa-thumbs-up fa-fw"></i><span> 相关推荐</span></div><div class="relatedPosts_list"><div class="relatedPosts_item"><a href="/posts/26b4/" title="零基础学习kubernetes(一): 基础知识"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.topimg/k8s-1.png"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2018-09-11</div><div class="relatedPosts_title">零基础学习kubernetes(一): 基础知识</div></div></a></div><div class="relatedPosts_item"><a href="/posts/1a2d/" title="零基础学习kubernetes(二): 在ECS上部署集群"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.topimg/k8s-2.png"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2018-09-22</div><div class="relatedPosts_title">零基础学习kubernetes(二): 在ECS上部署集群</div></div></a></div><div class="relatedPosts_item"><a href="/posts/96ab/" title="零基础学习kubernetes(五): ServiceMesh--微服务的最后一块拼图"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.top/img/service-mesh-1680.png"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2019-01-14</div><div class="relatedPosts_title">零基础学习kubernetes(五): ServiceMesh--微服务的最后一块拼图</div></div></a></div><div class="relatedPosts_item"><a href="/posts/d262/" title="零基础学习kubernetes(四): 利用闲置主机搭建并暴露本地k8s集群"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.top/img/kubernetes_tutorials.png"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2018-12-25</div><div class="relatedPosts_title">零基础学习kubernetes(四): 利用闲置主机搭建并暴露本地k8s集群</div></div></a></div></div></div><hr><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div><div class="comment-switch"><span class="first-comment">Valine</span><label><input id="switch-comments-btn" type="checkbox"><span class="slider"></span></label><span class="second-comment">Gitalk</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div><div><div id="gitalk-container"></div></div></div></div></article></main><footer id="footer" data-type="color"><div id="footer-wrap"><div class="copyright">&copy;2017 - 2023   <i id="heartbeat" class="fa fas fa-heartbeat"></i>  Leosocy</div><div class="icp"><a target="_blank" rel="external nofollow noopener noreferrer" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=32011302320676"><span>苏ICP备19003706号-1</span></a></div></div><head><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/heartbeat.min.css"></head></footer><script>var bg_index = Math.floor(Math.random() * 21);
+if (true === true)
+  var res = 'background-image: url("https://cdn.leosocy.top/img/background/' + bg_index + '-bg.jpg");'
+else
+  var res = 'background-image: url("https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn/img/background/' + bg_index + '-bg.jpg");'
+document.getElementById('web_bg').style = res
+</script></div><section id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="font_plus" type="button" title="放大字体"><i class="fas fa-plus"></i></button><button id="font_minus" type="button" title="缩小字体"><i class="fas fa-minus"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></section><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"></div></div></div><hr><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module" defer></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js" async></script><script>function panguFn () {
+  if (typeof pangu === 'object') pangu.spacingElementById('content-inner')
+  else {
+    $.getScript('https://cdn.jsdelivr.net/npm/pangu/dist/browser/pangu.min.js', () => {
+      pangu.spacingElementById('content-inner')
+    })
+  }
+}
+
+function panguInit () {
+  if (false){
+    GLOBAL_CONFIG_SITE.isPost && panguFn()
+  } else {
+    panguFn()
+  }
+}
+
+document.addEventListener('DOMContentLoaded', panguFn)</script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadValine () {
+  function initValine () {
+    window.valine = new Valine({
+      el: '#vcomment',
+      appId: 'HrxT0ob97kYUTuWuUo08mkqc-gzGzoHsz',
+      appKey: 'oeKW9UqjBpN6MNv7ENaikdwP',
+      placeholder: '请输入内容',
+      avatar: 'retro',
+      meta: 'nick,mail,link'.split(','),
+      pageSize: '10',
+      lang: 'zh-CN',
+      recordIP: false,
+      serverURLs: 'https://lcapi.leosocy.top',
+      emojiCDN: '',
+      emojiMaps: "",
+      enableQQ: false,
+      path: window.location.pathname,
+      visitor: true
+    });
+    if ('nick') { valine.config.requiredFields= 'nick'.split(',') }
+  }
+
+  if (typeof Valine === 'function') initValine() 
+  else $.getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js', initValine)
+}
+
+if ('Valine' === 'Valine' || !true) {
+  if (true && !true) loadComment(document.querySelector('#vcomment'),loadValine)
+  else setTimeout(() => loadValine(), 0)
+} else {
+  function loadOtherComment () {
+    loadValine()
+  }
+}</script><script>function addGitalkSource () {
+  const ele = document.createElement('link')
+  ele.rel = 'stylesheet'
+  ele.href= 'https://cdn.jsdelivr.net/npm/gitalk/dist/gitalk.min.css'
+  document.getElementsByTagName('head')[0].appendChild(ele)
+}
+
+function loadGitalk () {
+  function initGitalk () {
+    var gitalk = new Gitalk({
+      clientID: '32b06a1ce1ba2d645bb5',
+      clientSecret: 'c4e9c93c5a16234ecb67a9b83b9315f763436cdd',
+      repo: 'comments',
+      owner: 'LeosocyBlog',
+      admin: ['Leosocy'],
+      id: '247590d87033903d6863e16c8f92a96d',
+      language: 'zh-CN',
+      perPage: 10,
+      distractionFreeMode: true,
+      pagerDirection: 'last',
+      createIssueManually: false,
+      updateCountCallback: commentCount
+    })
+    gitalk.render('gitalk-container')
+  }
+
+  if (typeof Gitalk === 'function') initGitalk()
+  else {
+    addGitalkSource()
+    $.getScript('https://cdn.jsdelivr.net/npm/gitalk@latest/dist/gitalk.min.js', initGitalk)
+  }
+}
+
+function commentCount(n){
+  let isCommentCount = document.querySelector('#post-meta .gitalk-comment-count')
+  if (isCommentCount) {
+    isCommentCount.innerHTML= n
+  }
+}
+
+if ('Valine' === 'Gitalk' || !true) {
+  if (true) loadComment(document.getElementById('gitalk-container'), loadGitalk)
+  else loadGitalk()
+} else {
+  function loadOtherComment () {
+    loadGitalk()
+  }
+}</script><script>cdn_url = "https://cdn.leosocy.top"</script><script src="/"></script></div><script src="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/js/leosocy.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>$(function () {
+  var pjax = new Pjax({
+    selectors: [
+      'title',
+      'meta[name=description]',
+      '#config_change',
+      '#body-wrap',
+      '#rightside-config-hide',
+      '#rightside-config-show',
+      '.js-pjax'
+    ],
+    cacheBust: false,
+  })
+
+  document.addEventListener('pjax:complete', function () {
+    refreshFn()
+
+    $('script[data-pjax]').each(function () {
+      $(this).parent().append($(this).remove())
+    })
+
+    GLOBAL_CONFIG.islazyload && lazyLoadInstance.update()
+
+    typeof chatBtnFn === 'function' && chatBtnFn()
+    typeof panguInit === 'function' && panguInit()
+
+    if (typeof gtag === 'function') {
+      gtag('config', 'G-8EGQPPW7GQ', {'page_path': window.location.pathname});
+    }
+
+    if (document.getElementsByClassName('aplayer').length){
+      typeof loadMeting === 'function' && loadMeting()
+    }
+  })
+
+  document.addEventListener('pjax:send', function () {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+
+    typeof typed === 'object' && typed.destroy()
+
+    $(window).off('scroll')
+
+    //reset readmode
+    $('body').hasClass('read-mode') && $('body').removeClass('read-mode')
+
+    //reset font-size
+    $('body').css('font-size') !== originFontSize && $('body').css('font-size', parseFloat(originFontSize))
+  })
+})</script></div></body></html>

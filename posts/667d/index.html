@@ -1,0 +1,403 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>玩转树莓派 —— Getting Started | Leosocy's Blog</title><meta name="description" content="烧录系统镜像下载镜像由于笔者用的是4B 8G版，所以镜像选择arm64（2021-05-07-raspios-buster-arm64.img）。 官网下载速度太慢，所以我们选择了清华源。 使用命令行烧录在MacOS上烧录镜像有两种方式  使用Raspberry Pi Imager，优点是使用简单 命令行模式，使用dd命令  作为爱折腾的程序员，当然是选择命令行模式了，还可以顺便研究下启动镜像的原"><meta name="keywords" content="Backend, BigData, CloudNative, DevOps"><meta name="author" content="Leosocy,leosocy@gmail.com"><meta name="copyright" content="Leosocy"><meta name="format-detection" content="telephone=no"><link rel="shortcut icon" href="https://cdn.leosocy.top/img/LEO-logo.jpg"><link rel="canonical" href="https://blog.leosocy.top/posts/667d/"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="preconnect" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//www.google-analytics.com" crossorigin="crossorigin"><link rel="preconnect" href="//fonts.googleapis.com" crossorigin="crossorigin"><meta name="google-site-verification" content="oh1OfqVAIxCAFZ8w5KBBtK7tJK48Z0HuFl2XXbRiM-E"><meta name="baidu-site-verification" content="code-7jpxSWptMj"><meta property="og:type" content="article"><meta property="og:title" content="玩转树莓派 —— Getting Started"><meta property="og:url" content="https://blog.leosocy.top/posts/667d/"><meta property="og:site_name" content="Leosocy's Blog"><meta property="og:description" content="烧录系统镜像下载镜像由于笔者用的是4B 8G版，所以镜像选择arm64（2021-05-07-raspios-buster-arm64.img）。 官网下载速度太慢，所以我们选择了清华源。 使用命令行烧录在MacOS上烧录镜像有两种方式  使用Raspberry Pi Imager，优点是使用简单 命令行模式，使用dd命令  作为爱折腾的程序员，当然是选择命令行模式了，还可以顺便研究下启动镜像的原"><meta property="og:image" content="https://blog.leosocy.top/img/20210912221218.png"><meta property="article:published_time" content="2021-09-11T06:00:32.000Z"><meta property="article:modified_time" content="2023-11-05T07:26:20.236Z"><meta name="twitter:card" content="summary"><script>var activateDarkMode = function () {
+  document.documentElement.setAttribute('data-theme', 'dark')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#000')
+  }
+}
+var activateLightMode = function () {
+  document.documentElement.setAttribute('data-theme', 'light')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#fff')
+  }
+}
+
+var getCookies = function (name) {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop().split(';').shift()
+}
+
+var autoChangeMode = 'false'
+var t = getCookies('theme')
+if (autoChangeMode === '1') {
+  var isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+  var isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+  var isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+  var hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+
+  if (t === undefined) {
+    if (isLightMode) activateLightMode()
+    else if (isDarkMode) activateDarkMode()
+    else if (isNotSpecified || hasNoSupport) {
+      console.log('You specified no preference for a color scheme or your browser does not support it. I Schedule dark mode during night time.')
+      var now = new Date()
+      var hour = now.getHours()
+      var isNight = hour <= 6 || hour >= 18
+      isNight ? activateDarkMode() : activateLightMode()
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+      if (Cookies.get('theme') === undefined) {
+        e.matches ? activateDarkMode() : activateLightMode()
+      }
+    })
+  } else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else if (autoChangeMode === '2') {
+  now = new Date()
+  hour = now.getHours()
+  isNight = hour <= 6 || hour >= 18
+  if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+  else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else {
+  if (t === 'dark') activateDarkMode()
+  else if (t === 'light') activateLightMode()
+}</script><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css"><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-8EGQPPW7GQ"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-8EGQPPW7GQ');
+</script><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Titillium+Web&amp;display=swap"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  bookmark: {
+    message_prev: '按',
+    message_next: '键将本页加入书签'
+  },
+  runtime_unit: '天',
+  runtime: false,
+  copyright: undefined,
+  ClickShowText: undefined,
+  medium_zoom: false,
+  fancybox: true,
+  Snackbar: {"bookmark":{"message_prev":"按","message_next":"键将本页加入书签"},"chs_to_cht":"你已切换为繁体","cht_to_chs":"你已切换为简体","day_to_night":"你已切换为深色模式","night_to_day":"你已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#121212","position":"bottom-left"},
+  justifiedGallery: {
+    js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+    css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+  },
+  baiduPush: false,
+  highlightCopy: true,
+  highlightLang: true,
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: false    
+}</script><script>(function(win, export_obj) {
+win['TeaAnalyticsObject'] = export_obj;
+if (!win[export_obj]) {
+function _collect() {
+_collect.q.push(arguments);
+}
+_collect.q = _collect.q || [];
+win[export_obj] = _collect;
+}
+win[export_obj].l = +new Date();
+})(window, 'collectEvent');</script><script async src="https://sf1-scmcdn-tos.pstatp.com/goofy/log-sdk/collect/collect-autotrack-rangers.js"></script><script>window.collectEvent('init', {
+app_id: 190292,//  必须替换成申请的 app_id
+channel: 'cn',
+log: true, // 开启调试日志
+autotrack: true // 开启全埋点采集，默认关闭，需要热力图及圈选功能可开启
+});
+window.collectEvent('start');</script><script>var _wr = function(type) {
+  var orig = history[type];
+  return function() {
+    var rv = orig.apply(this, arguments);
+    var e = new Event(type);
+    e.arguments = arguments;
+    window.dispatchEvent(e);
+    return rv;
+  };
+};
+history.pushState = _wr('pushState');
+history.replaceState = _wr('replaceState');
+window.addEventListener("popstate", function(event) {
+  window.collectEvent('predefinePageView');
+});
+window.addEventListener("pushState", function(event) {
+  window.collectEvent('predefinePageView');
+});</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isSidebar: true,
+  postUpdate: '2023-11-05 15:26:20'
+}</script><noscript><style>
+#nav {
+  opacity: 1
+}
+.justified-gallery img {
+  opacity: 1
+}
+</style></noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/leosocy.min.css"><meta name="referrer" content="no-referrer-when-downgrade"><meta name="generator" content="Hexo 7.0.0"></head><body><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" data-lazy-src="https://cdn.leosocy.top/img/avatar-leosocy.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">文章</div><div class="length_num">26</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">标签</div><div class="length_num">40</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">分类</div><div class="length_num">21</div></a></div></div></div><hr><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div></div></div><div id="body-wrap"><div id="web_bg" data-type="photo"></div><div id="sidebar"><i class="fas fa-arrow-right on" id="toggle-sidebar"></i><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar">     </div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%83%A7%E5%BD%95%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F"><span class="toc-number">1.</span> <span class="toc-text">烧录系统镜像</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8B%E8%BD%BD%E9%95%9C%E5%83%8F"><span class="toc-number">1.1.</span> <span class="toc-text">下载镜像</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E5%91%BD%E4%BB%A4%E8%A1%8C%E7%83%A7%E5%BD%95"><span class="toc-number">1.2.</span> <span class="toc-text">使用命令行烧录</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%87%A0%E4%B8%AA%E5%B0%8F%E7%96%91%E9%97%AE"><span class="toc-number">1.3.</span> <span class="toc-text">几个小疑问</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88dd%E6%88%90%E5%8A%9F%E4%B9%8B%E5%90%8E%EF%BC%8CSD-Card%E8%87%AA%E5%8A%A8%E5%B0%B1%E6%9C%89%E4%BA%86%E5%87%A0%E4%B8%AA%E5%88%86%E5%8C%BA%EF%BC%9F"><span class="toc-number">1.3.1.</span> <span class="toc-text">为什么dd成功之后，SD Card自动就有了几个分区？</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%A0%91%E8%8E%93%E6%B4%BE%E7%9A%84BIOS%E6%80%8E%E4%B9%88%E8%AF%86%E5%88%AB%E5%88%B0%E7%83%A7%E5%BD%95%E8%BF%9BSD-Card%E7%9A%84%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%EF%BC%9F"><span class="toc-number">1.3.2.</span> <span class="toc-text">树莓派的BIOS怎么识别到烧录进SD Card的操作系统的？</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%A2%84%E7%BD%AE%E5%BF%85%E8%A6%81%E9%85%8D%E7%BD%AE"><span class="toc-number">2.</span> <span class="toc-text">预置必要配置</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BF%AE%E6%94%B9%E9%83%A8%E5%88%86%E9%85%8D%E7%BD%AE"><span class="toc-number">3.</span> <span class="toc-text">修改部分配置</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BF%AE%E6%94%B9%E9%94%AE%E7%9B%98%E5%B8%83%E5%B1%80"><span class="toc-number">3.1.</span> <span class="toc-text">修改键盘布局</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BF%AE%E6%94%B9%E7%94%A8%E6%88%B7%E5%90%8D-hostname"><span class="toc-number">3.2.</span> <span class="toc-text">修改用户名&#x2F;hostname</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BF%AE%E6%94%B9%E8%BD%AF%E4%BB%B6%E6%BA%90"><span class="toc-number">3.3.</span> <span class="toc-text">修改软件源</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%94%B9%E4%B8%BA%E9%9D%99%E6%80%81IP"><span class="toc-number">3.4.</span> <span class="toc-text">改为静态IP</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E5%9F%BA%E7%A1%80%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83"><span class="toc-number">4.</span> <span class="toc-text">配置基础开发环境</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%89%E8%A3%85zsh"><span class="toc-number">4.1.</span> <span class="toc-text">安装zsh</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%AE%BF%E9%97%AEgithub%E5%A4%B1%E8%B4%A5%E7%9A%84%E8%A7%A3%E5%86%B3%E6%96%B9%E6%B3%95"><span class="toc-number">4.1.1.</span> <span class="toc-text">访问github失败的解决方法</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%85%8D%E7%BD%AEzsh%E6%8F%92%E4%BB%B6"><span class="toc-number">4.1.2.</span> <span class="toc-text">配置zsh插件</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%89%E8%A3%85%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80"><span class="toc-number">5.</span> <span class="toc-text">安装编程语言</span></a></li></ol></div></div></div><header class="post-bg" id="page-header" style="background-image: url(https://cdn.leosocy.top/img/20210912221218.png)"><nav id="nav"><span class="pull-left" id="blog_name"><a class="blog_title" id="site-name" href="/">Leosocy's Blog</a></span><span class="pull-right menus"><div id="search_button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div><span class="toggle-menu close"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><div id="post-title"><div class="posttitle">玩转树莓派 —— Getting Started</div></div><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="fa-fw post-meta-icon far fa-calendar-alt"></i><span class="post-meta-label">发表于</span><time datetime="2021-09-11T06:00:32.000Z" title="undefined 2021-09-11 14:00:32">2021-09-11</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E7%8E%A9%E8%BD%AC%E6%A0%91%E8%8E%93%E6%B4%BE/">玩转树莓派</a></span></div><div class="meta-secondline"> <span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">2.1k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>10分钟</span></span><span class="post-meta-separator">|</span><span class="leancloud_visitors" id="/posts/667d/" data-flag-title="玩转树莓派 —— Getting Started"><i class="far fa-fire fa-fw post-meta-icon"></i><span class="post-meta-label">热度:</span><span class="leancloud-visitors-count"></span><span class="du"> °C</span></span></div></div></div></header><main class="layout_post" id="content-inner"><article id="post"><div class="post-content" id="article-container"><h2 id="烧录系统镜像"><a href="#烧录系统镜像" class="headerlink" title="烧录系统镜像"></a>烧录系统镜像</h2><h3 id="下载镜像"><a href="#下载镜像" class="headerlink" title="下载镜像"></a>下载镜像</h3><p>由于笔者用的是4B 8G版，所以镜像选择arm64（2021-05-07-raspios-buster-arm64.img）。</p>
+<p>官网下载速度太慢，所以我们选择了<a target="_blank" rel="external nofollow noopener noreferrer" href="https://mirrors.tuna.tsinghua.edu.cn/raspberry-pi-os-images/raspios_arm64/images/raspios_arm64-2021-05-28/">清华源</a>。</p>
+<h3 id="使用命令行烧录"><a href="#使用命令行烧录" class="headerlink" title="使用命令行烧录"></a>使用命令行烧录</h3><p>在MacOS上烧录镜像有两种方式</p>
+<ol>
+<li>使用Raspberry Pi Imager，优点是使用简单</li>
+<li>命令行模式，使用<code>dd</code>命令</li>
+</ol>
+<p>作为爱折腾的程序员，当然是选择命令行模式了，还可以顺便研究下启动镜像的原理</p>
+<ol>
+<li><code>diskutil list</code>找到SD Card所在磁盘号 N</li>
+<li><code>diskutil unmountDisk /dev/diskN</code>，只有当成功卸载后，才可以使用dd将镜像文件写入SD Card，否则会报Resource busy错误</li>
+<li><code>sudo dd bs=1m if=/Users/leosocy/Downloads/2021-05-07-raspios-buster-arm64.img of=/dev/rdiskN; sync </code></li>
+</ol>
+<blockquote>
+<p>将上面的N替换为SD Card对应的序号</p>
+</blockquote>
+<p>稍等几分钟之后，镜像烧录完成，</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">3564+0 records in</span><br><span class="line">3564+0 records out</span><br><span class="line">3737124864 bytes transferred in 359.440753 secs (10397054 bytes/sec)</span><br><span class="line"></span><br><span class="line">➜ diskutil list</span><br><span class="line">/dev/disk2 (external, physical):</span><br><span class="line"><span class="meta prompt_">   #</span><span class="language-bash">:                       TYPE NAME                    SIZE       IDENTIFIER</span></span><br><span class="line">   0:     FDisk_partition_scheme                        *248.4 GB   disk2</span><br><span class="line">   1:             Windows_FAT_32 ⁨boot⁩                    268.4 MB   disk2s1</span><br><span class="line">   2:                      Linux ⁨⁩                        3.5 GB     disk2s2</span><br><span class="line">                    (free space)                         244.7 GB   -</span><br></pre></td></tr></table></figure>
+
+<h3 id="几个小疑问"><a href="#几个小疑问" class="headerlink" title="几个小疑问"></a>几个小疑问</h3><h4 id="为什么dd成功之后，SD-Card自动就有了几个分区？"><a href="#为什么dd成功之后，SD-Card自动就有了几个分区？" class="headerlink" title="为什么dd成功之后，SD Card自动就有了几个分区？"></a>为什么dd成功之后，SD Card自动就有了几个分区？</h4><h4 id="树莓派的BIOS怎么识别到烧录进SD-Card的操作系统的？"><a href="#树莓派的BIOS怎么识别到烧录进SD-Card的操作系统的？" class="headerlink" title="树莓派的BIOS怎么识别到烧录进SD Card的操作系统的？"></a>树莓派的BIOS怎么识别到烧录进SD Card的操作系统的？</h4><p>计算机的启动过程大致分为以下几个步骤</p>
+<ol>
+<li>按下开机键，CPU将PC寄存器的值强制初始化为<code>0xffff0</code>，这个位置是BIOS程序的入口地址</li>
+<li>该入口地址处是一个跳转指令，跳转到<code>0xfe05b</code>位置，开始执行真正的BIOS程序</li>
+<li>BIOS按照启动区的顺序，读取这些启动盘中位于0盘0道1扇区的内容，该内容一共有512字节，如果末尾的两个字节分别是<code>0x55</code>和<code>0xaa</code>，那么BIOS就会认为它是个启动区</li>
+<li>BIOS找到启动区之后把512字节的内容，全部复制到内存的<code>0x7c00</code>这个位置，然后将PC寄存器的值改为<code>0x7c00</code></li>
+<li>启动区代码主要是加载操作系统内核，最后跳转到加载处</li>
+</ol>
+<p><img src="https://cdn.leosocy.top/img/dinosaurloading.gif" data-lazy-src="https://cdn.leosocy.top/img/20210912154004.png"></p>
+<p>以上内容参考自：<a target="_blank" rel="external nofollow noopener noreferrer" href="https://mp.weixin.qq.com/s/cXbCd_nK4_VssJaUREiPmA">《全网最硬核讲解计算机的启动过程》</a></p>
+<h2 id="预置必要配置"><a href="#预置必要配置" class="headerlink" title="预置必要配置"></a>预置必要配置</h2><p>烧录镜像成功后，需要新增/修改 boot文件夹下的配置</p>
+<ol>
+<li>开启SSH：增加一个空的<code>ssh.txt</code>文件</li>
+<li>配置WiFi：增加<code>wpa_supplicant.conf</code>文件，内容如下</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">country=CN</span><br><span class="line">ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev</span><br><span class="line">update_config=1</span><br><span class="line"></span><br><span class="line">network=&#123;</span><br><span class="line">	ssid=&quot;填写wifi的名字&quot;</span><br><span class="line">	psk=&quot;填写wifi的密码&quot;</span><br><span class="line">	priority=1</span><br><span class="line">&#125;</span><br><span class="line">network=&#123;</span><br><span class="line">	ssid=&quot;填写wifi的名字&quot;</span><br><span class="line">	psk=&quot;填写wifi的密码&quot;</span><br><span class="line">	priority=2</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>ssid：填写wifi的名称</li>
+<li>psk：填写wifi的密码</li>
+<li>priority：该wifi的连接优先级，值越大优先级越高</li>
+<li>可以输入多个network</li>
+</ul>
+<ol start="3">
+<li>修改显示配置，config.txt最后增加<code>hdmi_cvt=2560 1440 60 3 0 0 0</code></li>
+</ol>
+<p>笔者用的是4K显示器，但是如果设置成4K对应的分辨率字体太小，所以这里设置成了<code>2560 x 1440</code>。</p>
+<p>修改完成后，执行<code>diskutil unmountDisk /dev/diskN</code>，最后<code>diskutil eject /dev/diskN</code>推出设备。</p>
+<h2 id="修改部分配置"><a href="#修改部分配置" class="headerlink" title="修改部分配置"></a>修改部分配置</h2><p>带安装完成后，<code>ssh pi@YOUR_PI_IP</code>登录到机器，进行部分配置的修改</p>
+<h3 id="修改键盘布局"><a href="#修改键盘布局" class="headerlink" title="修改键盘布局"></a>修改键盘布局</h3><ol>
+<li>sudo raspi-config</li>
+<li>选择  localisation options</li>
+<li>选择 Change Keyboard layout</li>
+<li>选择 Generic 104-key PC</li>
+<li>选择 Other</li>
+<li>选择 Chinese</li>
+<li>选择 Chinese</li>
+<li>选择 The default for the keyboard layout</li>
+<li>选择 no compose key</li>
+</ol>
+<h3 id="修改用户名-hostname"><a href="#修改用户名-hostname" class="headerlink" title="修改用户名/hostname"></a>修改用户名/hostname</h3><ol>
+<li>启用root账号，然后切换至root</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo passwd root  #设置root用户密码</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">输入新的UNIX密码：</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">再输入一次密码：</span></span><br><span class="line"></span><br><span class="line">sudo passwd --unlock root #启用root用户</span><br><span class="line">su root # 切换成root用户</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>修改用户名</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">usermod -l yourname pi #修改用户名为你的名字</span><br><span class="line">groupmod -n yourname pi #修改组名pi为你的名字</span><br><span class="line">mv /home/pi /home/yourname #更改pi的home目录为你的名字的home目录</span><br><span class="line">usermod -d /home/yourname yourname #修改/etc/passwd中yourname用户的home目录地址</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">有的可能需要允许你的名字的用户使用sudo命令，需要编辑/etc/sudoers文件，将末尾的</span></span><br><span class="line">pi ALL=(ALL) NOPASSWD: ALL</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">改为</span></span><br><span class="line">yourname ALL=(ALL) NOPASSWD: ALL #此操作需要查看配置文件是否限制了用户权限</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>修改密码</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo passwd yourname  #修改yourname用户密码</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">输入新的UNIX密码：</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">再输入一次密码：</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">可重新锁定root用户</span></span><br><span class="line">sudo passwd -l root</span><br></pre></td></tr></table></figure>
+
+<h3 id="修改软件源"><a href="#修改软件源" class="headerlink" title="修改软件源"></a>修改软件源</h3><p>由于科学上网的原因，很多国外的软件源都没办法访问，所以这里我们把常用的源换成国内的。</p>
+<p>由于raspberry源对64位Pi OS支持不完全， <strong>sources.list</strong>需要使用debian源，而32位的直接使用raspberry源就行</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo vim /etc/apt/sources.list</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">把原来的内容注释掉（最前面加 <span class="comment"># 号），在文件最顶部添加下面的内容：</span></span></span><br><span class="line">deb https://mirrors.tuna.tsinghua.edu.cn/debian buster main contrib non-free</span><br><span class="line">deb https://mirrors.tuna.tsinghua.edu.cn/debian-security/ buster/updates main contrib non-free</span><br><span class="line">deb https://mirrors.tuna.tsinghua.edu.cn/debian buster-updates main contrib non-free</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">修改 raspi.list 文件，用以下内容替换(树莓派基金会单独提供的源，与32位Pi OS的一致)：</span></span><br><span class="line">sudo vim /etc/apt/sources.list.d/raspi.list</span><br><span class="line">deb http://mirrors.tuna.tsinghua.edu.cn/raspberrypi/ buster main ui</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">同步更新源、软件包</span></span><br><span class="line">sudo apt-get update</span><br><span class="line">sudo apt-get upgrade</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装必要的库和包</span></span><br><span class="line">sudo apt-get install build-essential cmake make gcc</span><br></pre></td></tr></table></figure>
+
+<p>如遇到以下报错，可以通过导入对应仓库的公钥来解决</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Get:1 http://mirrors.tuna.tsinghua.edu.cn/raspbian/raspbian buster InRelease [15.0 kB]</span><br><span class="line">Hit:2 http://mirrors.tuna.tsinghua.edu.cn/raspberrypi buster InRelease</span><br><span class="line">Err:1 http://mirrors.tuna.tsinghua.edu.cn/raspbian/raspbian buster InRelease</span><br><span class="line">  The following signatures couldn&#x27;t be verified because the public key is not available: NO_PUBKEY 9165938D90FDDD2E</span><br><span class="line">Reading package lists... Done</span><br><span class="line">W: GPG error: http://mirrors.tuna.tsinghua.edu.cn/raspbian/raspbian buster InRelease: The following signatures couldn&#x27;t be verified because the public key is not available: NO_PUBKEY 9165938D90FDDD2E</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">gpg --keyserver keyserver.ubuntu.com --recv-keys 9165938D90FDDD2E</span><br><span class="line">gpg --export --armor 9165938D90FDDD2E | sudo apt-key add -</span><br><span class="line">sudo apt-get update</span><br></pre></td></tr></table></figure>
+
+<h3 id="改为静态IP"><a href="#改为静态IP" class="headerlink" title="改为静态IP"></a>改为静态IP</h3><p>由于通过DHCP分配的IP有可能会变，这对我们后续的SSH登录、端口转发等都会造成影响，所以这里需要改成静态IP。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">编辑dhcp配置</span></span><br><span class="line">sudo vim /etc/dhcpcd.conf</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在文件最后增加</span></span><br><span class="line">interface eth0</span><br><span class="line">static ip_address=192.168.1.200/24	# 笔者路由器配置的DHCP池为100~199，所以这里规划静态IP从200开始</span><br><span class="line">static routers=192.168.1.1</span><br><span class="line">static domain_name_servers=192.168.1.1 223.5.5.5 8.8.8.8</span><br></pre></td></tr></table></figure>
+
+<p>其中<code>eth0</code>代表有线以太网接口，如要配置无线网，使用<code>wlan0</code>；<code>ip_address</code>就是IP地址，根据实际情况配置；<code>routers</code>是网关地址；<code>domain_name_servers</code>是DNS服务器的地址。</p>
+<h2 id="配置基础开发环境"><a href="#配置基础开发环境" class="headerlink" title="配置基础开发环境"></a>配置基础开发环境</h2><p>笔者的目标是利用树莓派搭建一个服务器集群，使用k3s进行服务编排，在上面运行自己的博客、FaaS以及其他一些小服务。同时能够在上面编译运行Go、Python等代码。</p>
+<h3 id="安装zsh"><a href="#安装zsh" class="headerlink" title="安装zsh"></a>安装zsh</h3><h4 id="访问github失败的解决方法"><a href="#访问github失败的解决方法" class="headerlink" title="访问github失败的解决方法"></a>访问github失败的解决方法</h4><p>如果访问<code>raw.githubusercontent.com</code>失败，需要用国内的资源来安装</p>
+<ol>
+<li>从gitee上下载安装脚本 <code>wget https://gitee.com/mirrors/oh-my-zsh/raw/master/tools/install.sh</code></li>
+<li>编辑install.sh，修改下面内容，然后执行<code>sh install.sh</code></li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">找到</span></span><br><span class="line">REPO=$&#123;REPO:-ohmyzsh/ohmyzsh&#125;</span><br><span class="line">REMOTE=$&#123;REMOTE:-https://github.com/$&#123;REPO&#125;.git&#125;</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">改为</span></span><br><span class="line">REPO=$&#123;REPO:-mirrors/oh-my-zsh&#125;</span><br><span class="line">REMOTE=$&#123;REMOTE:-https://gitee.com/$&#123;REPO&#125;.git&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>修改仓库地址</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cd ~/.oh-my-zsh</span><br><span class="line">git remote set-url origin https://gitee.com/mirrors/oh-my-zsh.git</span><br><span class="line">git pull</span><br></pre></td></tr></table></figure>
+
+<h4 id="配置zsh插件"><a href="#配置zsh插件" class="headerlink" title="配置zsh插件"></a>配置zsh插件</h4><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">git clone https://github.com/zsh-users/zsh-autosuggestions $&#123;ZSH_CUSTOM:-~/.oh-my-zsh/custom&#125;/plugins/zsh-autosuggestions</span><br><span class="line"></span><br><span class="line">git clone https://github.com/zsh-users/zsh-completions $&#123;ZSH_CUSTOM:=~/.oh-my-zsh/custom&#125;/plugins/zsh-completions</span><br><span class="line"></span><br><span class="line">git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $&#123;ZSH_CUSTOM:-~/.oh-my-zsh/custom&#125;/plugins/zsh-syntax-highlighting</span><br><span class="line"></span><br><span class="line">plugins=(</span><br><span class="line">        git</span><br><span class="line">        docker</span><br><span class="line">        kubectl</span><br><span class="line">        z</span><br><span class="line">        sudo</span><br><span class="line">        extract</span><br><span class="line">        zsh-autosuggestions</span><br><span class="line">        zsh-syntax-highlighting</span><br><span class="line">        zsh-completions</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<h2 id="安装编程语言"><a href="#安装编程语言" class="headerlink" title="安装编程语言"></a>安装编程语言</h2><p>这里推荐一个非常好用的多版本包管理工具<a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/asdf-vm/asdf"><code>asdf</code></a>，它可以把我们平常用到的pyenv、jenv、goenv等多版本管理的工具融合成一个，方便的安装和管理。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装asdf工具</span></span><br><span class="line">git clone https://github.com/asdf-vm/asdf.git ~/.asdf</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">添加plugin</span></span><br><span class="line">asdf plugin add golang</span><br><span class="line">asdf plugin add python</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">选择安装plugin的某个版本</span></span><br><span class="line">asdf install golang 1.16.8</span><br><span class="line">asdf install python 3.8.9</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">全局切换plugin版本</span></span><br><span class="line">asdf global golang 1.16.8</span><br></pre></td></tr></table></figure>
+
+<p>笔者在安装python的过程中遇到了下面的报错，可以通过安装<code>sudo apt install libssl-dev</code>解决。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">Installing Python-3.8.9...</span><br><span class="line">WARNING: The Python bz2 extension was not compiled. Missing the bzip2 lib?</span><br><span class="line">WARNING: The Python readline extension was not compiled. Missing the GNU readline lib?</span><br><span class="line">ERROR: The Python ssl extension was not compiled. Missing the OpenSSL lib?</span><br><span class="line"></span><br><span class="line">Please consult to the Wiki page to fix the problem.</span><br><span class="line">https://github.com/pyenv/pyenv/wiki/Common-build-problems</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">BUILD FAILED (Debian 10 using python-build 2.0.7-19-g9ecfdd10)</span><br></pre></td></tr></table></figure>
+
+</div><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:leosocy@gmail.com" rel="external nofollow noopener noreferrer" target="_blank">Leosocy</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://blog.leosocy.top/posts/667d/">https://blog.leosocy.top/posts/667d/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="external nofollow noopener noreferrer">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://blog.leosocy.top" target="_blank">Leosocy's Blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"></div><div class="post_share"><div class="social-share" data-image="/img/20210912221218.png" data-sites="wechat,weibo,qq,facebook,twitter"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/posts/8dc4/"><img class="prev-cover" data-lazy-src="https://cdn.leosocy.top/img/2023/11/0cd0bf549104526d7926eb1f106cd0c5.png" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">玩转树莓派 —— 安装k3s和openfaas</div></div></a></div><div class="next-post pull-right"><a href="/posts/9e84/"><img class="next-cover" data-lazy-src="https://cdn.leosocy.top/img/20210703000745.png" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Docker容器的日志是如何存储的</div></div></a></div></nav><hr><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div><div class="comment-switch"><span class="first-comment">Valine</span><label><input id="switch-comments-btn" type="checkbox"><span class="slider"></span></label><span class="second-comment">Gitalk</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div><div><div id="gitalk-container"></div></div></div></div></article></main><footer id="footer" data-type="color"><div id="footer-wrap"><div class="copyright">&copy;2017 - 2023   <i id="heartbeat" class="fa fas fa-heartbeat"></i>  Leosocy</div><div class="icp"><a target="_blank" rel="external nofollow noopener noreferrer" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=32011302320676"><span>苏ICP备19003706号-1</span></a></div></div><head><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/heartbeat.min.css"></head></footer><script>var bg_index = Math.floor(Math.random() * 21);
+if (true === true)
+  var res = 'background-image: url("https://cdn.leosocy.top/img/background/' + bg_index + '-bg.jpg");'
+else
+  var res = 'background-image: url("https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn/img/background/' + bg_index + '-bg.jpg");'
+document.getElementById('web_bg').style = res
+</script></div><section id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="font_plus" type="button" title="放大字体"><i class="fas fa-plus"></i></button><button id="font_minus" type="button" title="缩小字体"><i class="fas fa-minus"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></section><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"></div></div></div><hr><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module" defer></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js" async></script><script>function panguFn () {
+  if (typeof pangu === 'object') pangu.spacingElementById('content-inner')
+  else {
+    $.getScript('https://cdn.jsdelivr.net/npm/pangu/dist/browser/pangu.min.js', () => {
+      pangu.spacingElementById('content-inner')
+    })
+  }
+}
+
+function panguInit () {
+  if (false){
+    GLOBAL_CONFIG_SITE.isPost && panguFn()
+  } else {
+    panguFn()
+  }
+}
+
+document.addEventListener('DOMContentLoaded', panguFn)</script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadValine () {
+  function initValine () {
+    window.valine = new Valine({
+      el: '#vcomment',
+      appId: 'HrxT0ob97kYUTuWuUo08mkqc-gzGzoHsz',
+      appKey: 'oeKW9UqjBpN6MNv7ENaikdwP',
+      placeholder: '请输入内容',
+      avatar: 'retro',
+      meta: 'nick,mail,link'.split(','),
+      pageSize: '10',
+      lang: 'zh-CN',
+      recordIP: false,
+      serverURLs: 'https://lcapi.leosocy.top',
+      emojiCDN: '',
+      emojiMaps: "",
+      enableQQ: false,
+      path: window.location.pathname,
+      visitor: true
+    });
+    if ('nick') { valine.config.requiredFields= 'nick'.split(',') }
+  }
+
+  if (typeof Valine === 'function') initValine() 
+  else $.getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js', initValine)
+}
+
+if ('Valine' === 'Valine' || !true) {
+  if (true && !true) loadComment(document.querySelector('#vcomment'),loadValine)
+  else setTimeout(() => loadValine(), 0)
+} else {
+  function loadOtherComment () {
+    loadValine()
+  }
+}</script><script>function addGitalkSource () {
+  const ele = document.createElement('link')
+  ele.rel = 'stylesheet'
+  ele.href= 'https://cdn.jsdelivr.net/npm/gitalk/dist/gitalk.min.css'
+  document.getElementsByTagName('head')[0].appendChild(ele)
+}
+
+function loadGitalk () {
+  function initGitalk () {
+    var gitalk = new Gitalk({
+      clientID: '32b06a1ce1ba2d645bb5',
+      clientSecret: 'c4e9c93c5a16234ecb67a9b83b9315f763436cdd',
+      repo: 'comments',
+      owner: 'LeosocyBlog',
+      admin: ['Leosocy'],
+      id: '2f3069f7dde3d00b5de9a9aec285c17a',
+      language: 'zh-CN',
+      perPage: 10,
+      distractionFreeMode: true,
+      pagerDirection: 'last',
+      createIssueManually: false,
+      updateCountCallback: commentCount
+    })
+    gitalk.render('gitalk-container')
+  }
+
+  if (typeof Gitalk === 'function') initGitalk()
+  else {
+    addGitalkSource()
+    $.getScript('https://cdn.jsdelivr.net/npm/gitalk@latest/dist/gitalk.min.js', initGitalk)
+  }
+}
+
+function commentCount(n){
+  let isCommentCount = document.querySelector('#post-meta .gitalk-comment-count')
+  if (isCommentCount) {
+    isCommentCount.innerHTML= n
+  }
+}
+
+if ('Valine' === 'Gitalk' || !true) {
+  if (true) loadComment(document.getElementById('gitalk-container'), loadGitalk)
+  else loadGitalk()
+} else {
+  function loadOtherComment () {
+    loadGitalk()
+  }
+}</script><script>cdn_url = "https://cdn.leosocy.top"</script><script src="/"></script></div><script src="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/js/leosocy.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>$(function () {
+  var pjax = new Pjax({
+    selectors: [
+      'title',
+      'meta[name=description]',
+      '#config_change',
+      '#body-wrap',
+      '#rightside-config-hide',
+      '#rightside-config-show',
+      '.js-pjax'
+    ],
+    cacheBust: false,
+  })
+
+  document.addEventListener('pjax:complete', function () {
+    refreshFn()
+
+    $('script[data-pjax]').each(function () {
+      $(this).parent().append($(this).remove())
+    })
+
+    GLOBAL_CONFIG.islazyload && lazyLoadInstance.update()
+
+    typeof chatBtnFn === 'function' && chatBtnFn()
+    typeof panguInit === 'function' && panguInit()
+
+    if (typeof gtag === 'function') {
+      gtag('config', 'G-8EGQPPW7GQ', {'page_path': window.location.pathname});
+    }
+
+    if (document.getElementsByClassName('aplayer').length){
+      typeof loadMeting === 'function' && loadMeting()
+    }
+  })
+
+  document.addEventListener('pjax:send', function () {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+
+    typeof typed === 'object' && typed.destroy()
+
+    $(window).off('scroll')
+
+    //reset readmode
+    $('body').hasClass('read-mode') && $('body').removeClass('read-mode')
+
+    //reset font-size
+    $('body').css('font-size') !== originFontSize && $('body').css('font-size', parseFloat(originFontSize))
+  })
+})</script></div></body></html>

@@ -1,0 +1,412 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>epoll深入学习 | Leosocy's Blog</title><meta name="description" content="图片转自这里**  以前就一直听说事件模型中，epoll比select的效率高出一个量级，epoll的一些优点网上也有很多的文章阐述解释。但是至于为什么epoll如此高效？内核是怎么实现的？我并没有深入研究，所以为了更加深入的了解epoll，近期一直在研究epoll的内核源码（头一次读内核源码还是有些吃力）。大致弄懂了实现原理后才发现，网上的一些解释有的并不是很准确。本篇文章概括了epoll的"><meta name="keywords" content="epoll,并发连接,socket"><meta name="author" content="Leosocy,leosocy@gmail.com"><meta name="copyright" content="Leosocy"><meta name="format-detection" content="telephone=no"><link rel="shortcut icon" href="https://cdn.leosocy.top/img/LEO-logo.jpg"><link rel="canonical" href="https://blog.leosocy.top/posts/6e3c/"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="preconnect" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//www.google-analytics.com" crossorigin="crossorigin"><link rel="preconnect" href="//fonts.googleapis.com" crossorigin="crossorigin"><meta name="google-site-verification" content="oh1OfqVAIxCAFZ8w5KBBtK7tJK48Z0HuFl2XXbRiM-E"><meta name="baidu-site-verification" content="code-7jpxSWptMj"><meta property="og:type" content="article"><meta property="og:title" content="epoll深入学习"><meta property="og:url" content="https://blog.leosocy.top/posts/6e3c/"><meta property="og:site_name" content="Leosocy's Blog"><meta property="og:description" content="图片转自这里**  以前就一直听说事件模型中，epoll比select的效率高出一个量级，epoll的一些优点网上也有很多的文章阐述解释。但是至于为什么epoll如此高效？内核是怎么实现的？我并没有深入研究，所以为了更加深入的了解epoll，近期一直在研究epoll的内核源码（头一次读内核源码还是有些吃力）。大致弄懂了实现原理后才发现，网上的一些解释有的并不是很准确。本篇文章概括了epoll的"><meta property="og:image" content="https://blog.leosocy.top/img/linux-1.jpg"><meta property="article:published_time" content="2019-03-18T16:28:31.000Z"><meta property="article:modified_time" content="2023-11-05T07:26:20.236Z"><meta name="twitter:card" content="summary"><script>var activateDarkMode = function () {
+  document.documentElement.setAttribute('data-theme', 'dark')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#000')
+  }
+}
+var activateLightMode = function () {
+  document.documentElement.setAttribute('data-theme', 'light')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#fff')
+  }
+}
+
+var getCookies = function (name) {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop().split(';').shift()
+}
+
+var autoChangeMode = 'false'
+var t = getCookies('theme')
+if (autoChangeMode === '1') {
+  var isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+  var isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+  var isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+  var hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+
+  if (t === undefined) {
+    if (isLightMode) activateLightMode()
+    else if (isDarkMode) activateDarkMode()
+    else if (isNotSpecified || hasNoSupport) {
+      console.log('You specified no preference for a color scheme or your browser does not support it. I Schedule dark mode during night time.')
+      var now = new Date()
+      var hour = now.getHours()
+      var isNight = hour <= 6 || hour >= 18
+      isNight ? activateDarkMode() : activateLightMode()
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+      if (Cookies.get('theme') === undefined) {
+        e.matches ? activateDarkMode() : activateLightMode()
+      }
+    })
+  } else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else if (autoChangeMode === '2') {
+  now = new Date()
+  hour = now.getHours()
+  isNight = hour <= 6 || hour >= 18
+  if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+  else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else {
+  if (t === 'dark') activateDarkMode()
+  else if (t === 'light') activateLightMode()
+}</script><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css"><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-8EGQPPW7GQ"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-8EGQPPW7GQ');
+</script><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Titillium+Web&amp;display=swap"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  bookmark: {
+    message_prev: '按',
+    message_next: '键将本页加入书签'
+  },
+  runtime_unit: '天',
+  runtime: false,
+  copyright: undefined,
+  ClickShowText: undefined,
+  medium_zoom: false,
+  fancybox: true,
+  Snackbar: {"bookmark":{"message_prev":"按","message_next":"键将本页加入书签"},"chs_to_cht":"你已切换为繁体","cht_to_chs":"你已切换为简体","day_to_night":"你已切换为深色模式","night_to_day":"你已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#121212","position":"bottom-left"},
+  justifiedGallery: {
+    js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+    css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+  },
+  baiduPush: false,
+  highlightCopy: true,
+  highlightLang: true,
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: false    
+}</script><script>(function(win, export_obj) {
+win['TeaAnalyticsObject'] = export_obj;
+if (!win[export_obj]) {
+function _collect() {
+_collect.q.push(arguments);
+}
+_collect.q = _collect.q || [];
+win[export_obj] = _collect;
+}
+win[export_obj].l = +new Date();
+})(window, 'collectEvent');</script><script async src="https://sf1-scmcdn-tos.pstatp.com/goofy/log-sdk/collect/collect-autotrack-rangers.js"></script><script>window.collectEvent('init', {
+app_id: 190292,//  必须替换成申请的 app_id
+channel: 'cn',
+log: true, // 开启调试日志
+autotrack: true // 开启全埋点采集，默认关闭，需要热力图及圈选功能可开启
+});
+window.collectEvent('start');</script><script>var _wr = function(type) {
+  var orig = history[type];
+  return function() {
+    var rv = orig.apply(this, arguments);
+    var e = new Event(type);
+    e.arguments = arguments;
+    window.dispatchEvent(e);
+    return rv;
+  };
+};
+history.pushState = _wr('pushState');
+history.replaceState = _wr('replaceState');
+window.addEventListener("popstate", function(event) {
+  window.collectEvent('predefinePageView');
+});
+window.addEventListener("pushState", function(event) {
+  window.collectEvent('predefinePageView');
+});</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isSidebar: true,
+  postUpdate: '2023-11-05 15:26:20'
+}</script><noscript><style>
+#nav {
+  opacity: 1
+}
+.justified-gallery img {
+  opacity: 1
+}
+</style></noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/leosocy.min.css"><meta name="referrer" content="no-referrer-when-downgrade"><meta name="generator" content="Hexo 7.0.0"></head><body><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" data-lazy-src="https://cdn.leosocy.top/img/avatar-leosocy.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">文章</div><div class="length_num">26</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">标签</div><div class="length_num">40</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">分类</div><div class="length_num">21</div></a></div></div></div><hr><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div></div></div><div id="body-wrap"><div id="web_bg" data-type="photo"></div><div id="sidebar"><i class="fas fa-arrow-right on" id="toggle-sidebar"></i><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar">     </div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Linux-epoll%E5%AE%9E%E7%8E%B0%E6%9C%BA%E5%88%B6"><span class="toc-number">1.</span> <span class="toc-text">Linux epoll实现机制</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#LT%EF%BC%8CET%E4%BB%A5%E5%8F%8A%E6%83%8A%E7%BE%A4%E9%97%AE%E9%A2%98"><span class="toc-number">2.</span> <span class="toc-text">LT，ET以及惊群问题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%83%8A%E7%BE%A4%E6%A8%A1%E5%BC%8F%E6%9C%89%E4%BB%80%E4%B9%88%E5%8D%B1%E5%AE%B3"><span class="toc-number">2.1.</span> <span class="toc-text">惊群模式有什么危害</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#LT%E6%A8%A1%E5%BC%8F%E6%83%8A%E7%BE%A4%E6%95%88%E5%BA%94%E7%A4%BA%E4%BE%8B"><span class="toc-number">2.2.</span> <span class="toc-text">LT模式惊群效应示例</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ET%E6%A8%A1%E5%BC%8F%E4%B8%8B%E9%9D%A2%E4%B8%B4%E7%9A%84%E6%96%B0%E9%97%AE%E9%A2%98"><span class="toc-number">2.3.</span> <span class="toc-text">ET模式下面临的新问题</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9D%A5%E7%82%B9Demo"><span class="toc-number">3.</span> <span class="toc-text">来点Demo</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-9%E5%86%85%E6%A0%B8%E4%B8%AD%E7%9A%84socket-reuse-port"><span class="toc-number">4.</span> <span class="toc-text">3.9内核中的socket reuse port</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA"><span class="toc-number">5.</span> <span class="toc-text">结论</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%AB%A0"><span class="toc-number">6.</span> <span class="toc-text">参考文章</span></a></li></ol></div></div></div><header class="post-bg" id="page-header" style="background-image: url(https://cdn.leosocy.top/img/linux-1.jpg)"><nav id="nav"><span class="pull-left" id="blog_name"><a class="blog_title" id="site-name" href="/">Leosocy's Blog</a></span><span class="pull-right menus"><div id="search_button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div><span class="toggle-menu close"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><div id="post-title"><div class="posttitle">epoll深入学习</div></div><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="fa-fw post-meta-icon far fa-calendar-alt"></i><span class="post-meta-label">发表于</span><time datetime="2019-03-18T16:28:31.000Z" title="undefined 2019-03-19 00:28:31">2019-03-19</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/">基础知识</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/">计算机网络</a></span></div><div class="meta-secondline"> <span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">2.6k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>12分钟</span></span><span class="post-meta-separator">|</span><span class="leancloud_visitors" id="/posts/6e3c/" data-flag-title="epoll深入学习"><i class="far fa-fire fa-fw post-meta-icon"></i><span class="post-meta-label">热度:</span><span class="leancloud-visitors-count"></span><span class="du"> °C</span></span></div></div></div></header><main class="layout_post" id="content-inner"><article id="post"><div class="post-content" id="article-container"><p><img src="https://cdn.leosocy.top/img/dinosaurloading.gif" data-lazy-src="https://cdn.leosocy.top/img/20190319010209.png"></p>
+<blockquote>
+<p>图片转自<a target="_blank" rel="external nofollow noopener noreferrer" href="https://blog.csdn.net/dog250/article/details/80837278">这里</a>**</p>
+</blockquote>
+<p>以前就一直听说事件模型中，epoll比select的效率高出一个量级，epoll的一些优点网上也有很多的文章阐述解释。但是至于为什么epoll如此高效？内核是怎么实现的？我并没有深入研究，所以为了更加深入的了解epoll，近期一直在研究epoll的内核源码（头一次读内核源码还是有些吃力）。大致弄懂了实现原理后才发现，网上的一些解释有的并不是很准确。本篇文章概括了epoll的实现机制，并引出epoll中的惊群问题以及一些解决方法。</p>
+<span id="more"></span>
+
+<h2 id="Linux-epoll实现机制"><a href="#Linux-epoll实现机制" class="headerlink" title="Linux epoll实现机制"></a>Linux epoll实现机制</h2><p>对于具体实现分析网上已经有很多文章阐述了，我就不再这里赘述。这里贴一篇<a target="_blank" rel="external nofollow noopener noreferrer" href="https://blog.csdn.net/dog250/article/details/80837278">文章</a>，我觉得说的很清楚并且是按照源码分析的。</p>
+<p>简单来说epoll的实现主要有以下几个逻辑</p>
+<ol>
+<li><code>epoll_create</code>: 创建epollevent结构体并初始化相关数据结构。创建fd并绑定到epoll对象上。</li>
+<li><code>epoll_ctl</code>: <strong>从用户空间拷贝</strong>event到内核空间，创建<code>epitem</code>并初始化，将要监听的fd绑定到epitem</li>
+<li>通过监听fd的poll回调，设置等待队列的entry调用函数为<code>ep_poll_callback</code>，并将entry插入到监听fd的“睡眠队列”上。</li>
+<li><code>epoll_ctl</code>的最后将epitem插入到第一步创建的epollevent的红黑树中。</li>
+<li><code>epoll_wait</code>: 如果ep的就绪链表为空，根据当前进程初始化一个等待entry并插入到ep的等待队列中。设置当前进程为<code>TASK_INTERRUPTIBLE</code>即可被中断唤醒，然后进入”睡眠”状态，让出CPU。</li>
+<li>当监听的fd有对应事件发生，则唤醒相关文件句柄睡眠队列的entry，并调用其回调，即<code>ep_poll_callback</code></li>
+<li>将发生事件的epitem加入到ep的“就绪链表”中，唤醒阻塞在epoll_wait系统调用的task去处理。</li>
+<li><code>epoll_wait</code>被调度继续执行，判断就绪链表中有就绪的item，会调用<code>ep_send_events</code>向用户态上报事件，即那些epoll_wait返回后能获取的事件。</li>
+<li><code>ep_send_events</code>会调用传入的<code>ep_send_events_proc</code>函数，真正执行将就绪事件从内核空间拷贝到用户空间的操作。</li>
+<li>拷贝后会判断对应事件是<code>ET</code>还是<code>LT</code>模式，如果是LT则无论如何都会将epi重新加回到“就绪链表”，等待下次<code>epoll_wait</code>重新再调用监听fd的poll以确认是否仍然有未处理的事件。</li>
+<li><code>ep_send_events_proc</code>返回后，在<code>ep_send_events</code>中会判断，如果“就绪链表”上仍有未处理的epi，且有进程阻塞在epoll句柄的睡眠队列，则唤醒它！(<strong>这就是LT惊群的根源</strong>)，详情可见<a target="_blank" rel="external nofollow noopener noreferrer" href="https://code.woboq.org/linux/linux/fs/eventpoll.c.html#733">源码此处</a>。</li>
+</ol>
+<h2 id="LT，ET以及惊群问题"><a href="#LT，ET以及惊群问题" class="headerlink" title="LT，ET以及惊群问题"></a>LT，ET以及惊群问题</h2><p>上一节我们提到了LT（水平触发）和ET（边缘触发），简单解释下就是：</p>
+<ol>
+<li><code>LT水平触发</code>：如果监听的事件发生了，不管一次性发生了几个，只要仍然有未处理的事件，epoll_wait就会<strong>一直返回</strong>给你。</li>
+<li><code>ET</code>边沿触发：如果监听的事件发生了，不管一次性发生了几个，epoll_wait只会<strong>返回一次</strong>，除非下一个事件到来，否则epoll_wait将不会阻塞。</li>
+</ol>
+<h3 id="惊群模式有什么危害"><a href="#惊群模式有什么危害" class="headerlink" title="惊群模式有什么危害"></a>惊群模式有什么危害</h3><ol>
+<li>不必要的内存拷贝，将事件从内核空间拷贝到用户空间。</li>
+<li>增加CPU负载，唤醒进程后accept返回EAGAIN。</li>
+</ol>
+<h3 id="LT模式惊群效应示例"><a href="#LT模式惊群效应示例" class="headerlink" title="LT模式惊群效应示例"></a>LT模式惊群效应示例</h3><figure class="highlight c"><table><tr><td class="code"><pre><span class="line">set_socket_nonblock(listen_fd);</span><br><span class="line"><span class="type">int</span> epfd = epoll_create(<span class="number">1</span>);</span><br><span class="line">event.data.fd = listen_fd;</span><br><span class="line">epoll_ctl(epfd, EPOLL_CTL_ADD, listen_fd, &amp;event);</span><br><span class="line"><span class="keyword">while</span> (keep_running) &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="type">int</span> nfds = epoll_wait(epfd, rd_events, <span class="number">10</span>, timeout_ms);</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; nfds; ++i) &#123;</span><br><span class="line">        <span class="keyword">if</span> ((rd_events[i].events &amp; EPOLLIN)</span><br><span class="line">            &amp;&amp; (rd_events[i].data.fd == listen_fd)) &#123;</span><br><span class="line">            <span class="comment">// 这里如果有多个进程共享同一个epfd并调用epoll_wait，那么它们也将被唤醒！</span></span><br><span class="line">            <span class="comment">// 1. 如果accept队列中有n个请求，则仅有n个进程能成功，其他将全部返回EAGAIN</span></span><br><span class="line">            <span class="comment">// 2. 如果并发连接进一步增大，虽然返回EAGAIN的比例会降低，但这些进程也并不一定取到epoll_wait返回的当下的那个预期的请求</span></span><br><span class="line">            <span class="type">int</span> conn_fd = accept(listen_fd, (<span class="keyword">struct</span> sockaddr*)&amp;client_addr, &amp;addrlen);</span><br><span class="line">            ...</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们来看一个场景举例。假设LT模式下有4个进程共享同一个epoll fd，此时来了一个请求client进入到accept队列，进程唤醒过程如下：</p>
+<ol>
+<li>进程A的epoll_wait首先被ep_poll_callback唤醒，内核拷贝event到用户空间，然后将epi重新加回就绪链表，内核发现就绪链表上仍有就绪的epi，则继续唤醒进程B。</li>
+<li>进程B在处理<code>ep_scan_ready_list</code>时发现依然满足上述条件，于是继续唤醒进程C。</li>
+<li>上面1、2两个过程会一直持续到某个进程完成accept，此时下一个被唤醒的进程在<code>ep_scan_ready_list</code>中的<code>ep_item_poll</code>调用中将得不到任何时间，也就不会再将epi将会就绪链表了。</li>
+<li>LT水平触发就此结束。</li>
+</ol>
+<h3 id="ET模式下面临的新问题"><a href="#ET模式下面临的新问题" class="headerlink" title="ET模式下面临的新问题"></a>ET模式下面临的新问题</h3><p>上一节我们解释了为什么LT模式下会造成惊群问题，究其原因就是内核重新将epi加回到了就绪链表。ET模式下不会将已经上报的事件epi重新加回就绪链表，所以也就不会有惊群的问题。那是不是我们将事件设置成ET模式就万事大吉了呢？我们来接着看</p>
+<p>ep_poll_callback所做的事情仅仅是将该epi自身加入到epoll句柄的“就绪链表”，同时唤醒在epoll句柄睡眠队列上的task，所以这里并不对事件的细节进行计数，比如说，如果ep_poll_callback在将一个epi加入“就绪链表”之前发现它已经在“就绪链表”了，那么就不会再次添加，因此可以说，一个epi可能pending了多个事件。</p>
+<p>这个在LT模式下没有任何问题，因为获取事件的epi总是会被重新添加回“就绪链表”，那么如果还有事件，在下次epoll_wait的时候总会取到。然而对于ET模式，仅仅将epi从“就绪链表”删除并将事件本身上报后就返回了，因此如果该epi里还有事件，则<strong>只能等待再次发生事件</strong>，进而调用ep_poll_callback时将该epi加入“就绪队列”。</p>
+<p>所以当使用ET模式时，epoll_wait的调用进程必须自己在获取到事件后将其处理干净才可再次调用epoll_wait，否则epoll_wait不会返回，而是必须等到下次产生事件的时候方可返回。依然以accept为例，必须这样做：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">set_socket_nonblock(listen_fd);</span><br><span class="line"><span class="type">int</span> epfd = epoll_create(<span class="number">1</span>);</span><br><span class="line">event.data.fd = listen_fd;</span><br><span class="line">epoll_ctl(epfd, EPOLL_CTL_ADD, listen_fd, &amp;event);</span><br><span class="line"><span class="keyword">while</span> (keep_running) &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="type">int</span> nfds = epoll_wait(epfd, rd_events, <span class="number">10</span>, timeout_ms);</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; nfds; ++i) &#123;</span><br><span class="line">        <span class="keyword">if</span> ((rd_events[i].events &amp; EPOLLIN)</span><br><span class="line">            &amp;&amp; (rd_events[i].data.fd == listen_fd)) &#123;</span><br><span class="line">            <span class="type">int</span> conn_fd;</span><br><span class="line">            <span class="keyword">while</span> ((conn_fd = accept(listen_fd, (<span class="keyword">struct</span> sockaddr*)&amp;client_addr, &amp;addrlen) &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                ...</span><br><span class="line">            &#125;</span><br><span class="line">            ...</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="来点Demo"><a href="#来点Demo" class="headerlink" title="来点Demo"></a>来点Demo</h2><p>下面我们来几个Demo以及测试来巩固一下上面提到的理论。</p>
+<p>具体<a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/epoll-example">源码</a>可以见我的github，这里就不贴具体代码了，只根据不同配置给出测试的结果及结论。其中测试socket链接使用的是<a target="_blank" rel="external nofollow noopener noreferrer" href="https://www.cnblogs.com/zhunl/articles/7543318.html">webbench</a>工具。</p>
+<p>测试参数统一配置为<code>webbench -c 10 -t 5 http://localhost:6250/</code>。这里我们只测试了socket链接，然后直接close了，所以看bench的结果好像不太准确，这里我们通过统计log来看socket连接成功数以及进程惊群数。</p>
+<ul>
+<li>accept数：<code>cat log | grep accept | wc -l</code></li>
+<li>惊群次数：<code>cat log | grep thunder | wc -l</code></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="center">命令</th>
+<th align="center">解释</th>
+<th align="center">结果统计</th>
+<th align="center">结果说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center"><code>./server --mode 0 --port 6250 &gt; log</code></td>
+<td align="center">LT模式惊群</td>
+<td align="center">accept数：95139  惊群次数：733</td>
+<td align="center">可以发现进程被”惊群“效应唤起了很多次</td>
+</tr>
+<tr>
+<td align="center"><code>./server --mode 0 --port 6250 --et &gt; log</code></td>
+<td align="center">ET模式丢失事件</td>
+<td align="center">accept数：37159  惊群次数：0</td>
+<td align="center">可以发现虽然没有发生”惊群“现象，但是socket连接事件丢失现象也很严重</td>
+</tr>
+<tr>
+<td align="center"><code>./server --mode 0 --port 6250 --et --sleep 1 &gt; log</code></td>
+<td align="center">ET模式在epoll_wait和accept之间增加sleep操作，这样可以在调用accept之前积累更多的未处理事件</td>
+<td align="center">accept数：17  惊群次数：0</td>
+<td align="center">可以发现只有十几个连接建立成功了，事件丢失的相当严重</td>
+</tr>
+<tr>
+<td align="center"><code>./server --mode 0 --port 6250 --et --loop-accept &gt; log</code></td>
+<td align="center">ET模式循环accept</td>
+<td align="center">accept数：96120  惊群次数：0</td>
+<td align="center">可以发事件丢失现象已经解决</td>
+</tr>
+</tbody></table>
+<h2 id="3-9内核中的socket-reuse-port"><a href="#3-9内核中的socket-reuse-port" class="headerlink" title="3.9内核中的socket reuse port"></a>3.9内核中的socket reuse port</h2><p>上面一节总结了Linux下基于epoll事件的网络变成”惊群“现象。曾经，为了发挥多核的优势，可以hold住更高的并发连接，出现了两种常见的网络编程模型</p>
+<ol>
+<li>单进程创建socket，并进行listen和accept，接收到连接后创建进程和线程处理连接</li>
+<li>单进程创建socket，并进行listen，预先创建好多个工作进程或线程accept()在同一个服务器套接字</li>
+</ol>
+<p>但是以上两种模型均存在以下问题：</p>
+<ol>
+<li>单一listener工作线程在高速的连接接入处理时会成为瓶颈</li>
+<li>很难做到CPU之间的负载均衡</li>
+<li>随着核数的扩展，性能并没有随着提升</li>
+</ol>
+<p>于是为了解决上面的问题，Linux Kernel在3.9引入了<code>SO_REUSEPORT</code>特性，主要提供了以下功能：</p>
+<ol>
+<li>允许多个套接字 bind()/listen() 同一个TCP/UDP端口，这样每个进程都拥有了自己的服务器套接字</li>
+<li>内核层面实现负载均衡</li>
+</ol>
+<p>在reuseport机制下，惊群问题就不攻自破了。因为监听同一个ip:port的多个socket本身在socket层就是相互隔离的，在它们之间的事件分发是内核于TCP/IP协议栈完成的，所以不会再有惊群发生。</p>
+<h2 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h2><ul>
+<li>服务器内核大于3.9，支持<code>SO_REUSEPORT</code>：选择LT模式，不会有惊群效应，代码逻辑简单</li>
+<li>服务器内核小于3.9，不支持<code>SO_REUSEPORT</code><ul>
+<li>并发连接数较小，CPU负载不高：选择LT模式，代码逻辑简单，不会遗漏事件</li>
+<li>并发连接数较大，CPU负载较高：选择ET模式，提升epoll效率</li>
+</ul>
+</li>
+</ul>
+<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><ul>
+<li><a target="_blank" rel="external nofollow noopener noreferrer" href="https://blog.csdn.net/dog250/article/details/80837278">https://blog.csdn.net/dog250/article/details/80837278</a></li>
+<li><a target="_blank" rel="external nofollow noopener noreferrer" href="https://blog.csdn.net/dog250/article/details/50528373">https://blog.csdn.net/dog250/article/details/50528373</a></li>
+<li><a target="_blank" rel="external nofollow noopener noreferrer" href="https://www.cnblogs.com/Anker/p/7076537.html">https://www.cnblogs.com/Anker/p/7076537.html</a></li>
+</ul>
+</div><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:leosocy@gmail.com" rel="external nofollow noopener noreferrer" target="_blank">Leosocy</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://blog.leosocy.top/posts/6e3c/">https://blog.leosocy.top/posts/6e3c/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="external nofollow noopener noreferrer">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://blog.leosocy.top" target="_blank">Leosocy's Blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/epoll/">epoll</a><a class="post-meta__tags" href="/tags/%E5%B9%B6%E5%8F%91%E8%BF%9E%E6%8E%A5/">并发连接</a><a class="post-meta__tags" href="/tags/socket/">socket</a></div><div class="post_share"><div class="social-share" data-image="/img/linux-1.jpg" data-sites="wechat,weibo,qq,facebook,twitter"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/posts/98f0/"><img class="prev-cover" data-lazy-src="https://cdn.leosocy.top/img/peewee3-logo.png" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">使用kingshard + peewee过程中遇到的一些“坑”</div></div></a></div><div class="next-post pull-right"><a href="/posts/679e/"><img class="next-cover" data-lazy-src="https://cdn.leosocy.top/img/stdout_stdin_stderr.jpg" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">深入剖析Linux和Docker容器的buffered机制</div></div></a></div></nav><hr><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div><div class="comment-switch"><span class="first-comment">Valine</span><label><input id="switch-comments-btn" type="checkbox"><span class="slider"></span></label><span class="second-comment">Gitalk</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div><div><div id="gitalk-container"></div></div></div></div></article></main><footer id="footer" data-type="color"><div id="footer-wrap"><div class="copyright">&copy;2017 - 2023   <i id="heartbeat" class="fa fas fa-heartbeat"></i>  Leosocy</div><div class="icp"><a target="_blank" rel="external nofollow noopener noreferrer" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=32011302320676"><span>苏ICP备19003706号-1</span></a></div></div><head><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/heartbeat.min.css"></head></footer><script>var bg_index = Math.floor(Math.random() * 21);
+if (true === true)
+  var res = 'background-image: url("https://cdn.leosocy.top/img/background/' + bg_index + '-bg.jpg");'
+else
+  var res = 'background-image: url("https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn/img/background/' + bg_index + '-bg.jpg");'
+document.getElementById('web_bg').style = res
+</script></div><section id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="font_plus" type="button" title="放大字体"><i class="fas fa-plus"></i></button><button id="font_minus" type="button" title="缩小字体"><i class="fas fa-minus"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></section><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"></div></div></div><hr><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module" defer></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js" async></script><script>function panguFn () {
+  if (typeof pangu === 'object') pangu.spacingElementById('content-inner')
+  else {
+    $.getScript('https://cdn.jsdelivr.net/npm/pangu/dist/browser/pangu.min.js', () => {
+      pangu.spacingElementById('content-inner')
+    })
+  }
+}
+
+function panguInit () {
+  if (false){
+    GLOBAL_CONFIG_SITE.isPost && panguFn()
+  } else {
+    panguFn()
+  }
+}
+
+document.addEventListener('DOMContentLoaded', panguFn)</script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadValine () {
+  function initValine () {
+    window.valine = new Valine({
+      el: '#vcomment',
+      appId: 'HrxT0ob97kYUTuWuUo08mkqc-gzGzoHsz',
+      appKey: 'oeKW9UqjBpN6MNv7ENaikdwP',
+      placeholder: '请输入内容',
+      avatar: 'retro',
+      meta: 'nick,mail,link'.split(','),
+      pageSize: '10',
+      lang: 'zh-CN',
+      recordIP: false,
+      serverURLs: 'https://lcapi.leosocy.top',
+      emojiCDN: '',
+      emojiMaps: "",
+      enableQQ: false,
+      path: window.location.pathname,
+      visitor: true
+    });
+    if ('nick') { valine.config.requiredFields= 'nick'.split(',') }
+  }
+
+  if (typeof Valine === 'function') initValine() 
+  else $.getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js', initValine)
+}
+
+if ('Valine' === 'Valine' || !true) {
+  if (true && !true) loadComment(document.querySelector('#vcomment'),loadValine)
+  else setTimeout(() => loadValine(), 0)
+} else {
+  function loadOtherComment () {
+    loadValine()
+  }
+}</script><script>function addGitalkSource () {
+  const ele = document.createElement('link')
+  ele.rel = 'stylesheet'
+  ele.href= 'https://cdn.jsdelivr.net/npm/gitalk/dist/gitalk.min.css'
+  document.getElementsByTagName('head')[0].appendChild(ele)
+}
+
+function loadGitalk () {
+  function initGitalk () {
+    var gitalk = new Gitalk({
+      clientID: '32b06a1ce1ba2d645bb5',
+      clientSecret: 'c4e9c93c5a16234ecb67a9b83b9315f763436cdd',
+      repo: 'comments',
+      owner: 'LeosocyBlog',
+      admin: ['Leosocy'],
+      id: '433c421a13aba8cc5ef522db876ca23f',
+      language: 'zh-CN',
+      perPage: 10,
+      distractionFreeMode: true,
+      pagerDirection: 'last',
+      createIssueManually: false,
+      updateCountCallback: commentCount
+    })
+    gitalk.render('gitalk-container')
+  }
+
+  if (typeof Gitalk === 'function') initGitalk()
+  else {
+    addGitalkSource()
+    $.getScript('https://cdn.jsdelivr.net/npm/gitalk@latest/dist/gitalk.min.js', initGitalk)
+  }
+}
+
+function commentCount(n){
+  let isCommentCount = document.querySelector('#post-meta .gitalk-comment-count')
+  if (isCommentCount) {
+    isCommentCount.innerHTML= n
+  }
+}
+
+if ('Valine' === 'Gitalk' || !true) {
+  if (true) loadComment(document.getElementById('gitalk-container'), loadGitalk)
+  else loadGitalk()
+} else {
+  function loadOtherComment () {
+    loadGitalk()
+  }
+}</script><script>cdn_url = "https://cdn.leosocy.top"</script><script src="/"></script></div><script src="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/js/leosocy.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>$(function () {
+  var pjax = new Pjax({
+    selectors: [
+      'title',
+      'meta[name=description]',
+      '#config_change',
+      '#body-wrap',
+      '#rightside-config-hide',
+      '#rightside-config-show',
+      '.js-pjax'
+    ],
+    cacheBust: false,
+  })
+
+  document.addEventListener('pjax:complete', function () {
+    refreshFn()
+
+    $('script[data-pjax]').each(function () {
+      $(this).parent().append($(this).remove())
+    })
+
+    GLOBAL_CONFIG.islazyload && lazyLoadInstance.update()
+
+    typeof chatBtnFn === 'function' && chatBtnFn()
+    typeof panguInit === 'function' && panguInit()
+
+    if (typeof gtag === 'function') {
+      gtag('config', 'G-8EGQPPW7GQ', {'page_path': window.location.pathname});
+    }
+
+    if (document.getElementsByClassName('aplayer').length){
+      typeof loadMeting === 'function' && loadMeting()
+    }
+  })
+
+  document.addEventListener('pjax:send', function () {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+
+    typeof typed === 'object' && typed.destroy()
+
+    $(window).off('scroll')
+
+    //reset readmode
+    $('body').hasClass('read-mode') && $('body').removeClass('read-mode')
+
+    //reset font-size
+    $('body').css('font-size') !== originFontSize && $('body').css('font-size', parseFloat(originFontSize))
+  })
+})</script></div></body></html>

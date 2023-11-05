@@ -1,0 +1,323 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>设计模式Python实现 | Leosocy's Blog</title><meta name="description" content="最近找到了一篇容易理解的关于设计模式的文章，比较深刻地讲解了设计模式 史上最全设计模式导学目录（完整版）。 为了加深自己对设计模式的理解，同时熟悉Python面向对象编程的技巧，遂写下此篇文章，记录每种设计模式对应的一个练习题，并附上Python代码实现。    简单工厂模式-Simple Factory Pattern问题背景XX软件公司欲基于Python语言开发一套图表库，该图表库可以为应用"><meta name="keywords" content="Python,设计模式"><meta name="author" content="Leosocy,leosocy@gmail.com"><meta name="copyright" content="Leosocy"><meta name="format-detection" content="telephone=no"><link rel="shortcut icon" href="https://cdn.leosocy.top/img/LEO-logo.jpg"><link rel="canonical" href="https://blog.leosocy.top/posts/ea37/"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="preconnect" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//www.google-analytics.com" crossorigin="crossorigin"><link rel="preconnect" href="//fonts.googleapis.com" crossorigin="crossorigin"><meta name="google-site-verification" content="oh1OfqVAIxCAFZ8w5KBBtK7tJK48Z0HuFl2XXbRiM-E"><meta name="baidu-site-verification" content="code-7jpxSWptMj"><meta property="og:type" content="article"><meta property="og:title" content="设计模式Python实现"><meta property="og:url" content="https://blog.leosocy.top/posts/ea37/"><meta property="og:site_name" content="Leosocy's Blog"><meta property="og:description" content="最近找到了一篇容易理解的关于设计模式的文章，比较深刻地讲解了设计模式 史上最全设计模式导学目录（完整版）。 为了加深自己对设计模式的理解，同时熟悉Python面向对象编程的技巧，遂写下此篇文章，记录每种设计模式对应的一个练习题，并附上Python代码实现。    简单工厂模式-Simple Factory Pattern问题背景XX软件公司欲基于Python语言开发一套图表库，该图表库可以为应用"><meta property="og:image" content="https://blog.leosocy.top/img/design-pattern.jpg"><meta property="article:published_time" content="2018-05-27T16:00:00.000Z"><meta property="article:modified_time" content="2023-11-05T07:26:20.240Z"><meta name="twitter:card" content="summary"><script>var activateDarkMode = function () {
+  document.documentElement.setAttribute('data-theme', 'dark')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#000')
+  }
+}
+var activateLightMode = function () {
+  document.documentElement.setAttribute('data-theme', 'light')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#fff')
+  }
+}
+
+var getCookies = function (name) {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop().split(';').shift()
+}
+
+var autoChangeMode = 'false'
+var t = getCookies('theme')
+if (autoChangeMode === '1') {
+  var isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+  var isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+  var isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+  var hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+
+  if (t === undefined) {
+    if (isLightMode) activateLightMode()
+    else if (isDarkMode) activateDarkMode()
+    else if (isNotSpecified || hasNoSupport) {
+      console.log('You specified no preference for a color scheme or your browser does not support it. I Schedule dark mode during night time.')
+      var now = new Date()
+      var hour = now.getHours()
+      var isNight = hour <= 6 || hour >= 18
+      isNight ? activateDarkMode() : activateLightMode()
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+      if (Cookies.get('theme') === undefined) {
+        e.matches ? activateDarkMode() : activateLightMode()
+      }
+    })
+  } else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else if (autoChangeMode === '2') {
+  now = new Date()
+  hour = now.getHours()
+  isNight = hour <= 6 || hour >= 18
+  if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+  else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else {
+  if (t === 'dark') activateDarkMode()
+  else if (t === 'light') activateLightMode()
+}</script><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css"><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-8EGQPPW7GQ"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-8EGQPPW7GQ');
+</script><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Titillium+Web&amp;display=swap"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  bookmark: {
+    message_prev: '按',
+    message_next: '键将本页加入书签'
+  },
+  runtime_unit: '天',
+  runtime: false,
+  copyright: undefined,
+  ClickShowText: undefined,
+  medium_zoom: false,
+  fancybox: true,
+  Snackbar: {"bookmark":{"message_prev":"按","message_next":"键将本页加入书签"},"chs_to_cht":"你已切换为繁体","cht_to_chs":"你已切换为简体","day_to_night":"你已切换为深色模式","night_to_day":"你已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#121212","position":"bottom-left"},
+  justifiedGallery: {
+    js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+    css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+  },
+  baiduPush: false,
+  highlightCopy: true,
+  highlightLang: true,
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: false    
+}</script><script>(function(win, export_obj) {
+win['TeaAnalyticsObject'] = export_obj;
+if (!win[export_obj]) {
+function _collect() {
+_collect.q.push(arguments);
+}
+_collect.q = _collect.q || [];
+win[export_obj] = _collect;
+}
+win[export_obj].l = +new Date();
+})(window, 'collectEvent');</script><script async src="https://sf1-scmcdn-tos.pstatp.com/goofy/log-sdk/collect/collect-autotrack-rangers.js"></script><script>window.collectEvent('init', {
+app_id: 190292,//  必须替换成申请的 app_id
+channel: 'cn',
+log: true, // 开启调试日志
+autotrack: true // 开启全埋点采集，默认关闭，需要热力图及圈选功能可开启
+});
+window.collectEvent('start');</script><script>var _wr = function(type) {
+  var orig = history[type];
+  return function() {
+    var rv = orig.apply(this, arguments);
+    var e = new Event(type);
+    e.arguments = arguments;
+    window.dispatchEvent(e);
+    return rv;
+  };
+};
+history.pushState = _wr('pushState');
+history.replaceState = _wr('replaceState');
+window.addEventListener("popstate", function(event) {
+  window.collectEvent('predefinePageView');
+});
+window.addEventListener("pushState", function(event) {
+  window.collectEvent('predefinePageView');
+});</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isSidebar: true,
+  postUpdate: '2023-11-05 15:26:20'
+}</script><noscript><style>
+#nav {
+  opacity: 1
+}
+.justified-gallery img {
+  opacity: 1
+}
+</style></noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/leosocy.min.css"><meta name="referrer" content="no-referrer-when-downgrade"><meta name="generator" content="Hexo 7.0.0"></head><body><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" data-lazy-src="https://cdn.leosocy.top/img/avatar-leosocy.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">文章</div><div class="length_num">26</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">标签</div><div class="length_num">40</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">分类</div><div class="length_num">21</div></a></div></div></div><hr><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div></div></div><div id="body-wrap"><div id="web_bg" data-type="photo"></div><div id="sidebar"><i class="fas fa-arrow-right on" id="toggle-sidebar"></i><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar">     </div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AE%80%E5%8D%95%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F-Simple-Factory-Pattern"><span class="toc-number">1.</span> <span class="toc-text">简单工厂模式-Simple Factory Pattern</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98%E8%83%8C%E6%99%AF"><span class="toc-number">1.0.1.</span> <span class="toc-text">问题背景</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%94%B9%E8%BF%9B%E5%89%8D"><span class="toc-number">1.0.2.</span> <span class="toc-text">改进前</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%94%B9%E8%BF%9B%E5%90%8E"><span class="toc-number">1.0.3.</span> <span class="toc-text">改进后</span></a></li></ol></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B7%A5%E5%8E%82%E6%96%B9%E6%B3%95%E6%A8%A1%E5%BC%8F-Factory-Method-Pattern"><span class="toc-number">2.</span> <span class="toc-text">工厂方法模式-Factory Method Pattern</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98%E8%83%8C%E6%99%AF-1"><span class="toc-number">2.0.1.</span> <span class="toc-text">问题背景</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%97%AE%E9%A2%98%E6%8F%8F%E8%BF%B0"><span class="toc-number"></span> <span class="toc-text">问题描述</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%94%B9%E8%BF%9B%E5%89%8D-1"><span class="toc-number">0.0.1.</span> <span class="toc-text">改进前</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%94%B9%E8%BF%9B%E5%90%8E-1"><span class="toc-number">0.0.2.</span> <span class="toc-text">改进后</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8A%BD%E8%B1%A1%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F-Abstract-Factory-Pattern"><span class="toc-number">1.</span> <span class="toc-text">抽象工厂模式-Abstract Factory Pattern</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F-Singleton-Pattern"><span class="toc-number">2.</span> <span class="toc-text">单例模式-Singleton Pattern</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8E%9F%E5%9E%8B%E6%A8%A1%E5%BC%8F-Prototype-Pattern"><span class="toc-number">3.</span> <span class="toc-text">原型模式-Prototype Pattern</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BB%BA%E9%80%A0%E8%80%85%E6%A8%A1%E5%BC%8F-Builder-Pattern"><span class="toc-number">4.</span> <span class="toc-text">建造者模式-Builder Pattern</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%82%E9%85%8D%E5%99%A8%E6%A8%A1%E5%BC%8F-Adapter-Pattern"><span class="toc-number">5.</span> <span class="toc-text">适配器模式-Adapter Pattern</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A1%A5%E6%8E%A5%E6%A8%A1%E5%BC%8F-Bridge-Pattern"><span class="toc-number">6.</span> <span class="toc-text">桥接模式-Bridge Pattern</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%84%E5%90%88%E6%A8%A1%E5%BC%8F-Composite-Pattern"><span class="toc-number">7.</span> <span class="toc-text">组合模式-Composite Pattern</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%A3%85%E9%A5%B0%E6%A8%A1%E5%BC%8F-Decorator-Pattern"><span class="toc-number">8.</span> <span class="toc-text">装饰模式-Decorator Pattern</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A4%96%E8%A7%82%E6%A8%A1%E5%BC%8F-Facade-Pattern"><span class="toc-number">9.</span> <span class="toc-text">外观模式-Facade Pattern</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%AB%E5%85%83%E6%A8%A1%E5%BC%8F-Flyweight-Pattern"><span class="toc-number">10.</span> <span class="toc-text">享元模式-Flyweight Pattern</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F-Proxy-Pattern"><span class="toc-number">11.</span> <span class="toc-text">代理模式-Proxy Pattern</span></a></li></div></div></div><header class="post-bg" id="page-header" style="background-image: url(https://cdn.leosocy.top/img/design-pattern.jpg)"><nav id="nav"><span class="pull-left" id="blog_name"><a class="blog_title" id="site-name" href="/">Leosocy's Blog</a></span><span class="pull-right menus"><div id="search_button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div><span class="toggle-menu close"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><div id="post-title"><div class="posttitle">设计模式Python实现</div></div><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="fa-fw post-meta-icon far fa-calendar-alt"></i><span class="post-meta-label">发表于</span><time datetime="2018-05-27T16:00:00.000Z" title="undefined 2018-05-28 00:00:00">2018-05-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%86%85%E5%8A%9F%E5%BF%83%E6%B3%95/">内功心法</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/">编程语言</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%86%85%E5%8A%9F%E5%BF%83%E6%B3%95/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">设计模式</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/Python/">Python</a></span></div><div class="meta-secondline"> <span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">1.2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>5分钟</span></span><span class="post-meta-separator">|</span><span class="leancloud_visitors" id="/posts/ea37/" data-flag-title="设计模式Python实现"><i class="far fa-fire fa-fw post-meta-icon"></i><span class="post-meta-label">热度:</span><span class="leancloud-visitors-count"></span><span class="du"> °C</span></span></div></div></div></header><main class="layout_post" id="content-inner"><article id="post"><div class="post-content" id="article-container"><blockquote>
+<p>最近找到了一篇容易理解的关于设计模式的文章，比较深刻地讲解了设计模式 <a target="_blank" rel="external nofollow noopener noreferrer" href="https://blog.csdn.net/lovelion/article/details/17517213">史上最全设计模式导学目录（完整版）</a>。 为了加深自己对设计模式的理解，同时熟悉Python面向对象编程的技巧，遂写下此篇文章，记录每种设计模式对应的一个练习题，并附上Python代码实现。</p>
+</blockquote>
+<span id="more"></span>
+
+<h2 id="简单工厂模式-Simple-Factory-Pattern"><a href="#简单工厂模式-Simple-Factory-Pattern" class="headerlink" title="简单工厂模式-Simple Factory Pattern"></a>简单工厂模式-Simple Factory Pattern</h2><h4 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h4><p>XX软件公司欲基于Python语言开发一套图表库，该图表库可以为应用系统提供各种不同外观的图表，例如柱状图、饼状图、折线图等。XX软件公司图表库设计人员希望为应用系统开发人员提供一套灵活易用的图表库，而且可以较为方便地对图表库进行扩展，以便能够在将来增加一些新类型的图表。</p>
+<h4 id="改进前"><a href="#改进前" class="headerlink" title="改进前"></a>改进前</h4><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Chart</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, <span class="built_in">type</span></span>):</span><br><span class="line">        self._<span class="built_in">type</span> = <span class="built_in">type</span></span><br><span class="line">        <span class="keyword">if</span> <span class="built_in">type</span>.lower() == <span class="string">&quot;histogram&quot;</span>:</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&quot;初始化柱状图&quot;</span>)</span><br><span class="line">        <span class="keyword">elif</span> <span class="built_in">type</span>.lower() == <span class="string">&quot;pie&quot;</span>:</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&quot;初始化饼状图&quot;</span>)</span><br><span class="line">        <span class="keyword">elif</span> <span class="built_in">type</span>.lower() == <span class="string">&quot;line&quot;</span>:</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&quot;初始化折线图&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">display</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">if</span> self._<span class="built_in">type</span>.lower() == <span class="string">&quot;histogram&quot;</span>:</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&quot;显示柱状图&quot;</span>)</span><br><span class="line">        <span class="keyword">elif</span> self._<span class="built_in">type</span>.lower() == <span class="string">&quot;pie&quot;</span>:</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&quot;显示化饼状图&quot;</span>)</span><br><span class="line">        <span class="keyword">elif</span> self._<span class="built_in">type</span>.lower() == <span class="string">&quot;line&quot;</span>:</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&quot;显示化折线图&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    histogram = Chart(<span class="string">&quot;histogram&quot;</span>)</span><br><span class="line">    histogram.display()</span><br></pre></td></tr></table></figure>
+
+<p>此实现存在以下几个问题：</p>
+<ol>
+<li><code>init</code>函数和<code>display</code>函数中进行了大量的<code>if...else...</code>判断，并且均为重复代码</li>
+<li>Chart类既负责了所有种类图标的初始化，又负责了显示功能，违背了”单一职责原则”</li>
+<li>如果需要新增一种图标的类型，需要修改Chart类的源码，违反了”开闭原则”</li>
+</ol>
+<h4 id="改进后"><a href="#改进后" class="headerlink" title="改进后"></a>改进后</h4><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> abc <span class="keyword">import</span> abstractmethod, ABCMeta</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Chart</span>(metaclass=ABCMeta):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">    @abstractmethod</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"><span class="meta">    @abstractmethod</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">display</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">HistogramChart</span>(<span class="title class_ inherited__">Chart</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;初始化柱状图&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">display</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;显示柱状图&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">PieChart</span>(<span class="title class_ inherited__">Chart</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;初始化饼状图&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">display</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;显示饼状图&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">LineChart</span>(<span class="title class_ inherited__">Chart</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;初始化折线图&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">display</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;显示折线图&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">ChartFactory</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line"></span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">create</span>(<span class="params">chart_type</span>):</span><br><span class="line">        <span class="keyword">for</span> sc <span class="keyword">in</span> Chart.__subclasses__():</span><br><span class="line">            <span class="keyword">if</span> sc.__name__ == chart_type:</span><br><span class="line">                <span class="keyword">return</span> sc()</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    chart = ChartFactory.create(<span class="string">&quot;HistogramChart&quot;</span>)</span><br><span class="line">    <span class="keyword">if</span> chart:</span><br><span class="line">        chart.display()</span><br></pre></td></tr></table></figure>
+
+<p>此实现有以下优点：</p>
+<ol>
+<li>不同种类的图标各司其职</li>
+<li>利用Python的特性，省略了在工厂类中<code>if...else...</code>的判断，但是可能会增加使用复杂度，因为客户端要输入具体的类名</li>
+<li>新增一种图表，不需要修改原有的代码</li>
+</ol>
+<h2 id="工厂方法模式-Factory-Method-Pattern"><a href="#工厂方法模式-Factory-Method-Pattern" class="headerlink" title="工厂方法模式-Factory Method Pattern"></a>工厂方法模式-Factory Method Pattern</h2><h4 id="问题背景-1"><a href="#问题背景-1" class="headerlink" title="问题背景"></a>问题背景</h4><h1 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h1><p>XX软件公司欲开发一个系统运行日志记录器(Logger)，该记录器可以通过多种途径保存系统的运行日志，如通过文件记录或数据库记录，用户可以通过修改配置文件灵活地更换日志记录方式。在设计各类日志记录器时，Sunny公司的开发人员发现需要对日志记录器进行一些初始化工作，初始化参数的设置过程较为复杂，而且某些参数的设置有严格的先后次序，否则可能会发生记录失败。如何封装记录器的初始化过程并保证多种记录器切换的灵活性是XX公司开发人员面临的一个难题。</p>
+<p>XX公司的开发人员通过对该需求进行分析，发现该日志记录器有两个设计要点：</p>
+<ul>
+<li>需要封装日志记录器的初始化过程，这些初始化工作较为复杂，例如需要初始化其他相关的类，还有可能需要读取配置文件（例如连接数据库或创建文件），导致代码较长，如果将它们都写在构造函数中，会导致构造函数庞大，不利于代码的修改和维护；</li>
+<li>用户可能需要更换日志记录方式，在客户端代码中需要提供一种灵活的方式来选择日志记录器，尽量在不修改源代码的基础上更换或者增加日志记录方式。</li>
+</ul>
+<h4 id="改进前-1"><a href="#改进前-1" class="headerlink" title="改进前"></a>改进前</h4><h4 id="改进后-1"><a href="#改进后-1" class="headerlink" title="改进后"></a>改进后</h4><h2 id="抽象工厂模式-Abstract-Factory-Pattern"><a href="#抽象工厂模式-Abstract-Factory-Pattern" class="headerlink" title="抽象工厂模式-Abstract Factory Pattern"></a>抽象工厂模式-Abstract Factory Pattern</h2><h2 id="单例模式-Singleton-Pattern"><a href="#单例模式-Singleton-Pattern" class="headerlink" title="单例模式-Singleton Pattern"></a>单例模式-Singleton Pattern</h2><h2 id="原型模式-Prototype-Pattern"><a href="#原型模式-Prototype-Pattern" class="headerlink" title="原型模式-Prototype Pattern"></a>原型模式-Prototype Pattern</h2><h2 id="建造者模式-Builder-Pattern"><a href="#建造者模式-Builder-Pattern" class="headerlink" title="建造者模式-Builder Pattern"></a>建造者模式-Builder Pattern</h2><h2 id="适配器模式-Adapter-Pattern"><a href="#适配器模式-Adapter-Pattern" class="headerlink" title="适配器模式-Adapter Pattern"></a>适配器模式-Adapter Pattern</h2><h2 id="桥接模式-Bridge-Pattern"><a href="#桥接模式-Bridge-Pattern" class="headerlink" title="桥接模式-Bridge Pattern"></a>桥接模式-Bridge Pattern</h2><h2 id="组合模式-Composite-Pattern"><a href="#组合模式-Composite-Pattern" class="headerlink" title="组合模式-Composite Pattern"></a>组合模式-Composite Pattern</h2><h2 id="装饰模式-Decorator-Pattern"><a href="#装饰模式-Decorator-Pattern" class="headerlink" title="装饰模式-Decorator Pattern"></a>装饰模式-Decorator Pattern</h2><h2 id="外观模式-Facade-Pattern"><a href="#外观模式-Facade-Pattern" class="headerlink" title="外观模式-Facade Pattern"></a>外观模式-Facade Pattern</h2><h2 id="享元模式-Flyweight-Pattern"><a href="#享元模式-Flyweight-Pattern" class="headerlink" title="享元模式-Flyweight Pattern"></a>享元模式-Flyweight Pattern</h2><h2 id="代理模式-Proxy-Pattern"><a href="#代理模式-Proxy-Pattern" class="headerlink" title="代理模式-Proxy Pattern"></a>代理模式-Proxy Pattern</h2></div><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:leosocy@gmail.com" rel="external nofollow noopener noreferrer" target="_blank">Leosocy</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://blog.leosocy.top/posts/ea37/">https://blog.leosocy.top/posts/ea37/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="external nofollow noopener noreferrer">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://blog.leosocy.top" target="_blank">Leosocy's Blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Python/">Python</a><a class="post-meta__tags" href="/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">设计模式</a></div><div class="post_share"><div class="social-share" data-image="/img/design-pattern.jpg" data-sites="wechat,weibo,qq,facebook,twitter"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/posts/f3db/"><img class="prev-cover" data-lazy-src="https://cdn.leosocy.top/img/blog-header.jpg" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">源计划——重启博客</div></div></a></div><div class="next-post pull-right"><a href="/posts/436c/"><img class="next-cover" data-lazy-src="https://cdn.leosocy.top/img/code-style-2.jpg" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Google Python 编程风格</div></div></a></div></nav><div class="relatedPosts"><div class="relatedPosts_headline"><i class="fas fa-thumbs-up fa-fw"></i><span> 相关推荐</span></div><div class="relatedPosts_list"><div class="relatedPosts_item"><a href="/posts/34a2/" title="Pipenv——它是Python包管理的大救星"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.top/img/intro_to_pipenv.jpg"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2018-12-10</div><div class="relatedPosts_title">Pipenv——它是Python包管理的大救星</div></div></a></div></div></div><hr><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div><div class="comment-switch"><span class="first-comment">Valine</span><label><input id="switch-comments-btn" type="checkbox"><span class="slider"></span></label><span class="second-comment">Gitalk</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div><div><div id="gitalk-container"></div></div></div></div></article></main><footer id="footer" data-type="color"><div id="footer-wrap"><div class="copyright">&copy;2017 - 2023   <i id="heartbeat" class="fa fas fa-heartbeat"></i>  Leosocy</div><div class="icp"><a target="_blank" rel="external nofollow noopener noreferrer" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=32011302320676"><span>苏ICP备19003706号-1</span></a></div></div><head><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/heartbeat.min.css"></head></footer><script>var bg_index = Math.floor(Math.random() * 21);
+if (true === true)
+  var res = 'background-image: url("https://cdn.leosocy.top/img/background/' + bg_index + '-bg.jpg");'
+else
+  var res = 'background-image: url("https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn/img/background/' + bg_index + '-bg.jpg");'
+document.getElementById('web_bg').style = res
+</script></div><section id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="font_plus" type="button" title="放大字体"><i class="fas fa-plus"></i></button><button id="font_minus" type="button" title="缩小字体"><i class="fas fa-minus"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></section><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"></div></div></div><hr><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module" defer></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js" async></script><script>function panguFn () {
+  if (typeof pangu === 'object') pangu.spacingElementById('content-inner')
+  else {
+    $.getScript('https://cdn.jsdelivr.net/npm/pangu/dist/browser/pangu.min.js', () => {
+      pangu.spacingElementById('content-inner')
+    })
+  }
+}
+
+function panguInit () {
+  if (false){
+    GLOBAL_CONFIG_SITE.isPost && panguFn()
+  } else {
+    panguFn()
+  }
+}
+
+document.addEventListener('DOMContentLoaded', panguFn)</script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadValine () {
+  function initValine () {
+    window.valine = new Valine({
+      el: '#vcomment',
+      appId: 'HrxT0ob97kYUTuWuUo08mkqc-gzGzoHsz',
+      appKey: 'oeKW9UqjBpN6MNv7ENaikdwP',
+      placeholder: '请输入内容',
+      avatar: 'retro',
+      meta: 'nick,mail,link'.split(','),
+      pageSize: '10',
+      lang: 'zh-CN',
+      recordIP: false,
+      serverURLs: 'https://lcapi.leosocy.top',
+      emojiCDN: '',
+      emojiMaps: "",
+      enableQQ: false,
+      path: window.location.pathname,
+      visitor: true
+    });
+    if ('nick') { valine.config.requiredFields= 'nick'.split(',') }
+  }
+
+  if (typeof Valine === 'function') initValine() 
+  else $.getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js', initValine)
+}
+
+if ('Valine' === 'Valine' || !true) {
+  if (true && !true) loadComment(document.querySelector('#vcomment'),loadValine)
+  else setTimeout(() => loadValine(), 0)
+} else {
+  function loadOtherComment () {
+    loadValine()
+  }
+}</script><script>function addGitalkSource () {
+  const ele = document.createElement('link')
+  ele.rel = 'stylesheet'
+  ele.href= 'https://cdn.jsdelivr.net/npm/gitalk/dist/gitalk.min.css'
+  document.getElementsByTagName('head')[0].appendChild(ele)
+}
+
+function loadGitalk () {
+  function initGitalk () {
+    var gitalk = new Gitalk({
+      clientID: '32b06a1ce1ba2d645bb5',
+      clientSecret: 'c4e9c93c5a16234ecb67a9b83b9315f763436cdd',
+      repo: 'comments',
+      owner: 'LeosocyBlog',
+      admin: ['Leosocy'],
+      id: '70eb95094cedc23d4a6fcb3f2591f087',
+      language: 'zh-CN',
+      perPage: 10,
+      distractionFreeMode: true,
+      pagerDirection: 'last',
+      createIssueManually: false,
+      updateCountCallback: commentCount
+    })
+    gitalk.render('gitalk-container')
+  }
+
+  if (typeof Gitalk === 'function') initGitalk()
+  else {
+    addGitalkSource()
+    $.getScript('https://cdn.jsdelivr.net/npm/gitalk@latest/dist/gitalk.min.js', initGitalk)
+  }
+}
+
+function commentCount(n){
+  let isCommentCount = document.querySelector('#post-meta .gitalk-comment-count')
+  if (isCommentCount) {
+    isCommentCount.innerHTML= n
+  }
+}
+
+if ('Valine' === 'Gitalk' || !true) {
+  if (true) loadComment(document.getElementById('gitalk-container'), loadGitalk)
+  else loadGitalk()
+} else {
+  function loadOtherComment () {
+    loadGitalk()
+  }
+}</script><script>cdn_url = "https://cdn.leosocy.top"</script><script src="/"></script></div><script src="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/js/leosocy.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>$(function () {
+  var pjax = new Pjax({
+    selectors: [
+      'title',
+      'meta[name=description]',
+      '#config_change',
+      '#body-wrap',
+      '#rightside-config-hide',
+      '#rightside-config-show',
+      '.js-pjax'
+    ],
+    cacheBust: false,
+  })
+
+  document.addEventListener('pjax:complete', function () {
+    refreshFn()
+
+    $('script[data-pjax]').each(function () {
+      $(this).parent().append($(this).remove())
+    })
+
+    GLOBAL_CONFIG.islazyload && lazyLoadInstance.update()
+
+    typeof chatBtnFn === 'function' && chatBtnFn()
+    typeof panguInit === 'function' && panguInit()
+
+    if (typeof gtag === 'function') {
+      gtag('config', 'G-8EGQPPW7GQ', {'page_path': window.location.pathname});
+    }
+
+    if (document.getElementsByClassName('aplayer').length){
+      typeof loadMeting === 'function' && loadMeting()
+    }
+  })
+
+  document.addEventListener('pjax:send', function () {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+
+    typeof typed === 'object' && typed.destroy()
+
+    $(window).off('scroll')
+
+    //reset readmode
+    $('body').hasClass('read-mode') && $('body').removeClass('read-mode')
+
+    //reset font-size
+    $('body').css('font-size') !== originFontSize && $('body').css('font-size', parseFloat(originFontSize))
+  })
+})</script></div></body></html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>零基础学习kubernetes(一): 基础知识 | Leosocy's Blog</title><meta name="description" content="Kubernetes是用于自动部署，扩展和管理容器化应用程序的开源系统。它将组成应用程序的容器组合成逻辑单元，以便于管理和服务发现。 本文介绍了如何使用minikube，在本机搭建一个k8s集群，并在其上部署应用程序，理解k8s基本的概念和操作。   使用minikube创建一个集群kubernetes集群Kubernetes协调一个高度可用的计算机集群，这些计算机集群作为一个单元连接到一起工作。"><meta name="keywords" content="k8s"><meta name="author" content="Leosocy,leosocy@gmail.com"><meta name="copyright" content="Leosocy"><meta name="format-detection" content="telephone=no"><link rel="shortcut icon" href="https://cdn.leosocy.top/img/LEO-logo.jpg"><link rel="canonical" href="https://blog.leosocy.top/posts/26b4/"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="preconnect" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//www.google-analytics.com" crossorigin="crossorigin"><link rel="preconnect" href="//fonts.googleapis.com" crossorigin="crossorigin"><meta name="google-site-verification" content="oh1OfqVAIxCAFZ8w5KBBtK7tJK48Z0HuFl2XXbRiM-E"><meta name="baidu-site-verification" content="code-7jpxSWptMj"><meta property="og:type" content="article"><meta property="og:title" content="零基础学习kubernetes(一): 基础知识"><meta property="og:url" content="https://blog.leosocy.top/posts/26b4/"><meta property="og:site_name" content="Leosocy's Blog"><meta property="og:description" content="Kubernetes是用于自动部署，扩展和管理容器化应用程序的开源系统。它将组成应用程序的容器组合成逻辑单元，以便于管理和服务发现。 本文介绍了如何使用minikube，在本机搭建一个k8s集群，并在其上部署应用程序，理解k8s基本的概念和操作。   使用minikube创建一个集群kubernetes集群Kubernetes协调一个高度可用的计算机集群，这些计算机集群作为一个单元连接到一起工作。"><meta property="og:image" content="https://blog.leosocy.top/img/k8s-1.png"><meta property="article:published_time" content="2018-09-11T04:00:12.000Z"><meta property="article:modified_time" content="2023-11-05T07:26:20.240Z"><meta name="twitter:card" content="summary"><script>var activateDarkMode = function () {
+  document.documentElement.setAttribute('data-theme', 'dark')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#000')
+  }
+}
+var activateLightMode = function () {
+  document.documentElement.setAttribute('data-theme', 'light')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#fff')
+  }
+}
+
+var getCookies = function (name) {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop().split(';').shift()
+}
+
+var autoChangeMode = 'false'
+var t = getCookies('theme')
+if (autoChangeMode === '1') {
+  var isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+  var isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+  var isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+  var hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+
+  if (t === undefined) {
+    if (isLightMode) activateLightMode()
+    else if (isDarkMode) activateDarkMode()
+    else if (isNotSpecified || hasNoSupport) {
+      console.log('You specified no preference for a color scheme or your browser does not support it. I Schedule dark mode during night time.')
+      var now = new Date()
+      var hour = now.getHours()
+      var isNight = hour <= 6 || hour >= 18
+      isNight ? activateDarkMode() : activateLightMode()
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+      if (Cookies.get('theme') === undefined) {
+        e.matches ? activateDarkMode() : activateLightMode()
+      }
+    })
+  } else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else if (autoChangeMode === '2') {
+  now = new Date()
+  hour = now.getHours()
+  isNight = hour <= 6 || hour >= 18
+  if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+  else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else {
+  if (t === 'dark') activateDarkMode()
+  else if (t === 'light') activateLightMode()
+}</script><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css"><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-8EGQPPW7GQ"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-8EGQPPW7GQ');
+</script><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Titillium+Web&amp;display=swap"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  bookmark: {
+    message_prev: '按',
+    message_next: '键将本页加入书签'
+  },
+  runtime_unit: '天',
+  runtime: false,
+  copyright: undefined,
+  ClickShowText: undefined,
+  medium_zoom: false,
+  fancybox: true,
+  Snackbar: {"bookmark":{"message_prev":"按","message_next":"键将本页加入书签"},"chs_to_cht":"你已切换为繁体","cht_to_chs":"你已切换为简体","day_to_night":"你已切换为深色模式","night_to_day":"你已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#121212","position":"bottom-left"},
+  justifiedGallery: {
+    js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+    css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+  },
+  baiduPush: false,
+  highlightCopy: true,
+  highlightLang: true,
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: false    
+}</script><script>(function(win, export_obj) {
+win['TeaAnalyticsObject'] = export_obj;
+if (!win[export_obj]) {
+function _collect() {
+_collect.q.push(arguments);
+}
+_collect.q = _collect.q || [];
+win[export_obj] = _collect;
+}
+win[export_obj].l = +new Date();
+})(window, 'collectEvent');</script><script async src="https://sf1-scmcdn-tos.pstatp.com/goofy/log-sdk/collect/collect-autotrack-rangers.js"></script><script>window.collectEvent('init', {
+app_id: 190292,//  必须替换成申请的 app_id
+channel: 'cn',
+log: true, // 开启调试日志
+autotrack: true // 开启全埋点采集，默认关闭，需要热力图及圈选功能可开启
+});
+window.collectEvent('start');</script><script>var _wr = function(type) {
+  var orig = history[type];
+  return function() {
+    var rv = orig.apply(this, arguments);
+    var e = new Event(type);
+    e.arguments = arguments;
+    window.dispatchEvent(e);
+    return rv;
+  };
+};
+history.pushState = _wr('pushState');
+history.replaceState = _wr('replaceState');
+window.addEventListener("popstate", function(event) {
+  window.collectEvent('predefinePageView');
+});
+window.addEventListener("pushState", function(event) {
+  window.collectEvent('predefinePageView');
+});</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isSidebar: true,
+  postUpdate: '2023-11-05 15:26:20'
+}</script><noscript><style>
+#nav {
+  opacity: 1
+}
+.justified-gallery img {
+  opacity: 1
+}
+</style></noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/leosocy.min.css"><meta name="referrer" content="no-referrer-when-downgrade"><meta name="generator" content="Hexo 7.0.0"></head><body><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" data-lazy-src="https://cdn.leosocy.top/img/avatar-leosocy.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">文章</div><div class="length_num">26</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">标签</div><div class="length_num">40</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">分类</div><div class="length_num">21</div></a></div></div></div><hr><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div></div></div><div id="body-wrap"><div id="web_bg" data-type="photo"></div><div id="sidebar"><i class="fas fa-arrow-right on" id="toggle-sidebar"></i><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar">     </div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8minikube%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AA%E9%9B%86%E7%BE%A4"><span class="toc-number">1.</span> <span class="toc-text">使用minikube创建一个集群</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#kubernetes%E9%9B%86%E7%BE%A4"><span class="toc-number">1.1.</span> <span class="toc-text">kubernetes集群</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#cmd"><span class="toc-number">1.2.</span> <span class="toc-text">cmd</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8kubectl%E5%88%9B%E5%BB%BA%E5%8F%91%E5%B8%83%E5%BA%94%E7%94%A8"><span class="toc-number">2.</span> <span class="toc-text">使用kubectl创建发布应用</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#k8s%E9%83%A8%E7%BD%B2"><span class="toc-number">2.1.</span> <span class="toc-text">k8s部署</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#cmd-1"><span class="toc-number">2.2.</span> <span class="toc-text">cmd</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9F%A5%E7%9C%8BPods%E5%92%8CNodes"><span class="toc-number">3.</span> <span class="toc-text">查看Pods和Nodes</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Pods"><span class="toc-number">3.1.</span> <span class="toc-text">Pods</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Nodes"><span class="toc-number">3.2.</span> <span class="toc-text">Nodes</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E5%B8%B8%E8%A7%81%E7%9A%84kubectl%E5%91%BD%E4%BB%A4%E8%BF%9B%E8%A1%8C%E6%95%85%E9%9A%9C%E6%8E%92%E9%99%A4"><span class="toc-number">3.3.</span> <span class="toc-text">使用常见的kubectl命令进行故障排除</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8service%E6%9A%B4%E9%9C%B2%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F"><span class="toc-number">4.</span> <span class="toc-text">使用service暴露应用程序</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E4%B8%BA%E4%BD%95%E8%80%8C%E7%94%9F"><span class="toc-number">4.1.</span> <span class="toc-text">服务为何而生</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%89%A9%E5%B1%95%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F"><span class="toc-number">5.</span> <span class="toc-text">扩展应用程序</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#cmd-2"><span class="toc-number">5.1.</span> <span class="toc-text">cmd</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9B%B4%E6%96%B0%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F"><span class="toc-number">6.</span> <span class="toc-text">更新应用程序</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">7.</span> <span class="toc-text">总结</span></a></li></ol><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%AB%A0"><span class="toc-number"></span> <span class="toc-text">参考文章</span></a></li></div></div></div><header class="post-bg" id="page-header" style="background-image: url(https://cdn.leosocy.topimg/k8s-1.png)"><nav id="nav"><span class="pull-left" id="blog_name"><a class="blog_title" id="site-name" href="/">Leosocy's Blog</a></span><span class="pull-right menus"><div id="search_button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div><span class="toggle-menu close"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><div id="post-title"><div class="posttitle">零基础学习kubernetes(一): 基础知识</div></div><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="fa-fw post-meta-icon far fa-calendar-alt"></i><span class="post-meta-label">发表于</span><time datetime="2018-09-11T04:00:12.000Z" title="undefined 2018-09-11 12:00:12">2018-09-11</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/Kubernetes/">Kubernetes</a></span></div><div class="meta-secondline"> <span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">2.2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>10分钟</span></span><span class="post-meta-separator">|</span><span class="leancloud_visitors" id="/posts/26b4/" data-flag-title="零基础学习kubernetes(一): 基础知识"><i class="far fa-fire fa-fw post-meta-icon"></i><span class="post-meta-label">热度:</span><span class="leancloud-visitors-count"></span><span class="du"> °C</span></span></div></div></div></header><main class="layout_post" id="content-inner"><article id="post"><div class="post-content" id="article-container"><p>Kubernetes是用于自动部署，扩展和管理容器化应用程序的开源系统。它将组成应用程序的容器组合成逻辑单元，以便于管理和服务发现。</p>
+<p>本文介绍了如何使用<a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/kubernetes/minikube"><code>minikube</code></a>，在本机搭建一个k8s集群，并在其上部署应用程序，理解k8s基本的概念和操作。</p>
+<span id="more"></span>
+
+<h2 id="使用minikube创建一个集群"><a href="#使用minikube创建一个集群" class="headerlink" title="使用minikube创建一个集群"></a>使用minikube创建一个集群</h2><h3 id="kubernetes集群"><a href="#kubernetes集群" class="headerlink" title="kubernetes集群"></a>kubernetes集群</h3><p>Kubernetes协调一个高度可用的计算机集群，这些计算机集群作为一个单元连接到一起工作。</p>
+<p>Kubernetes集群由两种类型的资源组成:</p>
+<ol>
+<li><code>Master</code>协调集群</li>
+<li><code>Nodes</code>是运行应用程序的wokers</li>
+</ol>
+<p><img src="https://cdn.leosocy.top/img/dinosaurloading.gif" data-lazy-src="https://d33wubrfki0l68.cloudfront.net/99d9808dcbf2880a996ed50d308a186b5900cec9/40b94/docs/tutorials/kubernetes-basics/public/images/module_01_cluster.svg"></p>
+<p><strong>主服务器负责管理集群</strong>。主协调集群中的所有活动，例如调度应用程序、维护应用程序所需的状态、扩展应用程序和推出新更新。</p>
+<p><strong>Node是作为Kubernetes集群中的工作机器的VM或物理计算机。</strong>每个节点都有一个Kubelet，它是管理节点和与Kubernetes主机通信的代理。节点还应该有处理容器操作的工具，比如Docker或rkt。处理生产流量的Kubernetes集群至少应该有三个节点。</p>
+<p>当在Kubernetes上部署应用程序时，主程序调度容器在集群的节点上运行。节点使用Kubernetes API与主节点通信，主节点公开了该API。最终用户还可以直接使用Kubernetes API与集群交互。</p>
+<h3 id="cmd"><a href="#cmd" class="headerlink" title="cmd"></a>cmd</h3><ol>
+<li>install minikube<ul>
+<li>macOS: <code>brew cask install minikube</code></li>
+<li>Linux: <code>curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 &amp;&amp; chmod +x minikube &amp;&amp; sudo cp minikube /usr/local/bin/ &amp;&amp; rm minikube</code></li>
+</ul>
+</li>
+<li>启动集群: <code>minikube start</code>，minikube会在本地启动一个虚拟机，然后在虚拟机中运行k8s集群。</li>
+<li>查看集群信息: <code>kubectl cluster-info</code></li>
+<li>查看所有节点: <code>kubectl get nodes</code></li>
+</ol>
+<h2 id="使用kubectl创建发布应用"><a href="#使用kubectl创建发布应用" class="headerlink" title="使用kubectl创建发布应用"></a>使用<code>kubectl</code>创建发布应用</h2><h3 id="k8s部署"><a href="#k8s部署" class="headerlink" title="k8s部署"></a>k8s部署</h3><p>有了k8s集群，我们就可以在其上部署容器化应用了。首先，需要创建一个Kubernetes部署配置。部署指示Kubernetes如何创建和更新应用程序实例。</p>
+<p>一旦创建了应用程序实例，Kubernetes部署控制器就会持续监视这些实例。如果承载实例的节点宕机或被删除，部署控制器将替换它。这提供了一个自愈机制来处理机器故障。</p>
+<p><img src="https://cdn.leosocy.top/img/dinosaurloading.gif" data-lazy-src="https://d33wubrfki0l68.cloudfront.net/152c845f25df8e69dd24dd7b0836a289747e258a/4a1d2/docs/tutorials/kubernetes-basics/public/images/module_02_first_app.svg"></p>
+<h3 id="cmd-1"><a href="#cmd-1" class="headerlink" title="cmd"></a>cmd</h3><p>通过<code>kubectl run</code>发布应用程序。我们需要提供发布的<code>name</code>和镜像地址(如果镜像不是来自docker hub，则需要完整的url链接)。</p>
+<p>下面我们将部署一个Node.js服务</p>
+<ol>
+<li>发布应用: <code>kubectl run kubernetes-bootcamp --image=gcr.io/google-samples/kubernetes-bootcamp:v1 --port=8080</code>。这个命令中，k8s帮我们干了三件事情:<ol>
+<li>搜索可以运行应用程序实例的合适Node</li>
+<li>调度应用程序在该节点上运行</li>
+<li>配置集群以在需要时在新节点上重新调度实例</li>
+</ol>
+</li>
+<li>查看发布的应用: <code>kubectl get deployments</code></li>
+</ol>
+<h2 id="查看Pods和Nodes"><a href="#查看Pods和Nodes" class="headerlink" title="查看Pods和Nodes"></a>查看Pods和Nodes</h2><h3 id="Pods"><a href="#Pods" class="headerlink" title="Pods"></a>Pods</h3><p>在上一节中创建部署时，我们创建了一个Pod来托管应用程序实例。Pod是一个k8s抽象，它表示一组一个或多个应用程序容器(如Docker或rkt)，以及这些容器的一些共享资源。这些资源包括:</p>
+<ul>
+<li>共享存储，作为卷</li>
+<li>网络，作为唯一的集群IP地址</li>
+<li>共享如何运行每个容器的信息，例如容器映像版本或要使用的特定端口</li>
+</ul>
+<p>Pod对特定于应用程序的“逻辑主机”进行建模，并可以包含相对紧密耦合的不同应用程序容器。例如，Pod可能包含一个web服务容器，一个数据库服务容器，一个后端rpc服务容器。Pod中的容器共享一个IP地址和端口空间，它们总是一起定位和调度，并在同一个节点的共享上下文中运行。</p>
+<p>Pods是k8s中的原子单位，每个Pod被绑定到预定的节点上，并一直保留到终止(根据重启策略)或删除。如果节点出现故障，则在集群中的其他可用节点上调度相同的pod。</p>
+<p><img src="https://cdn.leosocy.top/img/dinosaurloading.gif" data-lazy-src="https://d33wubrfki0l68.cloudfront.net/fe03f68d8ede9815184852ca2a4fd30325e5d15a/98064/docs/tutorials/kubernetes-basics/public/images/module_03_pods.svg"></p>
+<h3 id="Nodes"><a href="#Nodes" class="headerlink" title="Nodes"></a>Nodes</h3><p>一个Pod运行在一个Node上。Node可以是VM或者物理机器。每一个Node都由master管理。一个Node可以包含多个pods，并且master会自动地在集群中的节点上调度pod。master的调度调度考虑到每个节点上的可用资源。</p>
+<p>每个Node至少运行了：</p>
+<ol>
+<li>kubelet: 负责Kubernetes主机和节点之间通信的进程;它管理机器上运行的Pods和容器。</li>
+<li>一个容器运行时(如Docker, rkt)负责从注册表中提取容器映像，解包容器，并运行应用程序。如果容器是紧密耦合的，并且需要共享磁盘等资源，那么它们应该被安排在一个单独的Pod中。</li>
+</ol>
+<p><img src="https://cdn.leosocy.top/img/dinosaurloading.gif" data-lazy-src="https://d33wubrfki0l68.cloudfront.net/5cb72d407cbe2755e581b6de757e0d81760d5b86/a9df9/docs/tutorials/kubernetes-basics/public/images/module_03_nodes.svg"></p>
+<h3 id="使用常见的kubectl命令进行故障排除"><a href="#使用常见的kubectl命令进行故障排除" class="headerlink" title="使用常见的kubectl命令进行故障排除"></a>使用常见的kubectl命令进行故障排除</h3><ul>
+<li><strong>kubectl get</strong>: 获取指定资源的列表</li>
+<li><strong>kubectl describe</strong>: 获取一个资源的详细信息</li>
+<li><strong>kubectl logs</strong>: 打印一个pod的一个容器中的日志</li>
+<li><strong>kubectl exec</strong>: 在一个pod的一个容器中执行命令</li>
+</ul>
+<h2 id="使用service暴露应用程序"><a href="#使用service暴露应用程序" class="headerlink" title="使用service暴露应用程序"></a>使用service暴露应用程序</h2><h3 id="服务为何而生"><a href="#服务为何而生" class="headerlink" title="服务为何而生"></a>服务为何而生</h3><p>考虑具有3个副本的图像处理后端。那些复制品是可替代的; 前端系统不应该关心后端副本，即使Pod丢失并重新创建。也就是说，Kubernetes集群中的每个Pod都有一个唯一的IP地址，甚至是同一节点上的Pod，因此需要有一种方法可以自动协调Pod之间的更改，以便您的应用程序继续运行。</p>
+<p>service是k8s中的一个抽象的概念，它定义了一组逻辑Pod和一个访问它们的策略。service如何选择一组pod通常由<code>LabelSelector</code>决定。尽管每个Pod都有一个惟一的IP地址，但如果没有服务，这些IP不会暴露在集群之外。服务允许您的应用程序接收流量。通过在ServiceSpec中指定一个类型，可以以不同的方式公开服务:</p>
+<ul>
+<li>ClusterIP(默认): 在集群中的内部IP上公开服务。这种类型使得服务只能从集群中访问。</li>
+<li>NodePort: 使用NAT在集群中每个选定节点的相同端口上公开服务，使用<code>&lt;NodeIP&gt;:&lt;NodePort&gt;</code>从集群外部访问服务。</li>
+<li>LoadBalancer: 在当前云中创建一个外部负载均衡器(如果支持的话)，并向服务分配一个固定的外部IP。</li>
+<li>Ingress: Ingress 事实上不是一种服务类型。相反，它处于多个服务的前端，扮演着“智能路由”或者集群入口的角色。</li>
+</ul>
+<blockquote>
+<p>资料来源 <a target="_blank" rel="external nofollow noopener noreferrer" href="http://dockone.io/article/4884">Kubernetes的三种外部访问方式：NodePort、LoadBalancer 和 Ingress</a></p>
+</blockquote>
+<ol>
+<li>暴露服务: <code>kubectl expose deployment/kubernetes-bootcamp --type=&quot;NodePort&quot; --port 8080</code></li>
+<li>查看服务: <code>kubectl get svc</code></li>
+<li>查看服务详细信息: <code>kubectl describe svc kubernetes-bootcamp</code></li>
+</ol>
+<h2 id="扩展应用程序"><a href="#扩展应用程序" class="headerlink" title="扩展应用程序"></a>扩展应用程序</h2><p>扩展是通过更改部署中的副本数量来完成的。扩展部署将确保创建新的pod并将其调度到具有可用资源的节点。缩放将增加pod的数量到新的期望状态。</p>
+<h3 id="cmd-2"><a href="#cmd-2" class="headerlink" title="cmd"></a>cmd</h3><p>scale的基本命令比较简单，只需要指定<code>replicas</code>的个数就可以了。</p>
+<ol>
+<li>停止指定部署的所有副本: <code>kubectl scale --replicas=0 deployment/kubernetes-bootcamp</code></li>
+</ol>
+<h2 id="更新应用程序"><a href="#更新应用程序" class="headerlink" title="更新应用程序"></a>更新应用程序</h2><p>用户希望应用程序随时可用，开发人员希望每天多次部署新版本的应用程序。在Kubernetes，这是通过滚动更新完成的。滚动更新允许部署的更新在零停机的情况下进行，方法是用新的pod实例增量地更新它们。新的pod将被安排在具有可用资源的节点上。</p>
+<p>与应用程序扩展类似，如果部署公开暴露，服务将只在更新期间负载均衡到可用的Pod。</p>
+<p>滚动更新允许以下操作:</p>
+<ul>
+<li>将应用程序从一个环境提升到另一个环境(通过容器映像更新)</li>
+<li>回滚到以前的版本</li>
+<li>持续集成和持续交付应用程序，零停机时间</li>
+</ul>
+<p>可以通过指定<code>maxUnavailable</code>和<code>maxSurge</code>来控制滚动更新策略。</p>
+<ul>
+<li><code>maxUnavailable</code>: 指定在更新过程中不可用Pod的最大数量</li>
+<li><code>maxSurge</code>: 指定可以超过期望的Pod数量的最大个数</li>
+</ul>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本篇介绍了如何使用minikube在本地搭建一个k8s集群，并通过本地集群学习了基本的应用部署、服务暴露、扩展和更新知识。</p>
+<p>下一篇，会介绍如何在ECS上(单机)手动部署一个kubernetes集群。</p>
+<h1 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h1><ul>
+<li><a target="_blank" rel="external nofollow noopener noreferrer" href="https://kubernetes.io/docs/tutorials/">https://kubernetes.io/docs/tutorials/</a></li>
+</ul>
+</div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a></div><div class="post_share"><div class="social-share" data-image="/img/k8s-1.png" data-sites="wechat,weibo,qq,facebook,twitter"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/posts/1a2d/"><img class="prev-cover" data-lazy-src="https://cdn.leosocy.topimg/k8s-2.png" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">零基础学习kubernetes(二): 在ECS上部署集群</div></div></a></div><div class="next-post pull-right"><a href="/posts/c9cf/"><img class="next-cover" data-lazy-src="https://cdn.leosocy.top/img/hexo.png" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Hexo+TravisCI: 专心写博客吧</div></div></a></div></nav><div class="relatedPosts"><div class="relatedPosts_headline"><i class="fas fa-thumbs-up fa-fw"></i><span> 相关推荐</span></div><div class="relatedPosts_list"><div class="relatedPosts_item"><a href="/posts/9327/" title="零基础学习kubernetes(三): 资源对象"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.topimg/k8s-3.png"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2018-11-12</div><div class="relatedPosts_title">零基础学习kubernetes(三): 资源对象</div></div></a></div><div class="relatedPosts_item"><a href="/posts/1a2d/" title="零基础学习kubernetes(二): 在ECS上部署集群"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.topimg/k8s-2.png"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2018-09-22</div><div class="relatedPosts_title">零基础学习kubernetes(二): 在ECS上部署集群</div></div></a></div><div class="relatedPosts_item"><a href="/posts/96ab/" title="零基础学习kubernetes(五): ServiceMesh--微服务的最后一块拼图"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.top/img/service-mesh-1680.png"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2019-01-14</div><div class="relatedPosts_title">零基础学习kubernetes(五): ServiceMesh--微服务的最后一块拼图</div></div></a></div><div class="relatedPosts_item"><a href="/posts/d262/" title="零基础学习kubernetes(四): 利用闲置主机搭建并暴露本地k8s集群"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.top/img/kubernetes_tutorials.png"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2018-12-25</div><div class="relatedPosts_title">零基础学习kubernetes(四): 利用闲置主机搭建并暴露本地k8s集群</div></div></a></div></div></div><hr><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div><div class="comment-switch"><span class="first-comment">Valine</span><label><input id="switch-comments-btn" type="checkbox"><span class="slider"></span></label><span class="second-comment">Gitalk</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div><div><div id="gitalk-container"></div></div></div></div></article></main><footer id="footer" data-type="color"><div id="footer-wrap"><div class="copyright">&copy;2017 - 2023   <i id="heartbeat" class="fa fas fa-heartbeat"></i>  Leosocy</div><div class="icp"><a target="_blank" rel="external nofollow noopener noreferrer" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=32011302320676"><span>苏ICP备19003706号-1</span></a></div></div><head><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/heartbeat.min.css"></head></footer><script>var bg_index = Math.floor(Math.random() * 21);
+if (true === true)
+  var res = 'background-image: url("https://cdn.leosocy.top/img/background/' + bg_index + '-bg.jpg");'
+else
+  var res = 'background-image: url("https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn/img/background/' + bg_index + '-bg.jpg");'
+document.getElementById('web_bg').style = res
+</script></div><section id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="font_plus" type="button" title="放大字体"><i class="fas fa-plus"></i></button><button id="font_minus" type="button" title="缩小字体"><i class="fas fa-minus"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></section><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"></div></div></div><hr><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module" defer></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js" async></script><script>function panguFn () {
+  if (typeof pangu === 'object') pangu.spacingElementById('content-inner')
+  else {
+    $.getScript('https://cdn.jsdelivr.net/npm/pangu/dist/browser/pangu.min.js', () => {
+      pangu.spacingElementById('content-inner')
+    })
+  }
+}
+
+function panguInit () {
+  if (false){
+    GLOBAL_CONFIG_SITE.isPost && panguFn()
+  } else {
+    panguFn()
+  }
+}
+
+document.addEventListener('DOMContentLoaded', panguFn)</script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadValine () {
+  function initValine () {
+    window.valine = new Valine({
+      el: '#vcomment',
+      appId: 'HrxT0ob97kYUTuWuUo08mkqc-gzGzoHsz',
+      appKey: 'oeKW9UqjBpN6MNv7ENaikdwP',
+      placeholder: '请输入内容',
+      avatar: 'retro',
+      meta: 'nick,mail,link'.split(','),
+      pageSize: '10',
+      lang: 'zh-CN',
+      recordIP: false,
+      serverURLs: 'https://lcapi.leosocy.top',
+      emojiCDN: '',
+      emojiMaps: "",
+      enableQQ: false,
+      path: window.location.pathname,
+      visitor: true
+    });
+    if ('nick') { valine.config.requiredFields= 'nick'.split(',') }
+  }
+
+  if (typeof Valine === 'function') initValine() 
+  else $.getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js', initValine)
+}
+
+if ('Valine' === 'Valine' || !true) {
+  if (true && !true) loadComment(document.querySelector('#vcomment'),loadValine)
+  else setTimeout(() => loadValine(), 0)
+} else {
+  function loadOtherComment () {
+    loadValine()
+  }
+}</script><script>function addGitalkSource () {
+  const ele = document.createElement('link')
+  ele.rel = 'stylesheet'
+  ele.href= 'https://cdn.jsdelivr.net/npm/gitalk/dist/gitalk.min.css'
+  document.getElementsByTagName('head')[0].appendChild(ele)
+}
+
+function loadGitalk () {
+  function initGitalk () {
+    var gitalk = new Gitalk({
+      clientID: '32b06a1ce1ba2d645bb5',
+      clientSecret: 'c4e9c93c5a16234ecb67a9b83b9315f763436cdd',
+      repo: 'comments',
+      owner: 'LeosocyBlog',
+      admin: ['Leosocy'],
+      id: '28c0ea3b3a2ca034062f44ca34ea3f68',
+      language: 'zh-CN',
+      perPage: 10,
+      distractionFreeMode: true,
+      pagerDirection: 'last',
+      createIssueManually: false,
+      updateCountCallback: commentCount
+    })
+    gitalk.render('gitalk-container')
+  }
+
+  if (typeof Gitalk === 'function') initGitalk()
+  else {
+    addGitalkSource()
+    $.getScript('https://cdn.jsdelivr.net/npm/gitalk@latest/dist/gitalk.min.js', initGitalk)
+  }
+}
+
+function commentCount(n){
+  let isCommentCount = document.querySelector('#post-meta .gitalk-comment-count')
+  if (isCommentCount) {
+    isCommentCount.innerHTML= n
+  }
+}
+
+if ('Valine' === 'Gitalk' || !true) {
+  if (true) loadComment(document.getElementById('gitalk-container'), loadGitalk)
+  else loadGitalk()
+} else {
+  function loadOtherComment () {
+    loadGitalk()
+  }
+}</script><script>cdn_url = "https://cdn.leosocy.top"</script><script src="/"></script></div><script src="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/js/leosocy.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>$(function () {
+  var pjax = new Pjax({
+    selectors: [
+      'title',
+      'meta[name=description]',
+      '#config_change',
+      '#body-wrap',
+      '#rightside-config-hide',
+      '#rightside-config-show',
+      '.js-pjax'
+    ],
+    cacheBust: false,
+  })
+
+  document.addEventListener('pjax:complete', function () {
+    refreshFn()
+
+    $('script[data-pjax]').each(function () {
+      $(this).parent().append($(this).remove())
+    })
+
+    GLOBAL_CONFIG.islazyload && lazyLoadInstance.update()
+
+    typeof chatBtnFn === 'function' && chatBtnFn()
+    typeof panguInit === 'function' && panguInit()
+
+    if (typeof gtag === 'function') {
+      gtag('config', 'G-8EGQPPW7GQ', {'page_path': window.location.pathname});
+    }
+
+    if (document.getElementsByClassName('aplayer').length){
+      typeof loadMeting === 'function' && loadMeting()
+    }
+  })
+
+  document.addEventListener('pjax:send', function () {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+
+    typeof typed === 'object' && typed.destroy()
+
+    $(window).off('scroll')
+
+    //reset readmode
+    $('body').hasClass('read-mode') && $('body').removeClass('read-mode')
+
+    //reset font-size
+    $('body').css('font-size') !== originFontSize && $('body').css('font-size', parseFloat(originFontSize))
+  })
+})</script></div></body></html>

@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Allow: /archives/
+Allow: /categories/
+Allow: /gossip/
+Allow: /page/
+Allow: /posts/ 
+Allow: /tags/ 
+Disallow: /vendors/
+Disallow: /js/
+Disallow: /css/
+Disallow: /fonts/
+Disallow: /img/
+
+Sitemap: https://blog.leosocy.top/sitemap.xml
+Sitemap: https://blog.leosocy.top/baidusitemap.xml

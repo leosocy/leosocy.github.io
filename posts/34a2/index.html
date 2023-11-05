@@ -1,0 +1,459 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pipenv——它是Python包管理的大救星 | Leosocy's Blog</title><meta name="description" content="Pipenv是Python的一个打包工具，它使用pip、virtualenv和旧式的requirements.txt解决了与典型工作流相关的一些常见问题。 除了解决一些常见问题之外，它还将开发过程合并并简化为单个命令行工具。 本指南将介绍Pipenv解决了哪些问题，以及如何管理与Pipenv的Python依赖关系。此外，它还将介绍如何从以前的requirements.txt转为使用Pipenv管理"><meta name="keywords" content="Python,包管理"><meta name="author" content="Leosocy,leosocy@gmail.com"><meta name="copyright" content="Leosocy"><meta name="format-detection" content="telephone=no"><link rel="shortcut icon" href="https://cdn.leosocy.top/img/LEO-logo.jpg"><link rel="canonical" href="https://blog.leosocy.top/posts/34a2/"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="preconnect" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//www.google-analytics.com" crossorigin="crossorigin"><link rel="preconnect" href="//fonts.googleapis.com" crossorigin="crossorigin"><meta name="google-site-verification" content="oh1OfqVAIxCAFZ8w5KBBtK7tJK48Z0HuFl2XXbRiM-E"><meta name="baidu-site-verification" content="code-7jpxSWptMj"><meta property="og:type" content="article"><meta property="og:title" content="Pipenv——它是Python包管理的大救星"><meta property="og:url" content="https://blog.leosocy.top/posts/34a2/"><meta property="og:site_name" content="Leosocy's Blog"><meta property="og:description" content="Pipenv是Python的一个打包工具，它使用pip、virtualenv和旧式的requirements.txt解决了与典型工作流相关的一些常见问题。 除了解决一些常见问题之外，它还将开发过程合并并简化为单个命令行工具。 本指南将介绍Pipenv解决了哪些问题，以及如何管理与Pipenv的Python依赖关系。此外，它还将介绍如何从以前的requirements.txt转为使用Pipenv管理"><meta property="og:image" content="https://blog.leosocy.top/img/intro_to_pipenv.jpg"><meta property="article:published_time" content="2018-12-10T03:40:04.000Z"><meta property="article:modified_time" content="2023-11-05T07:26:20.236Z"><meta name="twitter:card" content="summary"><script>var activateDarkMode = function () {
+  document.documentElement.setAttribute('data-theme', 'dark')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#000')
+  }
+}
+var activateLightMode = function () {
+  document.documentElement.setAttribute('data-theme', 'light')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#fff')
+  }
+}
+
+var getCookies = function (name) {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop().split(';').shift()
+}
+
+var autoChangeMode = 'false'
+var t = getCookies('theme')
+if (autoChangeMode === '1') {
+  var isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+  var isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+  var isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+  var hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+
+  if (t === undefined) {
+    if (isLightMode) activateLightMode()
+    else if (isDarkMode) activateDarkMode()
+    else if (isNotSpecified || hasNoSupport) {
+      console.log('You specified no preference for a color scheme or your browser does not support it. I Schedule dark mode during night time.')
+      var now = new Date()
+      var hour = now.getHours()
+      var isNight = hour <= 6 || hour >= 18
+      isNight ? activateDarkMode() : activateLightMode()
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+      if (Cookies.get('theme') === undefined) {
+        e.matches ? activateDarkMode() : activateLightMode()
+      }
+    })
+  } else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else if (autoChangeMode === '2') {
+  now = new Date()
+  hour = now.getHours()
+  isNight = hour <= 6 || hour >= 18
+  if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+  else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else {
+  if (t === 'dark') activateDarkMode()
+  else if (t === 'light') activateLightMode()
+}</script><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css"><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-8EGQPPW7GQ"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-8EGQPPW7GQ');
+</script><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Titillium+Web&amp;display=swap"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  bookmark: {
+    message_prev: '按',
+    message_next: '键将本页加入书签'
+  },
+  runtime_unit: '天',
+  runtime: false,
+  copyright: undefined,
+  ClickShowText: undefined,
+  medium_zoom: false,
+  fancybox: true,
+  Snackbar: {"bookmark":{"message_prev":"按","message_next":"键将本页加入书签"},"chs_to_cht":"你已切换为繁体","cht_to_chs":"你已切换为简体","day_to_night":"你已切换为深色模式","night_to_day":"你已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#121212","position":"bottom-left"},
+  justifiedGallery: {
+    js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+    css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+  },
+  baiduPush: false,
+  highlightCopy: true,
+  highlightLang: true,
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: false    
+}</script><script>(function(win, export_obj) {
+win['TeaAnalyticsObject'] = export_obj;
+if (!win[export_obj]) {
+function _collect() {
+_collect.q.push(arguments);
+}
+_collect.q = _collect.q || [];
+win[export_obj] = _collect;
+}
+win[export_obj].l = +new Date();
+})(window, 'collectEvent');</script><script async src="https://sf1-scmcdn-tos.pstatp.com/goofy/log-sdk/collect/collect-autotrack-rangers.js"></script><script>window.collectEvent('init', {
+app_id: 190292,//  必须替换成申请的 app_id
+channel: 'cn',
+log: true, // 开启调试日志
+autotrack: true // 开启全埋点采集，默认关闭，需要热力图及圈选功能可开启
+});
+window.collectEvent('start');</script><script>var _wr = function(type) {
+  var orig = history[type];
+  return function() {
+    var rv = orig.apply(this, arguments);
+    var e = new Event(type);
+    e.arguments = arguments;
+    window.dispatchEvent(e);
+    return rv;
+  };
+};
+history.pushState = _wr('pushState');
+history.replaceState = _wr('replaceState');
+window.addEventListener("popstate", function(event) {
+  window.collectEvent('predefinePageView');
+});
+window.addEventListener("pushState", function(event) {
+  window.collectEvent('predefinePageView');
+});</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isSidebar: true,
+  postUpdate: '2023-11-05 15:26:20'
+}</script><noscript><style>
+#nav {
+  opacity: 1
+}
+.justified-gallery img {
+  opacity: 1
+}
+</style></noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/leosocy.min.css"><meta name="referrer" content="no-referrer-when-downgrade"><meta name="generator" content="Hexo 7.0.0"></head><body><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" data-lazy-src="https://cdn.leosocy.top/img/avatar-leosocy.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">文章</div><div class="length_num">26</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">标签</div><div class="length_num">40</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">分类</div><div class="length_num">21</div></a></div></div></div><hr><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div></div></div><div id="body-wrap"><div id="web_bg" data-type="photo"></div><div id="sidebar"><i class="fas fa-arrow-right on" id="toggle-sidebar"></i><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar">     </div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Pipenv%E4%B8%BA%E4%BD%95%E8%80%8C%E7%94%9F"><span class="toc-number">1.</span> <span class="toc-text">Pipenv为何而生</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8requirements-txt%E8%BF%9B%E8%A1%8C%E4%BE%9D%E8%B5%96%E7%AE%A1%E7%90%86"><span class="toc-number">1.1.</span> <span class="toc-text">使用requirements.txt进行依赖管理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BC%80%E5%8F%91%E5%85%B7%E6%9C%89%E4%B8%8D%E5%90%8C%E4%BE%9D%E8%B5%96%E5%85%B3%E7%B3%BB%E7%9A%84%E9%A1%B9%E7%9B%AE"><span class="toc-number">1.2.</span> <span class="toc-text">开发具有不同依赖关系的项目</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BE%9D%E8%B5%96%E8%A7%A3%E6%9E%90"><span class="toc-number">1.3.</span> <span class="toc-text">依赖解析</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Pipenv%E4%BB%8B%E7%BB%8D"><span class="toc-number">2.</span> <span class="toc-text">Pipenv介绍</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B"><span class="toc-number">2.0.1.</span> <span class="toc-text">使用示例</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Pipenv%E7%9A%84%E4%BE%9D%E8%B5%96%E6%80%A7%E8%A7%A3%E5%86%B3%E6%96%B9%E6%B3%95"><span class="toc-number">2.1.</span> <span class="toc-text">Pipenv的依赖性解决方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Pipfile"><span class="toc-number">2.2.</span> <span class="toc-text">Pipfile</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Pipfile-lock"><span class="toc-number">2.3.</span> <span class="toc-text">Pipfile.lock</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Pipenv%E9%A2%9D%E5%A4%96%E7%89%B9%E6%80%A7"><span class="toc-number">2.4.</span> <span class="toc-text">Pipenv额外特性</span></a></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E4%BB%8Erequirements-txt%E8%BD%AC%E4%B8%BAPipfile"><span class="toc-number">3.</span> <span class="toc-text">如何从requirements.txt转为Pipfile</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BC%95%E7%94%A8"><span class="toc-number">4.</span> <span class="toc-text">引用</span></a></li></div></div></div><header class="post-bg" id="page-header" style="background-image: url(https://cdn.leosocy.top/img/intro_to_pipenv.jpg)"><nav id="nav"><span class="pull-left" id="blog_name"><a class="blog_title" id="site-name" href="/">Leosocy's Blog</a></span><span class="pull-right menus"><div id="search_button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div><span class="toggle-menu close"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><div id="post-title"><div class="posttitle">Pipenv——它是Python包管理的大救星</div></div><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="fa-fw post-meta-icon far fa-calendar-alt"></i><span class="post-meta-label">发表于</span><time datetime="2018-12-10T03:40:04.000Z" title="undefined 2018-12-10 11:40:04">2018-12-10</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/">开发工具</a></span></div><div class="meta-secondline"> <span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">4.8k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>23分钟</span></span><span class="post-meta-separator">|</span><span class="leancloud_visitors" id="/posts/34a2/" data-flag-title="Pipenv——它是Python包管理的大救星"><i class="far fa-fire fa-fw post-meta-icon"></i><span class="post-meta-label">热度:</span><span class="leancloud-visitors-count"></span><span class="du"> °C</span></span></div></div></div></header><main class="layout_post" id="content-inner"><article id="post"><div class="post-content" id="article-container"><p><code>Pipenv</code>是Python的一个打包工具，它使用<code>pip</code>、<code>virtualenv</code>和旧式的<code>requirements.txt</code>解决了与典型工作流相关的一些常见问题。</p>
+<p>除了解决一些常见问题之外，它还将开发过程合并并简化为单个命令行工具。</p>
+<p>本指南将介绍Pipenv解决了哪些问题，以及如何管理与Pipenv的Python依赖关系。此外，它还将介绍如何从以前的requirements.txt转为使用Pipenv管理包。</p>
+<span id="more"></span>
+
+<h2 id="Pipenv为何而生"><a href="#Pipenv为何而生" class="headerlink" title="Pipenv为何而生"></a>Pipenv为何而生</h2><p>要理解Pipenv的好处，了解Python中打包和依赖管理的当前方法是很重要的。</p>
+<p>让我们从处理第三方包的典型情况开始。然后，我们将构建部署完整Python应用程序的方法。</p>
+<h3 id="使用requirements-txt进行依赖管理"><a href="#使用requirements-txt进行依赖管理" class="headerlink" title="使用requirements.txt进行依赖管理"></a>使用<code>requirements.txt</code>进行依赖管理</h3><p>假设你正在处理一个使用flask等第三方包的Python项目。您需要指定该需求，以便其他开发人员和自动化系统能够运行您的应用程序。</p>
+<p>你决定在requirements.txt中包含flask的依赖</p>
+<figure class="highlight txt"><table><tr><td class="code"><pre><span class="line">flask</span><br></pre></td></tr></table></figure>
+
+<p>很好，一切都在本地运行良好，在对应用程序进行了一段时间的黑客攻击之后，您决定将其转移到生产环境中。可怕的事情开始了。。。</p>
+<p>上面的requirements.txt并没有指定flask的版本。这种情况下，<code>pip install -r requirements.txt</code>将默认安装最新的版本。</p>
+<p>对于这个例子，我们假设已经发布了flask的一个新版本。但是，它与开发期间使用的版本不向后兼容。</p>
+<p>现在，假设您将应用程序部署到生产环境中，并执行<code>pip install -r requirements.txt</code>，pip得到了最新的、不向后兼容的flask版本，就像这样，您的应用程序在生产过程中崩溃了。</p>
+<blockquote>
+<p>程序员小哥内心OS：这在我本地跑的好好地，怎么一发生产就崩了呢，我***</p>
+</blockquote>
+<p>现在，您知道在开发过程中使用的flask版本运行良好。因此，为了修复问题，您需要在requirements.txt中更加具体一些。你指定了一个flask的版本。这也称为固定依赖项:</p>
+<figure class="highlight txt"><table><tr><td class="code"><pre><span class="line">flask==0.12.1</span><br></pre></td></tr></table></figure>
+
+<p>固定flask的版本确保了<code>pip install -r requirements.txt</code>可以安装flask的精确版本。但是这就万事大吉了吗？</p>
+<p>请记住，flask本身也有依赖项(pip会自动安装这些依赖项)。但是，flask本身并没有为它的依赖项指定精确的版本。例如，它允许任何版本的Werkzeug&gt;=0.14。</p>
+<p>同样，为了这个例子，我们假设发布了一个新的Werkzeug版本，但是它给您的应用程序引入了一个停止显示的bug。</p>
+<p>当你执行<code>pip install -r requirements.txt</code>，你将会安装<code>flask==0.12.1</code>因为你已经固定了该版本。然而，不幸的是，您将得到最新的、有bug的Werkzeug版本。同样，产品在生产过程中出现故障。</p>
+<p>这里真正的问题是构建不是确定性的。我的意思是，给定相同的输入(requirements.txt文件)，pip并不总是生成相同的环境。目前，您无法轻松复制开发的环境到生产上去。</p>
+<p>这个问题的典型解决方案是使用<code>pip freeze</code>。该命令允许您获得当前安装的所有第三方库的准确版本，包括自动安装的子依赖项pip。因此，您可以冻结开发中的所有内容，以确保在生产环境中拥有相同的环境。</p>
+<p>执行<code>pip freeze</code>会得到固定的依赖关系</p>
+<figure class="highlight txt"><table><tr><td class="code"><pre><span class="line">click==6.7</span><br><span class="line">Flask==0.12.1</span><br><span class="line">itsdangerous==0.24</span><br><span class="line">Jinja2==2.10</span><br><span class="line">MarkupSafe==1.0</span><br><span class="line">Werkzeug==0.14.1</span><br></pre></td></tr></table></figure>
+
+<p>有了这些固定的依赖项，您可以确保安装在生产环境中的包与开发环境中的包完全匹配，这样您的产品就不会意外地损坏。不幸的是，这种“解决方案”会导致一系列全新的问题。</p>
+<p>现在您已经指定了每个第三方包的确切版本，您负责使这些版本保持最新，即使它们是flask的子依赖项。如果在Werkzeug==0.14.1中发现了一个安全漏洞，包维护人员立即在Werkzeug==0.14.2中修补了这个漏洞，该怎么办?您确实需要更新到Werkzeug==0.14.2，以避免由早期未打补丁的Werkzeug版本引起的任何安全问题。</p>
+<p>首先，您需要意识到您的版本有问题。然后，在有人利用安全漏洞之前，您需要在生产环境中获得新版本。所以，你必须改变requirements.txt手动指定新版本Werkzeug==0.14.2。正如您在这种情况下所看到的，保持必要更新的责任落在了您的身上。</p>
+<p>事实是，只要不破坏您的代码，您实际上并不关心安装了什么版本的Werkzeug。事实上，您可能希望最新的版本能够确保您得到了bug修复、安全补丁、新特性、更多优化等等。</p>
+<p>真正的问题是:“如何在不承担更新子依赖项版本的责任的情况下为Python项目提供确定性构建?”</p>
+<h3 id="开发具有不同依赖关系的项目"><a href="#开发具有不同依赖关系的项目" class="headerlink" title="开发具有不同依赖关系的项目"></a>开发具有不同依赖关系的项目</h3><p>让我们稍微转换一下话题，讨论在处理多个项目时出现的另一个常见问题。假设ProjectA需要django==1.9，但是ProjectB需要django==1.10。</p>
+<p>默认情况下，Python试图将所有第三方包存储在系统范围内的位置。这意味着每次在ProjectA和ProjectB之间切换时，都必须确保安装了正确的django版本。这使得在项目之间切换非常痛苦，因为您必须卸载和重新安装包来满足每个项目的需求。</p>
+<p>标准的解决方案是使用具有自己的Python可执行文件和第三方包存储的<a target="_blank" rel="external nofollow noopener noreferrer" href="https://realpython.com/python-virtual-environments-a-primer/"><code>virtual environment</code></a>。这样，ProjectA和ProjectB就可以充分分离。现在您可以轻松地在项目之间切换，因为它们不共享相同的包存储位置。PackageA可以在它自己的环境中拥有它需要的django的任何版本，而PackageB可以完全独立拥有它需要的任何版本。一个非常常用的工具是virtualenv(或Python 3中的venv)。</p>
+<h3 id="依赖解析"><a href="#依赖解析" class="headerlink" title="依赖解析"></a>依赖解析</h3><p>依赖性解析是什么意思?假设你有一个requirements.txt文件看起来像这样:</p>
+<figure class="highlight txt"><table><tr><td class="code"><pre><span class="line">package_a</span><br><span class="line">package_b</span><br></pre></td></tr></table></figure>
+
+<p>假设package_a有一个子依赖项package_c, package_a需要这个包的特定版本:package_c&gt;=1.0。反过来，package_b具有相同的子依赖关系，但需要package_c&lt;=2.0。</p>
+<p>理想情况下，当您尝试安装package_a和package_b时，安装工具将查看package_c的需求(&gt;=1.0和&lt;=2.0)并选择满足这些需求的版本。您希望该工具能够解决依赖关系，以便您的程序最终能够工作。这就是我所说的“依赖解析”。</p>
+<p>不幸的是，pip本身目前还没有真正的依赖性解决方案。pip处理上述情况的方法如下:</p>
+<ol>
+<li>它安装package_a并寻找满足第一个需求的package_c版本(package_c&gt;=1.0)。</li>
+<li>然后，pip安装package_c的最新版本来满足这个需求。假设package_c的最新版本是3.1。</li>
+</ol>
+<p>这就是麻烦开始的地方。</p>
+<p>如果pip选择的package_c版本不符合未来的需求(例如package_b需要package_c&lt;=2.0)，则安装将失败。</p>
+<p>这个问题的“解决方案”是在requirements.txt中指定子依赖项(package_c)所需的范围。这样，pip就可以解决这个冲突，并安装一个满足这些要求的包:</p>
+<figure class="highlight txt"><table><tr><td class="code"><pre><span class="line">package_c&gt;=1.0,&lt;=2.0</span><br><span class="line">package_a</span><br><span class="line">package_b</span><br></pre></td></tr></table></figure>
+
+<p>就像以前一样，您现在直接关注子依赖项(package_c)。这样做的问题是，如果package_a在您不知道的情况下更改了它们的需求，那么您指定的需求(package_c&gt;=1.0，&lt;=2.0)可能不再可以接受，并且安装可能再次失败……真正的问题是，您要再次负责满足子依赖项的需求。</p>
+<p>理想情况下，您的安装工具足够智能，可以安装满足所有需求的包，而无需显式指定子依赖项版本。</p>
+<h2 id="Pipenv介绍"><a href="#Pipenv介绍" class="headerlink" title="Pipenv介绍"></a>Pipenv介绍</h2><p>让我们看看Pipenv如何解决它们。</p>
+<p>首先，安装Pipenv</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pip install pipenv</span><br></pre></td></tr></table></figure>
+
+<p>一旦你这样做了，你就丢点pip了，因为Pipenv实际上是一个替代品。它还引入了两个新文件，Pipfile(用于替代requirements.txt)和Pipfile.lock(支持确定性构建)。</p>
+<p>Pipenv在底层使用pip和virtualenv，但通过一个命令行接口简化了它们的使用。</p>
+<h4 id="使用示例"><a href="#使用示例" class="headerlink" title="使用示例"></a>使用示例</h4><p>让我们从头开始创建您出色的Python应用程序。首先，在virtual env中衍生一个shell，隔离这个app的开发:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pipenv shell</span><br></pre></td></tr></table></figure>
+
+<p>如果一个环境还不存在的话将创建一个虚拟环境。您可以使用参数–two/–three强制创建Python2或3环境。否则，Pipenv将使用virtualenv找到的任何默认值。</p>
+<p>现在你可以安装你需要的第三方软件包flask。但是你知道你需要的是0.12.1版本，而不是最新的版本，所以请具体说明:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pipenv install flask==0.12.1</span><br></pre></td></tr></table></figure>
+
+<p>您应该在终端中看到如下内容:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">Adding flask==0.12.1 to Pipfile&#x27;s [packages]...</span><br><span class="line">Pipfile.lock not found, creating...</span><br></pre></td></tr></table></figure>
+
+<p>您会注意到创建了两个文件，一个<code>Pipfile</code>和<code>Pipfile.lock</code>。我们稍后会更仔细地看这些。让我们安装另一个第三方软件包numpy来处理一些数据。你不需要一个特定的版本，所以不要指定一个:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pipenv install numpy</span><br></pre></td></tr></table></figure>
+
+<p>你也可以从Github上安装某些依赖，例如安装<code>requests</code>库</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pipenv install -e git+https://github.com/requests/requests.git#egg=requests</span><br></pre></td></tr></table></figure>
+
+<p>假设您还为这个出色的应用程序进行了一些单元测试，您希望使用pytest来运行它们。在生产环境中不需要pytest，因此可以指定这个依赖关系只用于开发，使用—dev参数:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pipenv install pytest --dev</span><br></pre></td></tr></table></figure>
+
+<p>提供——dev参数将把依赖项放在Pipfile中一个特殊的[dev-package]位置。只有在使用pipenv install指定—dev参数时，才会安装这些开发包。</p>
+<p>不同的部分将仅用于开发的依赖项与用于基本代码实际工作的依赖项分开。通常，这可以通过附加的requirements文件(如dev-requirements.txt或test-requirements.txt)来完成。现在，在不同的部分中，所有内容都被合并到一个Pipfile中。</p>
+<p>好了，假设您已经在本地开发环境中完成了所有工作，并且准备将其投入生产。要做到这一点，您需要锁定您的环境，以便确保在生产中拥有相同的环境:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pipenv lock</span><br></pre></td></tr></table></figure>
+
+<p>这将创建/更新您的Pipfile.lock，您永远不需要(也永远不打算)手动编辑。您应该始终使用生成的文件。</p>
+<p>现在，在生产环境中获得了代码和Pipfile.lock，您应该安装最后成功记录的环境:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pipenv install --ignore-pipfile</span><br></pre></td></tr></table></figure>
+
+<p>这告诉Pipenv在安装时忽略Pipfile，而使用Pipfile.lock中的内容。根据Pipfile.lock，Pipenv将创建与运行<code>pipenv lock</code>时完全相同的环境，子依赖项等等。</p>
+<p>锁文件通过获取环境中包的所有版本的快照(类似于pip freeze结果)来支持确定性构建。</p>
+<p>现在，假设另一个开发人员希望对您的代码进行一些添加。在这种情况下，他们会得到代码，包括Pipfile，并使用这个命令:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pipenv install --dev</span><br></pre></td></tr></table></figure>
+
+<p>这将安装开发所需的所有依赖项，包括常规依赖项和安装期间使用<code>--dev</code>参数指定的依赖项。</p>
+<p>当Pipfile中没有指定确切的版本时，install命令为依赖项(和子依赖项)提供了更新它们的版本的机会。</p>
+<p>这是一个重要的注意事项，因为它解决了前面讨论的一些问题。为了演示，假设您的某个依赖项的新版本可用。因为不需要这个依赖项的特定版本，所以不需要在Pipfile中指定确切的版本。当您安装pipenv时，依赖项的新版本将安装在您的开发环境中。</p>
+<p>现在，您对代码进行了更改，并运行了一些测试，以验证一切都按预期工作。(你有单元测试，对吧?)现在，和以前一样，使用<code>pipenv lock</code>锁定环境。Pipfile.lock将与依赖项的新版本一起生成。与以前一样，您可以在生产环境中使用锁文件复制这个新环境。</p>
+<p>正如您从这个场景中看到的，您不再需要强制执行您并不真正需要的确切版本，以确保开发和生产环境是相同的。你也不需要时刻关注你“不关心”的子依赖关系的更新。Pipenv的这个工作流，结合您出色的测试，解决了手工执行所有依赖管理的问题。</p>
+<h3 id="Pipenv的依赖性解决方法"><a href="#Pipenv的依赖性解决方法" class="headerlink" title="Pipenv的依赖性解决方法"></a>Pipenv的依赖性解决方法</h3><p>Pipenv将尝试安装满足核心依赖项所有需求的子依赖项。但是，如果存在相互冲突的依赖关系(package_a需要package_c&gt;=1.0, package_b需要package_c&lt;1.0)， Pipenv将无法创建锁文件，并将输出如下错误:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">Warning: Your dependencies could not be resolved. You likely have a mismatch in your sub-dependencies.</span><br><span class="line">  You can use $ pipenv install --skip-lock to bypass this mechanism, then run $ pipenv graph to inspect the situation.</span><br><span class="line">Could not find a version that matches package_c&gt;=1.0,package_c&lt;1.0</span><br></pre></td></tr></table></figure>
+
+<p>正如警告所说，您还可以显示一个依赖关系图来理解顶级依赖关系及其子依赖关系:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pipenv graph</span><br></pre></td></tr></table></figure>
+
+<p>这个命令将打印出一个树状结构，显示您的依赖项。这里有一个例子:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">Flask==0.12.1</span><br><span class="line">  - click [required: &gt;=2.0, installed: 6.7]</span><br><span class="line">  - itsdangerous [required: &gt;=0.21, installed: 0.24]</span><br><span class="line">  - Jinja2 [required: &gt;=2.4, installed: 2.10]</span><br><span class="line">    - MarkupSafe [required: &gt;=0.23, installed: 1.0]</span><br><span class="line">  - Werkzeug [required: &gt;=0.7, installed: 0.14.1]</span><br><span class="line">numpy==1.14.1</span><br><span class="line">pytest==3.4.1</span><br><span class="line">  - attrs [required: &gt;=17.2.0, installed: 17.4.0]</span><br><span class="line">  - funcsigs [required: Any, installed: 1.0.2]</span><br><span class="line">  - pluggy [required: &lt;0.7,&gt;=0.5, installed: 0.6.0]</span><br><span class="line">  - py [required: &gt;=1.5.0, installed: 1.5.2]</span><br><span class="line">  - setuptools [required: Any, installed: 38.5.1]</span><br><span class="line">  - six [required: &gt;=1.10.0, installed: 1.11.0]</span><br><span class="line">requests==2.18.4</span><br><span class="line">  - certifi [required: &gt;=2017.4.17, installed: 2018.1.18]</span><br><span class="line">  - chardet [required: &gt;=3.0.2,&lt;3.1.0, installed: 3.0.4]</span><br><span class="line">  - idna [required: &gt;=2.5,&lt;2.7, installed: 2.6]</span><br><span class="line">  - urllib3 [required: &lt;1.23,&gt;=1.21.1, installed: 1.22]</span><br></pre></td></tr></table></figure>
+
+<p>从<code>pipenv graph</code>的输出中，您可以看到我们之前安装的顶级依赖项(Flask、numpy、pytest和请求)，在下面您可以看到它们所依赖的包。</p>
+<p>另外，您可以反转树来显示与需要它的父类的子依赖关系:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pipenv graph --reverse</span><br></pre></td></tr></table></figure>
+
+<p>当您试图找出相互冲突的子依赖关系时，此反向树可能更有用。</p>
+<h3 id="Pipfile"><a href="#Pipfile" class="headerlink" title="Pipfile"></a>Pipfile</h3><p>Pipfile出现的意图是替代<code>requirements.txt</code>。Pipenv是目前使用Pipfile的参考实现。pip本身似乎很可能能够处理这些文件。此外，值得注意的是，Pipenv甚至是Python本身推荐的官方包管理工具。</p>
+<p>Pipfile的语法是<a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/toml-lang/toml">TOML</a>，文件分为几个部分。[dev-packages]只用于开发包，[package]用于最低需求的包，[require]用于其他需求，如Python的特定版本。请看下面的示例文件:</p>
+<figure class="highlight toml"><table><tr><td class="code"><pre><span class="line"><span class="section">[[source]]</span></span><br><span class="line"><span class="attr">url</span> = <span class="string">&quot;https://pypi.python.org/simple&quot;</span></span><br><span class="line"><span class="attr">verify_ssl</span> = <span class="literal">true</span></span><br><span class="line"><span class="attr">name</span> = <span class="string">&quot;pypi&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="section">[dev-packages]</span></span><br><span class="line"><span class="attr">pytest</span> = <span class="string">&quot;*&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="section">[packages]</span></span><br><span class="line"><span class="attr">flask</span> = <span class="string">&quot;==0.12.1&quot;</span></span><br><span class="line"><span class="attr">numpy</span> = <span class="string">&quot;*&quot;</span></span><br><span class="line"><span class="attr">requests</span> = &#123;git = <span class="string">&quot;https://github.com/requests/requests.git&quot;</span>, editable = <span class="literal">true</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="section">[requires]</span></span><br><span class="line"><span class="attr">python_version</span> = <span class="string">&quot;3.6&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>理想情况下，在Pipfile中不应该有任何子依赖项。我的意思是您应该只包含您实际导入和使用的包。不需要仅仅因为<code>chardet</code>是请求的子依赖项就将它保存在Pipfile中。(Pipenv会自动安装。)Pipfile应该传递包所需的顶级依赖项。</p>
+<h3 id="Pipfile-lock"><a href="#Pipfile-lock" class="headerlink" title="Pipfile.lock"></a>Pipfile.lock</h3><p>该文件通过指定复制环境的确切需求来支持确定性构建。它包含包和散列的精确版本，以支持更安全的验证，pip本身现在也支持这种验证。示例文件可能如下所示。注意这个文件的语法是JSON，我用…排除了部分文件:</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;_meta&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">        ...</span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;default&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;flask&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;hashes&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">                <span class="string">&quot;sha256:6c3130c8927109a08225993e4e503de4ac4f2678678ae211b33b519c622a7242&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="string">&quot;sha256:9dce4b6bfbb5b062181d3f7da8f727ff70c1156cbb4024351eafd426deb5fb88&quot;</span></span><br><span class="line">            <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;version&quot;</span><span class="punctuation">:</span> <span class="string">&quot;==0.12.1&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;requests&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;editable&quot;</span><span class="punctuation">:</span> <span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;git&quot;</span><span class="punctuation">:</span> <span class="string">&quot;https://github.com/requests/requests.git&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;ref&quot;</span><span class="punctuation">:</span> <span class="string">&quot;4ea09e49f7d518d365e7c6f7ff6ed9ca70d6ec2e&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;werkzeug&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;hashes&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">                <span class="string">&quot;sha256:d5da73735293558eb1651ee2fddc4d0dedcfa06538b8813a2e20011583c9e49b&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="string">&quot;sha256:c3fd7a7d41976d9f44db327260e263132466836cef6f91512889ed60ad26557c&quot;</span></span><br><span class="line">            <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;version&quot;</span><span class="punctuation">:</span> <span class="string">&quot;==0.14.1&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">        ...</span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;develop&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;pytest&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;hashes&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">                <span class="string">&quot;sha256:8970e25181e15ab14ae895599a0a0e0ade7d1f1c4c8ca1072ce16f25526a184d&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="string">&quot;sha256:9ddcb879c8cc859d2540204b5399011f842e5e8823674bf429f70ada281b3cc6&quot;</span></span><br><span class="line">            <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;version&quot;</span><span class="punctuation">:</span> <span class="string">&quot;==3.4.1&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        ...</span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>请注意为每个依赖项指定的确切版本。甚至像werkzeug这样不在Pipfile中的子依赖项也会出现在这个Pipfile.lock中。散列用于确保检索的包与在开发中检索的包相同。</p>
+<p>值得再次注意的是，永远不要手工更改此文件。它是用<code>pipenv lock</code>生成的。</p>
+<h3 id="Pipenv额外特性"><a href="#Pipenv额外特性" class="headerlink" title="Pipenv额外特性"></a>Pipenv额外特性</h3><p>使用以下命令在默认编辑器中打开第三方包:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pipenv open flask</span><br></pre></td></tr></table></figure>
+
+<p>这将在默认编辑器中打开flask包，或者您可以使用编辑器环境变量指定程序。</p>
+<hr>
+<p>您可以在虚拟环境中运行命令，而无需启动shell:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pipenv run &lt;insert command here&gt;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>现在，假设您不再需要一个包。你可以卸载它:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pipenv uninstall numpy</span><br></pre></td></tr></table></figure>
+
+<p>另外，假设您希望从虚拟环境中完全删除所有已安装的包:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pipenv uninstall --all</span><br></pre></td></tr></table></figure>
+
+<p>您可以用<code>--all-dev</code>替换<code>--dev</code>来删除所有开发包。</p>
+<hr>
+<p>当顶级目录中存在.env文件时，Pipenv支持自动加载环境变量。这样，当您pipenv shell打开虚拟环境时，它将从文件中加载环境变量。env文件只包含键-值对:</p>
+<figure class="highlight txt"><table><tr><td class="code"><pre><span class="line">SOME_ENV_CONFIG=some_value</span><br><span class="line">SOME_OTHER_ENV_CONFIG=some_other_value</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="如何从requirements-txt转为Pipfile"><a href="#如何从requirements-txt转为Pipfile" class="headerlink" title="如何从requirements.txt转为Pipfile"></a>如何从<code>requirements.txt</code>转为Pipfile</h2><p>如果您运行pipenv安装，它应该自动检测requirements.txt并将其转换为Pipfile，输出如下所示:</p>
+<figure class="highlight txt"><table><tr><td class="code"><pre><span class="line">requirements.txt found, instead of Pipfile! Converting…</span><br><span class="line">Warning: Your Pipfile now contains pinned versions, if your requirements.txt did.</span><br><span class="line">We recommend updating your Pipfile to specify the &quot;*&quot; version, instead.</span><br></pre></td></tr></table></figure>
+
+<p>如果您已经在您的需求中固定了精确的版本。您可能希望将Pipfile更改为仅指定您真正需要的确切版本。这会让你从转变中获得真正的好处。例如，假设您拥有以下内容，但实际上并不需要精确的numpy版本:</p>
+<figure class="highlight toml"><table><tr><td class="code"><pre><span class="line"><span class="section">[packages]</span></span><br><span class="line"><span class="attr">numpy</span> = <span class="string">&quot;==1.14.1&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>如果您对依赖项没有任何特定的版本需求，您可以使用通配符*告诉Pipenv任何版本都可以安装:</p>
+<figure class="highlight toml"><table><tr><td class="code"><pre><span class="line"><span class="section">[packages]</span></span><br><span class="line"><span class="attr">numpy</span> = <span class="string">&quot;*&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>如果您对允许任何带有*的版本感到紧张，通常可以安全地指定大于或等于您已经使用的版本，这样您仍然可以利用新版本:</p>
+<figure class="highlight toml"><table><tr><td class="code"><pre><span class="line"><span class="section">[packages]</span></span><br><span class="line"><span class="attr">numpy</span> = <span class="string">&quot;&gt;=1.14.1&quot;</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>您还可以使用-r参数从requirement文件中安装:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pipenv install -r requirements.txt</span><br></pre></td></tr></table></figure>
+
+<p>如果您有<code>dev-requirements.txt</code>或类似的东西，您也可以将它们添加到Pipfile。只要添加–dev参数，它就会被放到正确的部分:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pipenv install -r dev-requirements.txt --dev</span><br></pre></td></tr></table></figure>
+
+<h2 id="引用"><a href="#引用" class="headerlink" title="引用"></a>引用</h2><p><a target="_blank" rel="external nofollow noopener noreferrer" href="https://realpython.com/pipenv-guide/#dependency-resolution">Pipenv: A Guide to the New Python Packaging Tool</a></p>
+</div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Python/">Python</a><a class="post-meta__tags" href="/tags/%E5%8C%85%E7%AE%A1%E7%90%86/">包管理</a></div><div class="post_share"><div class="social-share" data-image="/img/intro_to_pipenv.jpg" data-sites="wechat,weibo,qq,facebook,twitter"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/posts/5513/"><img class="prev-cover" data-lazy-src="https://cdn.leosocy.top/img/protobuf.png" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">Protobuf——更高、更快、更强</div></div></a></div><div class="next-post pull-right"><a href="/posts/57f6/"><img class="next-cover" data-lazy-src="https://cdn.leosocy.top/img/mysql-lock.png" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">深入理解MySQL——MDL</div></div></a></div></nav><div class="relatedPosts"><div class="relatedPosts_headline"><i class="fas fa-thumbs-up fa-fw"></i><span> 相关推荐</span></div><div class="relatedPosts_list"><div class="relatedPosts_item"><a href="/posts/ea37/" title="设计模式Python实现"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.top/img/design-pattern.jpg"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2018-05-28</div><div class="relatedPosts_title">设计模式Python实现</div></div></a></div></div></div><hr><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div><div class="comment-switch"><span class="first-comment">Valine</span><label><input id="switch-comments-btn" type="checkbox"><span class="slider"></span></label><span class="second-comment">Gitalk</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div><div><div id="gitalk-container"></div></div></div></div></article></main><footer id="footer" data-type="color"><div id="footer-wrap"><div class="copyright">&copy;2017 - 2023   <i id="heartbeat" class="fa fas fa-heartbeat"></i>  Leosocy</div><div class="icp"><a target="_blank" rel="external nofollow noopener noreferrer" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=32011302320676"><span>苏ICP备19003706号-1</span></a></div></div><head><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/heartbeat.min.css"></head></footer><script>var bg_index = Math.floor(Math.random() * 21);
+if (true === true)
+  var res = 'background-image: url("https://cdn.leosocy.top/img/background/' + bg_index + '-bg.jpg");'
+else
+  var res = 'background-image: url("https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn/img/background/' + bg_index + '-bg.jpg");'
+document.getElementById('web_bg').style = res
+</script></div><section id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="font_plus" type="button" title="放大字体"><i class="fas fa-plus"></i></button><button id="font_minus" type="button" title="缩小字体"><i class="fas fa-minus"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></section><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"></div></div></div><hr><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module" defer></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js" async></script><script>function panguFn () {
+  if (typeof pangu === 'object') pangu.spacingElementById('content-inner')
+  else {
+    $.getScript('https://cdn.jsdelivr.net/npm/pangu/dist/browser/pangu.min.js', () => {
+      pangu.spacingElementById('content-inner')
+    })
+  }
+}
+
+function panguInit () {
+  if (false){
+    GLOBAL_CONFIG_SITE.isPost && panguFn()
+  } else {
+    panguFn()
+  }
+}
+
+document.addEventListener('DOMContentLoaded', panguFn)</script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadValine () {
+  function initValine () {
+    window.valine = new Valine({
+      el: '#vcomment',
+      appId: 'HrxT0ob97kYUTuWuUo08mkqc-gzGzoHsz',
+      appKey: 'oeKW9UqjBpN6MNv7ENaikdwP',
+      placeholder: '请输入内容',
+      avatar: 'retro',
+      meta: 'nick,mail,link'.split(','),
+      pageSize: '10',
+      lang: 'zh-CN',
+      recordIP: false,
+      serverURLs: 'https://lcapi.leosocy.top',
+      emojiCDN: '',
+      emojiMaps: "",
+      enableQQ: false,
+      path: window.location.pathname,
+      visitor: true
+    });
+    if ('nick') { valine.config.requiredFields= 'nick'.split(',') }
+  }
+
+  if (typeof Valine === 'function') initValine() 
+  else $.getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js', initValine)
+}
+
+if ('Valine' === 'Valine' || !true) {
+  if (true && !true) loadComment(document.querySelector('#vcomment'),loadValine)
+  else setTimeout(() => loadValine(), 0)
+} else {
+  function loadOtherComment () {
+    loadValine()
+  }
+}</script><script>function addGitalkSource () {
+  const ele = document.createElement('link')
+  ele.rel = 'stylesheet'
+  ele.href= 'https://cdn.jsdelivr.net/npm/gitalk/dist/gitalk.min.css'
+  document.getElementsByTagName('head')[0].appendChild(ele)
+}
+
+function loadGitalk () {
+  function initGitalk () {
+    var gitalk = new Gitalk({
+      clientID: '32b06a1ce1ba2d645bb5',
+      clientSecret: 'c4e9c93c5a16234ecb67a9b83b9315f763436cdd',
+      repo: 'comments',
+      owner: 'LeosocyBlog',
+      admin: ['Leosocy'],
+      id: '5af616bbf41aa7b26fb8a2510355af70',
+      language: 'zh-CN',
+      perPage: 10,
+      distractionFreeMode: true,
+      pagerDirection: 'last',
+      createIssueManually: false,
+      updateCountCallback: commentCount
+    })
+    gitalk.render('gitalk-container')
+  }
+
+  if (typeof Gitalk === 'function') initGitalk()
+  else {
+    addGitalkSource()
+    $.getScript('https://cdn.jsdelivr.net/npm/gitalk@latest/dist/gitalk.min.js', initGitalk)
+  }
+}
+
+function commentCount(n){
+  let isCommentCount = document.querySelector('#post-meta .gitalk-comment-count')
+  if (isCommentCount) {
+    isCommentCount.innerHTML= n
+  }
+}
+
+if ('Valine' === 'Gitalk' || !true) {
+  if (true) loadComment(document.getElementById('gitalk-container'), loadGitalk)
+  else loadGitalk()
+} else {
+  function loadOtherComment () {
+    loadGitalk()
+  }
+}</script><script>cdn_url = "https://cdn.leosocy.top"</script><script src="/"></script></div><script src="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/js/leosocy.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>$(function () {
+  var pjax = new Pjax({
+    selectors: [
+      'title',
+      'meta[name=description]',
+      '#config_change',
+      '#body-wrap',
+      '#rightside-config-hide',
+      '#rightside-config-show',
+      '.js-pjax'
+    ],
+    cacheBust: false,
+  })
+
+  document.addEventListener('pjax:complete', function () {
+    refreshFn()
+
+    $('script[data-pjax]').each(function () {
+      $(this).parent().append($(this).remove())
+    })
+
+    GLOBAL_CONFIG.islazyload && lazyLoadInstance.update()
+
+    typeof chatBtnFn === 'function' && chatBtnFn()
+    typeof panguInit === 'function' && panguInit()
+
+    if (typeof gtag === 'function') {
+      gtag('config', 'G-8EGQPPW7GQ', {'page_path': window.location.pathname});
+    }
+
+    if (document.getElementsByClassName('aplayer').length){
+      typeof loadMeting === 'function' && loadMeting()
+    }
+  })
+
+  document.addEventListener('pjax:send', function () {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+
+    typeof typed === 'object' && typed.destroy()
+
+    $(window).off('scroll')
+
+    //reset readmode
+    $('body').hasClass('read-mode') && $('body').removeClass('read-mode')
+
+    //reset font-size
+    $('body').css('font-size') !== originFontSize && $('body').css('font-size', parseFloat(originFontSize))
+  })
+})</script></div></body></html>

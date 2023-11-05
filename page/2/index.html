@@ -1,0 +1,386 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Leosocy's Blog - Code Code Everyday, Day Day Up!</title><meta name="description" content="Hey，我是Leosocy，一个喜欢钻研、喜欢编码、喜欢折腾、对代码有执念的小coder。这是我的博客，主要记录一些学习笔记，涉及后端开发、大数据、云原生、DevOps方面的一些技术实践、总结，以及个人开源项目的想法、实现。"><meta name="keywords" content="Backend, BigData, CloudNative, DevOps"><meta name="author" content="Leosocy,leosocy@gmail.com"><meta name="copyright" content="Leosocy"><meta name="format-detection" content="telephone=no"><link rel="shortcut icon" href="https://cdn.leosocy.top/img/LEO-logo.jpg"><link rel="canonical" href="https://blog.leosocy.top/page/2/"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="preconnect" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//www.google-analytics.com" crossorigin="crossorigin"><link rel="preconnect" href="//fonts.googleapis.com" crossorigin="crossorigin"><meta name="google-site-verification" content="oh1OfqVAIxCAFZ8w5KBBtK7tJK48Z0HuFl2XXbRiM-E"><meta name="baidu-site-verification" content="code-7jpxSWptMj"><meta property="og:type" content="website"><meta property="og:title" content="Leosocy's Blog"><meta property="og:url" content="https://blog.leosocy.top/page/2/"><meta property="og:site_name" content="Leosocy's Blog"><meta property="og:description" content="Hey，我是Leosocy，一个喜欢钻研、喜欢编码、喜欢折腾、对代码有执念的小coder。这是我的博客，主要记录一些学习笔记，涉及后端开发、大数据、云原生、DevOps方面的一些技术实践、总结，以及个人开源项目的想法、实现。"><meta property="og:image" content="https://cdn.leosocy.top/img/avatar-leosocy.jpg"><meta property="article:published_time" content="2023-11-05T07:27:08.646Z"><meta property="article:modified_time" content="2023-11-05T07:27:08.646Z"><meta name="twitter:card" content="summary"><script>var activateDarkMode = function () {
+  document.documentElement.setAttribute('data-theme', 'dark')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#000')
+  }
+}
+var activateLightMode = function () {
+  document.documentElement.setAttribute('data-theme', 'light')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#fff')
+  }
+}
+
+var getCookies = function (name) {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop().split(';').shift()
+}
+
+var autoChangeMode = 'false'
+var t = getCookies('theme')
+if (autoChangeMode === '1') {
+  var isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+  var isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+  var isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+  var hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+
+  if (t === undefined) {
+    if (isLightMode) activateLightMode()
+    else if (isDarkMode) activateDarkMode()
+    else if (isNotSpecified || hasNoSupport) {
+      console.log('You specified no preference for a color scheme or your browser does not support it. I Schedule dark mode during night time.')
+      var now = new Date()
+      var hour = now.getHours()
+      var isNight = hour <= 6 || hour >= 18
+      isNight ? activateDarkMode() : activateLightMode()
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+      if (Cookies.get('theme') === undefined) {
+        e.matches ? activateDarkMode() : activateLightMode()
+      }
+    })
+  } else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else if (autoChangeMode === '2') {
+  now = new Date()
+  hour = now.getHours()
+  isNight = hour <= 6 || hour >= 18
+  if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+  else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else {
+  if (t === 'dark') activateDarkMode()
+  else if (t === 'light') activateLightMode()
+}</script><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css"><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-8EGQPPW7GQ"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-8EGQPPW7GQ');
+</script><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Titillium+Web&amp;display=swap"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  bookmark: {
+    message_prev: '按',
+    message_next: '键将本页加入书签'
+  },
+  runtime_unit: '天',
+  runtime: false,
+  copyright: undefined,
+  ClickShowText: undefined,
+  medium_zoom: false,
+  fancybox: true,
+  Snackbar: {"bookmark":{"message_prev":"按","message_next":"键将本页加入书签"},"chs_to_cht":"你已切换为繁体","cht_to_chs":"你已切换为简体","day_to_night":"你已切换为深色模式","night_to_day":"你已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#121212","position":"bottom-left"},
+  justifiedGallery: {
+    js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+    css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+  },
+  baiduPush: false,
+  highlightCopy: true,
+  highlightLang: true,
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: false    
+}</script><script>(function(win, export_obj) {
+win['TeaAnalyticsObject'] = export_obj;
+if (!win[export_obj]) {
+function _collect() {
+_collect.q.push(arguments);
+}
+_collect.q = _collect.q || [];
+win[export_obj] = _collect;
+}
+win[export_obj].l = +new Date();
+})(window, 'collectEvent');</script><script async src="https://sf1-scmcdn-tos.pstatp.com/goofy/log-sdk/collect/collect-autotrack-rangers.js"></script><script>window.collectEvent('init', {
+app_id: 190292,//  必须替换成申请的 app_id
+channel: 'cn',
+log: true, // 开启调试日志
+autotrack: true // 开启全埋点采集，默认关闭，需要热力图及圈选功能可开启
+});
+window.collectEvent('start');</script><script>var _wr = function(type) {
+  var orig = history[type];
+  return function() {
+    var rv = orig.apply(this, arguments);
+    var e = new Event(type);
+    e.arguments = arguments;
+    window.dispatchEvent(e);
+    return rv;
+  };
+};
+history.pushState = _wr('pushState');
+history.replaceState = _wr('replaceState');
+window.addEventListener("popstate", function(event) {
+  window.collectEvent('predefinePageView');
+});
+window.addEventListener("pushState", function(event) {
+  window.collectEvent('predefinePageView');
+});</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: false,
+  isHome: true,
+  isHighlightShrink: false,
+  isSidebar: false,
+  postUpdate: '2023-11-05 15:27:08'
+}</script><noscript><style>
+#nav {
+  opacity: 1
+}
+.justified-gallery img {
+  opacity: 1
+}
+</style></noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/leosocy.min.css"><meta name="referrer" content="no-referrer-when-downgrade"><meta name="generator" content="Hexo 7.0.0"></head><body><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" data-lazy-src="https://cdn.leosocy.top/img/avatar-leosocy.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">文章</div><div class="length_num">26</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">标签</div><div class="length_num">40</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">分类</div><div class="length_num">21</div></a></div></div></div><hr><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div></div></div><div id="body-wrap"><div id="web_bg" data-type="photo"></div><header class="full_page" id="page-header" style="background-color:transparent;"><nav id="nav"><span class="pull-left" id="blog_name"><a class="blog_title" id="site-name" href="/">Leosocy's Blog</a></span><span class="pull-right menus"><div id="search_button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div><span class="toggle-menu close"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="site-info"><h1 id="site_title">Leosocy's Blog</h1><div id="site_subtitle"><span id="subtitle"></span></div><div id="site_social_icons"><a class="social-icon" href="https://github.com/Leosocy" target="_blank" title="Github" rel="external nofollow noopener noreferrer"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:leosocy@gmail.com" target="_blank" title="Email" rel="external nofollow noopener noreferrer"><i class="fas fa-envelope"></i></a></div></div><div id="scroll_down"><i class="fas fa-angle-down scroll-down-effects"></i></div></header><main class="layout_page" id="content-inner"><div class="recent-posts" id="recent-posts"><div class="recent-post-item"><div class="post_cover left_radius"><a href="/posts/d262/" title="零基础学习kubernetes(四): 利用闲置主机搭建并暴露本地k8s集群">     <img class="post_bg" data-lazy-src="https://cdn.leosocy.top/img/kubernetes_tutorials.png" onerror="this.onerror=null;this.src='https://cdn.leosocy.top/img/404.jpg'" alt="零基础学习kubernetes(四): 利用闲置主机搭建并暴露本地k8s集群"></a></div><div class="recent-post-info"><a class="article-title" href="/posts/d262/" title="零基础学习kubernetes(四): 利用闲置主机搭建并暴露本地k8s集群">零基础学习kubernetes(四): 利用闲置主机搭建并暴露本地k8s集群</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2018-12-25T13:24:10.000Z" title="发表于 2018-12-25 21:24:10">2018-12-25</time></span><span class="article-meta"><span class="article-meta__separator">|</span><i class="fas fa-inbox article-meta__icon"></i><a class="article-meta__categories" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</a><i class="fas fa-angle-right"></i><a class="article-meta__categories" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/Kubernetes/">Kubernetes</a></span><span class="article-meta tags"><span class="article-meta__separator">|</span><i class="fas fa-tag article-meta__icon"></i><a class="article-meta__tags" href="/tags/k8s/">k8s</a><span class="article-meta__link">•</span><a class="article-meta__tags" href="/tags/NAT/">NAT</a></span></div><div class="content">前三章的学习，笔者经历了从使用ECS的k8s集群到本地的Minikube，说白了，还是穷，买不起高配置的ECS，而当资源(cpu/memory)不足时，要想充分发挥k8s的强大功能可以说是难上加难。
+恰巧笔者有一台尘封已久的笔记本，很早之前折腾过一阵archlinux系统，如果我们能用它在内网搭建一个k8s集群，然后通过某种方式暴露在公网上供使用，是不是就很nice了呢？
+如果你也有类似的烦恼，想利用闲置的主机搭建一个经济实惠的k8s集群，那么希望本篇文章能带给你一些帮助。下面我们就一步步完成这个伟(diao)大(si)的理想吧！
+
+
+内网穿透，”免费“的ECS对于没有公网IP的内网用户来说，远程管理或在外网访问内网机器上的服务是一个问题。通常解决方案就是用内网穿透工具将内网的服务穿透到公网中，便于远程管理和在外部访问。
+FRP (Fast Reverse Proxy)，一个使用Go语言开发的高性能反向代理工具，可以通过简单的配置实现内网穿透。FRP支持TCP、UDP、HTTP、HTTPS等协议类型，并且支持Web服务根据域名进行路由转发。
+frpsfrp的服务端，即我们的ECS服务器 ...</div></div></div><div class="recent-post-item"><div class="post_cover right_radius"><a href="/posts/5513/" title="Protobuf——更高、更快、更强">     <img class="post_bg" data-lazy-src="https://cdn.leosocy.top/img/protobuf.png" onerror="this.onerror=null;this.src='https://cdn.leosocy.top/img/404.jpg'" alt="Protobuf——更高、更快、更强"></a></div><div class="recent-post-info"><a class="article-title" href="/posts/5513/" title="Protobuf——更高、更快、更强">Protobuf——更高、更快、更强</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2018-12-15T09:30:30.000Z" title="发表于 2018-12-15 17:30:30">2018-12-15</time></span><span class="article-meta"><span class="article-meta__separator">|</span><i class="fas fa-inbox article-meta__icon"></i><a class="article-meta__categories" href="/categories/%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/">基础知识</a><i class="fas fa-angle-right"></i><a class="article-meta__categories" href="/categories/%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/RPC/">RPC</a></span><span class="article-meta tags"><span class="article-meta__separator">|</span><i class="fas fa-tag article-meta__icon"></i><a class="article-meta__tags" href="/tags/Protobuf/">Protobuf</a><span class="article-meta__link">•</span><a class="article-meta__tags" href="/tags/%E5%BA%8F%E5%88%97%E5%8C%96/">序列化</a><span class="article-meta__link">•</span><a class="article-meta__tags" href="/tags/RPC/">RPC</a></span></div><div class="content">Protobuf（全称Protocol Buffers）用于序列化数据结构，描述数据组织结构，支持大部分目前流行的语言。相较于XML，Protobuf使用更简单，清晰，序列化后的数据占用空间小3~10倍，解析速度快20~100倍。
+
+
+PB3语法定义message基本格式syntax = &quot;proto3&quot;;package = test_message;message MessageName &#123;    [FieldRule] FieldType FieldName = FieldNumber; //Comment&#125;
+
+
+第一行指定使用的是proto3语法。不指定则默认使用proto2的语法。
+package用于防止使用不同的proto文件时，消息或者服务冲突。
+
+FieldType可以使用标准类型，也可以使用自定义的字段类型，包括枚举和其他消息类型
+Scalar Value Types
+
+
+.proto Type
+Notes
+Python Type
+C++Type
+
+
+
+double
+
+float
+double
+
+
+float
+
+float
+flo ...</div></div></div><div class="recent-post-item"><div class="post_cover left_radius"><a href="/posts/34a2/" title="Pipenv——它是Python包管理的大救星">     <img class="post_bg" data-lazy-src="https://cdn.leosocy.top/img/intro_to_pipenv.jpg" onerror="this.onerror=null;this.src='https://cdn.leosocy.top/img/404.jpg'" alt="Pipenv——它是Python包管理的大救星"></a></div><div class="recent-post-info"><a class="article-title" href="/posts/34a2/" title="Pipenv——它是Python包管理的大救星">Pipenv——它是Python包管理的大救星</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2018-12-10T03:40:04.000Z" title="发表于 2018-12-10 11:40:04">2018-12-10</time></span><span class="article-meta"><span class="article-meta__separator">|</span><i class="fas fa-inbox article-meta__icon"></i><a class="article-meta__categories" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/">开发工具</a></span><span class="article-meta tags"><span class="article-meta__separator">|</span><i class="fas fa-tag article-meta__icon"></i><a class="article-meta__tags" href="/tags/Python/">Python</a><span class="article-meta__link">•</span><a class="article-meta__tags" href="/tags/%E5%8C%85%E7%AE%A1%E7%90%86/">包管理</a></span></div><div class="content">Pipenv是Python的一个打包工具，它使用pip、virtualenv和旧式的requirements.txt解决了与典型工作流相关的一些常见问题。
+除了解决一些常见问题之外，它还将开发过程合并并简化为单个命令行工具。
+本指南将介绍Pipenv解决了哪些问题，以及如何管理与Pipenv的Python依赖关系。此外，它还将介绍如何从以前的requirements.txt转为使用Pipenv管理包。
+
+
+Pipenv为何而生要理解Pipenv的好处，了解Python中打包和依赖管理的当前方法是很重要的。
+让我们从处理第三方包的典型情况开始。然后，我们将构建部署完整Python应用程序的方法。
+使用requirements.txt进行依赖管理假设你正在处理一个使用flask等第三方包的Python项目。您需要指定该需求，以便其他开发人员和自动化系统能够运行您的应用程序。
+你决定在requirements.txt中包含flask的依赖
+flask
+
+很好，一切都在本地运行良好，在对应用程序进行了一段时间的黑客攻击之后，您决定将其转移到生产环境中。可怕的事情开始了。。。
+上面的requir ...</div></div></div><div class="recent-post-item"><div class="post_cover right_radius"><a href="/posts/57f6/" title="深入理解MySQL——MDL">     <img class="post_bg" data-lazy-src="https://cdn.leosocy.top/img/mysql-lock.png" onerror="this.onerror=null;this.src='https://cdn.leosocy.top/img/404.jpg'" alt="深入理解MySQL——MDL"></a></div><div class="recent-post-info"><a class="article-title" href="/posts/57f6/" title="深入理解MySQL——MDL">深入理解MySQL——MDL</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2018-12-01T17:22:40.000Z" title="发表于 2018-12-02 01:22:40">2018-12-02</time></span><span class="article-meta"><span class="article-meta__separator">|</span><i class="fas fa-inbox article-meta__icon"></i><a class="article-meta__categories" href="/categories/%E5%90%8E%E7%AB%AF%E6%8A%80%E8%83%BD/">后端技能</a><i class="fas fa-angle-right"></i><a class="article-meta__categories" href="/categories/%E5%90%8E%E7%AB%AF%E6%8A%80%E8%83%BD/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a></span><span class="article-meta tags"><span class="article-meta__separator">|</span><i class="fas fa-tag article-meta__icon"></i><a class="article-meta__tags" href="/tags/MySQL/">MySQL</a></span></div><div class="content">在MySQL使用过程中，不免有对表进行更改的DDL操作(alter/drop table)。有的时候我们会发现，一条简单的对表增加字段的操作，会执行很长时间，甚至导致整个数据库挂掉。这是为什么呢？本篇文章就来揭开其中奥秘。
+
+
+引子试想有如下2个session
+
+
+
+session1
+session2
+
+
+
+BEGIN
+
+
+
+SELECT * FROM XXX
+
+
+
+
+DROP TABLE XXX
+
+
+SELECT * FROM XXX
+
+
+
+如果DROP TABLE成功执行了，那会话1的第二个select会出错，这明显不是我们想要的结果。所以为了避免此类问题，MySQL5.5版本加入了MDL(Metadata Lock)，当对一个表做CRUD操作的时候，加MDL读锁；当要对表做结构变更操作的时候，加MDL写锁。
+
+读锁之间不互斥，因此可以有多个线程同时对一张表增删改查。
+读写锁之间、写锁之间互斥，用来保证变更结构操作的安全性。因此，如果有两个线程要同时给一个表加字段，其中一个要等另一个执行完才能开始执行。
+
+采坑实战虽然MDL锁是MySQL Server层默认加的，但是却不能忽略这个 ...</div></div></div><div class="recent-post-item"><div class="post_cover left_radius"><a href="/posts/9327/" title="零基础学习kubernetes(三): 资源对象">     <img class="post_bg" data-lazy-src="https://cdn.leosocy.topimg/k8s-3.png" onerror="this.onerror=null;this.src='https://cdn.leosocy.top/img/404.jpg'" alt="零基础学习kubernetes(三): 资源对象"></a></div><div class="recent-post-info"><a class="article-title" href="/posts/9327/" title="零基础学习kubernetes(三): 资源对象">零基础学习kubernetes(三): 资源对象</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2018-11-12T14:34:07.000Z" title="发表于 2018-11-12 22:34:07">2018-11-12</time></span><span class="article-meta"><span class="article-meta__separator">|</span><i class="fas fa-inbox article-meta__icon"></i><a class="article-meta__categories" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</a><i class="fas fa-angle-right"></i><a class="article-meta__categories" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/Kubernetes/">Kubernetes</a></span><span class="article-meta tags"><span class="article-meta__separator">|</span><i class="fas fa-tag article-meta__icon"></i><a class="article-meta__tags" href="/tags/k8s/">k8s</a></span></div><div class="content">在学习使用k8s的过程中，我们不免看到许许多多的名词，包括deploy、svc、rs等等，它们通常代表着k8s中不同的资源对象。本文会介绍这些资源，同时会给出部署的yml文件，供实战部署，加深对这些名词的理解。
+
+
+AutoscalingHorizontal Pod Autoscaling (HPA) 可以根据 CPU 使用率或应用自定义 metrics 自动扩展 Pod 数量（支持 replication controller、deployment 和 replica set ）。
+
+控制管理器每隔 30s（可以通过 –horizontal-pod-autoscaler-sync-period 修改）查询 metrics 的资源使用情况
+支持三种 metrics 类型
+预定义 metrics（比如 Pod 的 CPU）以利用率的方式计算
+自定义的 Pod metrics，以原始值（raw value）的方式计算
+自定义的 object metrics
+
+
+支持两种 metrics 查询方式：Heapster 和自定义的 REST API
+支持多 metrics
+
+ConfigMapC ...</div></div></div><div class="recent-post-item"><div class="post_cover right_radius"><a href="/posts/1a2d/" title="零基础学习kubernetes(二): 在ECS上部署集群">     <img class="post_bg" data-lazy-src="https://cdn.leosocy.topimg/k8s-2.png" onerror="this.onerror=null;this.src='https://cdn.leosocy.top/img/404.jpg'" alt="零基础学习kubernetes(二): 在ECS上部署集群"></a></div><div class="recent-post-info"><a class="article-title" href="/posts/1a2d/" title="零基础学习kubernetes(二): 在ECS上部署集群">零基础学习kubernetes(二): 在ECS上部署集群</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2018-09-21T18:02:30.000Z" title="发表于 2018-09-22 02:02:30">2018-09-22</time></span><span class="article-meta"><span class="article-meta__separator">|</span><i class="fas fa-inbox article-meta__icon"></i><a class="article-meta__categories" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</a><i class="fas fa-angle-right"></i><a class="article-meta__categories" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/Kubernetes/">Kubernetes</a></span><span class="article-meta tags"><span class="article-meta__separator">|</span><i class="fas fa-tag article-meta__icon"></i><a class="article-meta__tags" href="/tags/k8s/">k8s</a></span></div><div class="content">kubernetes官网提供了不同场景下的集群搭建解决方案，包括本地/托管方案等等。如果你的集群是基于单节点搭建，可以选择Minikube/Kubeadm-dind等.
+尽管这些现成的解决方案可以帮助你很快的在本地搭建一个k8s集群。但是为了更深入了解k8s集群的组成、原理，本篇文章笔者会从头开始创建自定义集群。阅读完本篇文章，你将会学到：
+
+集群master节点和node节点包含的主要组件
+各个组件的用途
+如何引导启动集群
+
+
+
+准备笔者的环境
+1 ECS(1vCPU+2GRAM, OS:CentOS 7)
+
+基础环境配置yum源默认的yum源在安装软件时往往会非常慢甚至超时，所以这里我们使用阿里云的yum源
+wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repoyum makecache
+
+安装docker因为CentOS7自带的docker版本可能过低，所以需要重新安装docker
+卸载原有docker
+sudo yum remove docker  docker ...</div></div></div><div class="recent-post-item"><div class="post_cover left_radius"><a href="/posts/26b4/" title="零基础学习kubernetes(一): 基础知识">     <img class="post_bg" data-lazy-src="https://cdn.leosocy.topimg/k8s-1.png" onerror="this.onerror=null;this.src='https://cdn.leosocy.top/img/404.jpg'" alt="零基础学习kubernetes(一): 基础知识"></a></div><div class="recent-post-info"><a class="article-title" href="/posts/26b4/" title="零基础学习kubernetes(一): 基础知识">零基础学习kubernetes(一): 基础知识</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2018-09-11T04:00:12.000Z" title="发表于 2018-09-11 12:00:12">2018-09-11</time></span><span class="article-meta"><span class="article-meta__separator">|</span><i class="fas fa-inbox article-meta__icon"></i><a class="article-meta__categories" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</a><i class="fas fa-angle-right"></i><a class="article-meta__categories" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/Kubernetes/">Kubernetes</a></span><span class="article-meta tags"><span class="article-meta__separator">|</span><i class="fas fa-tag article-meta__icon"></i><a class="article-meta__tags" href="/tags/k8s/">k8s</a></span></div><div class="content">Kubernetes是用于自动部署，扩展和管理容器化应用程序的开源系统。它将组成应用程序的容器组合成逻辑单元，以便于管理和服务发现。
+本文介绍了如何使用minikube，在本机搭建一个k8s集群，并在其上部署应用程序，理解k8s基本的概念和操作。
+
+
+使用minikube创建一个集群kubernetes集群Kubernetes协调一个高度可用的计算机集群，这些计算机集群作为一个单元连接到一起工作。
+Kubernetes集群由两种类型的资源组成:
+
+Master协调集群
+Nodes是运行应用程序的wokers
+
+
+主服务器负责管理集群。主协调集群中的所有活动，例如调度应用程序、维护应用程序所需的状态、扩展应用程序和推出新更新。
+Node是作为Kubernetes集群中的工作机器的VM或物理计算机。每个节点都有一个Kubelet，它是管理节点和与Kubernetes主机通信的代理。节点还应该有处理容器操作的工具，比如Docker或rkt。处理生产流量的Kubernetes集群至少应该有三个节点。
+当在Kubernetes上部署应用程序时，主程序调度容器在集群的节点上运行。节点使用Kuber ...</div></div></div><div class="recent-post-item"><div class="post_cover right_radius"><a href="/posts/c9cf/" title="Hexo+TravisCI: 专心写博客吧">     <img class="post_bg" data-lazy-src="https://cdn.leosocy.top/img/hexo.png" onerror="this.onerror=null;this.src='https://cdn.leosocy.top/img/404.jpg'" alt="Hexo+TravisCI: 专心写博客吧"></a></div><div class="recent-post-info"><a class="article-title" href="/posts/c9cf/" title="Hexo+TravisCI: 专心写博客吧">Hexo+TravisCI: 专心写博客吧</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2018-09-10T16:03:51.000Z" title="发表于 2018-09-11 00:03:51">2018-09-11</time></span><span class="article-meta"><span class="article-meta__separator">|</span><i class="fas fa-inbox article-meta__icon"></i><a class="article-meta__categories" href="/categories/%E6%9D%82%E8%AE%B0/">杂记</a></span><span class="article-meta tags"><span class="article-meta__separator">|</span><i class="fas fa-tag article-meta__icon"></i><a class="article-meta__tags" href="/tags/Hexo/">Hexo</a><span class="article-meta__link">•</span><a class="article-meta__tags" href="/tags/CI/">CI</a></span></div><div class="content">相信大家都有自己的博客，也都体会过那几天折腾博客的成就感。利用Github Pages + Hexo可以很容易的搭建一个属于自己的个性化博客主页。同时，你只需要关心自己文章的内容，以及基本的markdown排版即可，Hexo可以解析md生成对应的html，进而展示在你的博客主页。
+发布博客的步骤不算繁琐，但是重复性较高，而且需要安装相关环境(npm、hexo-cli…)，当我们需要在不同的电脑上发布博客的时候，是不是会觉得很麻烦呢？很多小伙伴只想关心如何写文章的内容，希望写完之后，只需要git push一下就可以在主页上看到新发布的文章。
+本文介绍了如何通过Travis CI简化发布流程，让大家可以专心的写自己的博客！
+Let’s go~
+
+偷懒是创造力的源泉
+
+事前准备Github
+上传博客源码到github仓库。笔者这里是直接把博客源码推到Github Pages项目的blog分支了，这样做的好处是可以集中管理一个项目。同时把*.github.io项目的默认分支设置成blog，这样可以在项目主页上显示README。
+生成access token。为了TravisCI可以读写我们的项 ...</div></div></div><div class="recent-post-item"><div class="post_cover left_radius"><a href="/posts/f3db/" title="源计划——重启博客">     <img class="post_bg" data-lazy-src="https://cdn.leosocy.top/img/blog-header.jpg" onerror="this.onerror=null;this.src='https://cdn.leosocy.top/img/404.jpg'" alt="源计划——重启博客"></a></div><div class="recent-post-info"><a class="article-title" href="/posts/f3db/" title="源计划——重启博客">源计划——重启博客</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2018-09-10T13:10:48.000Z" title="发表于 2018-09-10 21:10:48">2018-09-10</time></span><span class="article-meta"><span class="article-meta__separator">|</span><i class="fas fa-inbox article-meta__icon"></i><a class="article-meta__categories" href="/categories/%E6%9D%82%E8%AE%B0/">杂记</a></span><span class="article-meta tags"><span class="article-meta__separator">|</span><i class="fas fa-tag article-meta__icon"></i><a class="article-meta__tags" href="/tags/%E6%9D%82%E8%AE%B0/">杂记</a><span class="article-meta__link">•</span><a class="article-meta__tags" href="/tags/%E5%8D%9A%E5%AE%A2/">博客</a></span></div><div class="content">博客的新家折腾了一个周末，终于把原来博客的老窝翻新了一遍。心里暗自安慰自己，以前好久不写博文就是因为原来的博客样式太丑了，恩，一定是因为这个。
+
+
+博客翻新的过程就不在这里赘述了，总的来说就是google几篇hexo教程，选一个自己喜欢的themes。然后找几个做的比较好的博客，F12看一下源码，照着改一改就好了。
+既然有了新家，就应该改头换面，重新。。。奋发图强！所以，我决定即日起，把平常学习、实践的一些总结，记录在博客上，一方面由于我的记性比较差，记录下来可以供自己以后温故知新，另一方面可以给有相同需求/疑问的coder们一点点参考。
+希望能通过博客，结实更多的技术大拿。也希望自己可以通过博客给自己的技术多充充电！
+</div></div></div><div class="recent-post-item"><div class="post_cover right_radius"><a href="/posts/ea37/" title="设计模式Python实现">     <img class="post_bg" data-lazy-src="https://cdn.leosocy.top/img/design-pattern.jpg" onerror="this.onerror=null;this.src='https://cdn.leosocy.top/img/404.jpg'" alt="设计模式Python实现"></a></div><div class="recent-post-info"><a class="article-title" href="/posts/ea37/" title="设计模式Python实现">设计模式Python实现</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2018-05-27T16:00:00.000Z" title="发表于 2018-05-28 00:00:00">2018-05-28</time></span><span class="article-meta"><span class="article-meta__separator">|</span><i class="fas fa-inbox article-meta__icon"></i><a class="article-meta__categories" href="/categories/%E5%86%85%E5%8A%9F%E5%BF%83%E6%B3%95/">内功心法</a><i class="fas fa-angle-right"></i><a class="article-meta__categories" href="/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/">编程语言</a><i class="fas fa-angle-right"></i><a class="article-meta__categories" href="/categories/%E5%86%85%E5%8A%9F%E5%BF%83%E6%B3%95/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">设计模式</a><i class="fas fa-angle-right"></i><a class="article-meta__categories" href="/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/Python/">Python</a></span><span class="article-meta tags"><span class="article-meta__separator">|</span><i class="fas fa-tag article-meta__icon"></i><a class="article-meta__tags" href="/tags/Python/">Python</a><span class="article-meta__link">•</span><a class="article-meta__tags" href="/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">设计模式</a></span></div><div class="content">
+最近找到了一篇容易理解的关于设计模式的文章，比较深刻地讲解了设计模式 史上最全设计模式导学目录（完整版）。 为了加深自己对设计模式的理解，同时熟悉Python面向对象编程的技巧，遂写下此篇文章，记录每种设计模式对应的一个练习题，并附上Python代码实现。
+
+
+
+简单工厂模式-Simple Factory Pattern问题背景XX软件公司欲基于Python语言开发一套图表库，该图表库可以为应用系统提供各种不同外观的图表，例如柱状图、饼状图、折线图等。XX软件公司图表库设计人员希望为应用系统开发人员提供一套灵活易用的图表库，而且可以较为方便地对图表库进行扩展，以便能够在将来增加一些新类型的图表。
+改进前class Chart(object):    def __init__(self, type):        self._type = type        if type.lower() == &quot;histogram&quot;:            print(&quot;初始化柱状图&quot;)        elif type.lower() == &quot ...</div></div></div><nav id="pagination"><div class="pagination"><a class="extend prev" rel="prev" href="/"><i class="fas fa-chevron-left fa-fw"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><a class="extend next" rel="next" href="/page/3/"><i class="fas fa-chevron-right fa-fw"></i></a></div></nav></div><div class="aside_content" id="aside_content"><div class="card-widget card-info"><div class="card-content"><div class="card-info-avatar is-center"><img class="avatar-img" data-lazy-src="https://cdn.leosocy.top/img/avatar-leosocy.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"><div class="author-info__name">Leosocy</div><div class="author-info__description">Hey，我是Leosocy，一个喜欢钻研、喜欢编码、喜欢折腾、对代码有执念的小coder。<br>这是我的博客，主要记录一些学习笔记，涉及后端开发、大数据、云原生、DevOps方面的一些技术实践、总结，以及个人开源项目的想法、实现。</div></div><div class="card-info-data"><div class="card-info-data-item is-center"><a href="/archives"><div class="headline">文章</div><div class="length_num">26</div></a></div><div class="card-info-data-item is-center">      <a href="/tags"><div class="headline">标签</div><div class="length_num">40</div></a></div><div class="card-info-data-item is-center"><a href="/categories"><div class="headline">分类</div><div class="length_num">21</div></a></div></div><a class="button--animated" id="card-info-btn" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/Leosocy" target="_blank" title="Github" rel="external nofollow noopener noreferrer"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:leosocy@gmail.com" target="_blank" title="Email" rel="external nofollow noopener noreferrer"><i class="fas fa-envelope"></i></a></div></div></div><div class="card-widget card-categories"><div class="card-content"><div class="item-headline"><i class="fas fa-folder-open"></i><span>分类</span></div><ul class="card-category-list">
+            <li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/"><span class="card-category-list-name">云原生</span><span class="card-category-list-count">8</span></a></li><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/Kubernetes/"><span class="card-category-list-name">Kubernetes</span><span class="card-category-list-count">5</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/ServiceMesh/"><span class="card-category-list-name">ServiceMesh</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/%E5%AE%B9%E5%99%A8%E6%8A%80%E6%9C%AF/"><span class="card-category-list-name">容器技术</span><span class="card-category-list-count">2</span></a></li></ul><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E5%86%85%E5%8A%9F%E5%BF%83%E6%B3%95/"><span class="card-category-list-name">内功心法</span><span class="card-category-list-count">3</span></a></li><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E5%86%85%E5%8A%9F%E5%BF%83%E6%B3%95/%E7%BC%96%E7%A0%81%E8%A7%84%E8%8C%83/"><span class="card-category-list-name">编码规范</span><span class="card-category-list-count">2</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E5%86%85%E5%8A%9F%E5%BF%83%E6%B3%95/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"><span class="card-category-list-name">设计模式</span><span class="card-category-list-count">1</span></a></li></ul><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E5%90%8E%E7%AB%AF%E6%8A%80%E8%83%BD/"><span class="card-category-list-name">后端技能</span><span class="card-category-list-count">3</span></a></li>
+            <li class="card-category-list-item more is-center"><a class="card-category-list-link-more" href="/categories">
+                <span>查看更多</span><i class="fas fa-angle-right"></i></a></li>           
+            </ul></div></div><div class="card-widget card-tags"><div class="card-content"><div class="item-headline"><i class="fas fa-tags"></i><span>标签</span></div><div class="card-tag-cloud"><a href="/tags/Buffered-I-O/" style="font-size:21px; color:rgb(11, 22, 142)">Buffered I/O</a><a href="/tags/C/" style="font-size:16px; color:rgb(33, 74, 156)">C++</a><a href="/tags/CI/" style="font-size:18px; color:rgb(74, 73, 79)">CI</a><a href="/tags/CMake/" style="font-size:17px; color:rgb(32, 156, 25)">CMake</a><a href="/tags/CleanCode/" style="font-size:17px; color:rgb(153, 84, 197)">CleanCode</a><a href="/tags/CopyOnWrite/" style="font-size:20px; color:rgb(73, 65, 39)">CopyOnWrite</a><a href="/tags/Docker/" style="font-size:18px; color:rgb(105, 90, 82)">Docker</a><a href="/tags/Git/" style="font-size:20px; color:rgb(193, 35, 191)">Git</a><a href="/tags/Hexo/" style="font-size:17px; color:rgb(122, 80, 39)">Hexo</a><a href="/tags/Kubernetes/" style="font-size:19px; color:rgb(103, 73, 169)">Kubernetes</a><a href="/tags/Markdown/" style="font-size:20px; color:rgb(140, 189, 135)">Markdown</a><a href="/tags/MySQL/" style="font-size:21px; color:rgb(29, 105, 88)">MySQL</a><a href="/tags/NAT/" style="font-size:16px; color:rgb(73, 41, 154)">NAT</a><a href="/tags/Protobuf/" style="font-size:18px; color:rgb(103, 190, 197)">Protobuf</a><a href="/tags/Python/" style="font-size:21px; color:rgb(72, 163, 163)">Python</a><a href="/tags/RPC/" style="font-size:18px; color:rgb(176, 190, 6)">RPC</a><a href="/tags/ServiceMesh/" style="font-size:16px; color:rgb(45, 118, 68)">ServiceMesh</a><a href="/tags/epoll/" style="font-size:17px; color:rgb(14, 174, 55)">epoll</a><a href="/tags/k8s/" style="font-size:19px; color:rgb(122, 54, 22)">k8s</a><a href="/tags/socket/" style="font-size:17px; color:rgb(91, 35, 23)">socket</a><a href="/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/" style="font-size:16px; color:rgb(15, 56, 0)">云原生</a><a href="/tags/%E4%BB%A3%E7%A0%81%E9%A3%8E%E6%A0%BC/" style="font-size:16px; color:rgb(192, 49, 84)">代码风格</a><a href="/tags/%E5%86%85%E5%8A%9F%E5%BF%83%E6%B3%95/" style="font-size:19px; color:rgb(81, 41, 117)">内功心法</a><a href="/tags/%E5%86%99%E6%97%B6%E6%8B%B7%E8%B4%9D/" style="font-size:17px; color:rgb(2, 163, 87)">写时拷贝</a><a href="/tags/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/" style="font-size:19px; color:rgb(50, 147, 42)">分库分表</a><a href="/tags/%E5%8C%85%E7%AE%A1%E7%90%86/" style="font-size:19px; color:rgb(9, 27, 16)">包管理</a><a href="/tags/%E5%8D%9A%E5%AE%A2/" style="font-size:19px; color:rgb(87, 156, 112)">博客</a><a href="/tags/%E5%90%8E%E7%AB%AF%E6%8A%80%E8%83%BD/" style="font-size:18px; color:rgb(196, 197, 52)">后端技能</a><a href="/tags/%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/" style="font-size:21px; color:rgb(47, 138, 142)">基础知识</a><a href="/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE/" style="font-size:16px; color:rgb(60, 109, 151)">大数据</a><a href="/tags/%E5%B9%B6%E5%8F%91%E8%BF%9E%E6%8E%A5/" style="font-size:18px; color:rgb(132, 80, 133)">并发连接</a><a href="/tags/%E5%BA%8F%E5%88%97%E5%8C%96/" style="font-size:16px; color:rgb(173, 146, 66)">序列化</a><a href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" style="font-size:21px; color:rgb(51, 76, 27)">开发工具</a><a href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" style="font-size:21px; color:rgb(99, 17, 82)">操作系统</a><a href="/tags/%E6%95%88%E7%8E%87%E5%B7%A5%E5%85%B7/" style="font-size:20px; color:rgb(138, 33, 74)">效率工具</a><a href="/tags/%E6%9D%82%E8%AE%B0/" style="font-size:19px; color:rgb(7, 131, 115)">杂记</a><a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size:20px; color:rgb(158, 137, 22)">算法</a><a href="/tags/%E7%B4%A2%E5%BC%95/" style="font-size:17px; color:rgb(122, 116, 83)">索引</a><a href="/tags/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/" style="font-size:19px; color:rgb(1, 13, 58)">编程语言</a><a href="/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" style="font-size:19px; color:rgb(137, 20, 11)">设计模式</a></div></div></div><div class="card-widget card-archives"><div class="card-content"><div class="item-headline"><i class="fas fa-archive"></i><span>时间轴</span></div><ul class="card-archive-list"><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2021/09/"><span class="card-archive-list-date">九月 2021</span><span class="card-archive-list-count">2</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2021/07/"><span class="card-archive-list-date">七月 2021</span><span class="card-archive-list-count">1</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2020/11/"><span class="card-archive-list-date">十一月 2020</span><span class="card-archive-list-count">1</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2019/12/"><span class="card-archive-list-date">十二月 2019</span><span class="card-archive-list-count">1</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2019/11/"><span class="card-archive-list-date">十一月 2019</span><span class="card-archive-list-count">1</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2019/05/"><span class="card-archive-list-date">五月 2019</span><span class="card-archive-list-count">1</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2019/03/"><span class="card-archive-list-date">三月 2019</span><span class="card-archive-list-count">1</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2019/01/"><span class="card-archive-list-date">一月 2019</span><span class="card-archive-list-count">2</span></a></li><li class="card-archive-list-item more is-center"><a class="card-archive-list-link-more" href="/archives">
+              <span>查看更多</span><i class="fas fa-angle-right"></i></a></li></ul></div></div><div class="card-widget card-webinfo"><div class="card-content"><div class="item-headline"><i class="fas fa-chart-line"></i><span>网站资讯</span></div><div class="webinfo"><div class="webinfo-item"><div class="webinfo-article-name">文章数目 :</div><div class="webinfo-article-count">26</div></div><div class="webinfo-item"><div class="webinfo-site-wordcount-name">本站总字数 :</div><div class="webinfo-site-wordcount">111.9k</div></div></div></div></div></div></main><footer id="footer" data-type="color"><div id="footer-wrap"><div class="copyright">&copy;2017 - 2023   <i id="heartbeat" class="fa fas fa-heartbeat"></i>  Leosocy</div><div class="icp"><a target="_blank" rel="external nofollow noopener noreferrer" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=32011302320676"><span>苏ICP备19003706号-1</span></a></div></div><head><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/heartbeat.min.css"></head></footer><script>var bg_index = Math.floor(Math.random() * 21);
+if (true === true)
+  var res = 'background-image: url("https://cdn.leosocy.top/img/background/' + bg_index + '-bg.jpg");'
+else
+  var res = 'background-image: url("https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn/img/background/' + bg_index + '-bg.jpg");'
+document.getElementById('web_bg').style = res
+</script></div><section id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></section><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"></div></div></div><hr><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module" defer></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js" async></script><script>function panguFn () {
+  if (typeof pangu === 'object') pangu.spacingElementById('content-inner')
+  else {
+    $.getScript('https://cdn.jsdelivr.net/npm/pangu/dist/browser/pangu.min.js', () => {
+      pangu.spacingElementById('content-inner')
+    })
+  }
+}
+
+function panguInit () {
+  if (false){
+    GLOBAL_CONFIG_SITE.isPost && panguFn()
+  } else {
+    panguFn()
+  }
+}
+
+document.addEventListener('DOMContentLoaded', panguFn)</script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function subtitleType () {
+  if (true) { 
+    var typed = new Typed("#subtitle", {
+      strings: "须知少时凌云志，曾许人间第一流。,天高任鸟飞，海阔凭鱼跃。,效法羲和驭天马，志在长空牧群星。,务实敢为，追求极致。,君子忧道不忧贫，君子谋道不谋食。".split(","),
+      startDelay: 300,
+      typeSpeed: 150,
+      loop: true,
+      backSpeed: 50
+    })
+  } else {
+    document.getElementById("subtitle").innerHTML = '须知少时凌云志，曾许人间第一流。'
+  }
+}
+
+if (true) {
+  if (typeof Typed === 'function') subtitleType()
+  else $.getScript('https://cdn.jsdelivr.net/npm/typed.js/lib/typed.min.js', subtitleType)
+} else {
+  subtitleType()
+}</script><script>cdn_url = "https://cdn.leosocy.top"</script><script src="/"></script></div><script src="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/js/leosocy.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>$(function () {
+  var pjax = new Pjax({
+    selectors: [
+      'title',
+      'meta[name=description]',
+      '#config_change',
+      '#body-wrap',
+      '#rightside-config-hide',
+      '#rightside-config-show',
+      '.js-pjax'
+    ],
+    cacheBust: false,
+  })
+
+  document.addEventListener('pjax:complete', function () {
+    refreshFn()
+
+    $('script[data-pjax]').each(function () {
+      $(this).parent().append($(this).remove())
+    })
+
+    GLOBAL_CONFIG.islazyload && lazyLoadInstance.update()
+
+    typeof chatBtnFn === 'function' && chatBtnFn()
+    typeof panguInit === 'function' && panguInit()
+
+    if (typeof gtag === 'function') {
+      gtag('config', 'G-8EGQPPW7GQ', {'page_path': window.location.pathname});
+    }
+
+    if (document.getElementsByClassName('aplayer').length){
+      typeof loadMeting === 'function' && loadMeting()
+    }
+  })
+
+  document.addEventListener('pjax:send', function () {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+
+    typeof typed === 'object' && typed.destroy()
+
+    $(window).off('scroll')
+
+    //reset readmode
+    $('body').hasClass('read-mode') && $('body').removeClass('read-mode')
+
+    //reset font-size
+    $('body').css('font-size') !== originFontSize && $('body').css('font-size', parseFloat(originFontSize))
+  })
+})</script></div></body></html>

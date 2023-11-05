@@ -1,0 +1,392 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>深入理解MySQL——MySQL选错索引怎么办 | Leosocy's Blog</title><meta name="description" content="最近线上的一个张表频繁的报慢查询告警，看了下日志发现一条语句执行要几秒钟，这还是在用了LIMIT的前提下，导致相关接口超时，一个功能对数据量大的用户完全不可用。COUNT了下这张表，一共有400多万的数据，EXPLAIN了慢日志SQL，发现走的索引并不是按照预期的更快的那一个，并且由于分段查询产生了filesort。那么MySQL选错索引的原因是什么呢？这个SQL有没有优化的空间呢？优化的效果如何"><meta name="keywords" content="MySQL,索引"><meta name="author" content="Leosocy,leosocy@gmail.com"><meta name="copyright" content="Leosocy"><meta name="format-detection" content="telephone=no"><link rel="shortcut icon" href="https://cdn.leosocy.top/img/LEO-logo.jpg"><link rel="canonical" href="https://blog.leosocy.top/posts/83c6/"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="preconnect" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//www.google-analytics.com" crossorigin="crossorigin"><link rel="preconnect" href="//fonts.googleapis.com" crossorigin="crossorigin"><meta name="google-site-verification" content="oh1OfqVAIxCAFZ8w5KBBtK7tJK48Z0HuFl2XXbRiM-E"><meta name="baidu-site-verification" content="code-7jpxSWptMj"><meta property="og:type" content="article"><meta property="og:title" content="深入理解MySQL——MySQL选错索引怎么办"><meta property="og:url" content="https://blog.leosocy.top/posts/83c6/"><meta property="og:site_name" content="Leosocy's Blog"><meta property="og:description" content="最近线上的一个张表频繁的报慢查询告警，看了下日志发现一条语句执行要几秒钟，这还是在用了LIMIT的前提下，导致相关接口超时，一个功能对数据量大的用户完全不可用。COUNT了下这张表，一共有400多万的数据，EXPLAIN了慢日志SQL，发现走的索引并不是按照预期的更快的那一个，并且由于分段查询产生了filesort。那么MySQL选错索引的原因是什么呢？这个SQL有没有优化的空间呢？优化的效果如何"><meta property="og:image" content="https://blog.leosocy.top/img/mysql-graphic.png"><meta property="article:published_time" content="2019-11-27T14:00:42.000Z"><meta property="article:modified_time" content="2023-11-05T07:26:20.240Z"><meta name="twitter:card" content="summary"><script>var activateDarkMode = function () {
+  document.documentElement.setAttribute('data-theme', 'dark')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#000')
+  }
+}
+var activateLightMode = function () {
+  document.documentElement.setAttribute('data-theme', 'light')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#fff')
+  }
+}
+
+var getCookies = function (name) {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop().split(';').shift()
+}
+
+var autoChangeMode = 'false'
+var t = getCookies('theme')
+if (autoChangeMode === '1') {
+  var isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+  var isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+  var isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+  var hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+
+  if (t === undefined) {
+    if (isLightMode) activateLightMode()
+    else if (isDarkMode) activateDarkMode()
+    else if (isNotSpecified || hasNoSupport) {
+      console.log('You specified no preference for a color scheme or your browser does not support it. I Schedule dark mode during night time.')
+      var now = new Date()
+      var hour = now.getHours()
+      var isNight = hour <= 6 || hour >= 18
+      isNight ? activateDarkMode() : activateLightMode()
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+      if (Cookies.get('theme') === undefined) {
+        e.matches ? activateDarkMode() : activateLightMode()
+      }
+    })
+  } else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else if (autoChangeMode === '2') {
+  now = new Date()
+  hour = now.getHours()
+  isNight = hour <= 6 || hour >= 18
+  if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+  else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else {
+  if (t === 'dark') activateDarkMode()
+  else if (t === 'light') activateLightMode()
+}</script><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css"><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-8EGQPPW7GQ"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-8EGQPPW7GQ');
+</script><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Titillium+Web&amp;display=swap"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  bookmark: {
+    message_prev: '按',
+    message_next: '键将本页加入书签'
+  },
+  runtime_unit: '天',
+  runtime: false,
+  copyright: undefined,
+  ClickShowText: undefined,
+  medium_zoom: false,
+  fancybox: true,
+  Snackbar: {"bookmark":{"message_prev":"按","message_next":"键将本页加入书签"},"chs_to_cht":"你已切换为繁体","cht_to_chs":"你已切换为简体","day_to_night":"你已切换为深色模式","night_to_day":"你已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#121212","position":"bottom-left"},
+  justifiedGallery: {
+    js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+    css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+  },
+  baiduPush: false,
+  highlightCopy: true,
+  highlightLang: true,
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: false    
+}</script><script>(function(win, export_obj) {
+win['TeaAnalyticsObject'] = export_obj;
+if (!win[export_obj]) {
+function _collect() {
+_collect.q.push(arguments);
+}
+_collect.q = _collect.q || [];
+win[export_obj] = _collect;
+}
+win[export_obj].l = +new Date();
+})(window, 'collectEvent');</script><script async src="https://sf1-scmcdn-tos.pstatp.com/goofy/log-sdk/collect/collect-autotrack-rangers.js"></script><script>window.collectEvent('init', {
+app_id: 190292,//  必须替换成申请的 app_id
+channel: 'cn',
+log: true, // 开启调试日志
+autotrack: true // 开启全埋点采集，默认关闭，需要热力图及圈选功能可开启
+});
+window.collectEvent('start');</script><script>var _wr = function(type) {
+  var orig = history[type];
+  return function() {
+    var rv = orig.apply(this, arguments);
+    var e = new Event(type);
+    e.arguments = arguments;
+    window.dispatchEvent(e);
+    return rv;
+  };
+};
+history.pushState = _wr('pushState');
+history.replaceState = _wr('replaceState');
+window.addEventListener("popstate", function(event) {
+  window.collectEvent('predefinePageView');
+});
+window.addEventListener("pushState", function(event) {
+  window.collectEvent('predefinePageView');
+});</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isSidebar: true,
+  postUpdate: '2023-11-05 15:26:20'
+}</script><noscript><style>
+#nav {
+  opacity: 1
+}
+.justified-gallery img {
+  opacity: 1
+}
+</style></noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/leosocy.min.css"><meta name="referrer" content="no-referrer-when-downgrade"><meta name="generator" content="Hexo 7.0.0"></head><body><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" data-lazy-src="https://cdn.leosocy.top/img/avatar-leosocy.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">文章</div><div class="length_num">26</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">标签</div><div class="length_num">40</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">分类</div><div class="length_num">21</div></a></div></div></div><hr><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div></div></div><div id="body-wrap"><div id="web_bg" data-type="photo"></div><div id="sidebar"><i class="fas fa-arrow-right on" id="toggle-sidebar"></i><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar">     </div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%97%AE%E9%A2%98%E9%87%8D%E7%8E%B0"><span class="toc-number">1.</span> <span class="toc-text">问题重现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A0%B9%E6%8D%AE%E6%89%A7%E8%A1%8C%E8%AE%A1%E5%88%92%E4%BF%A1%E6%81%AF%E6%8E%A8%E6%96%AD%E6%95%B0%E6%8D%AE%E5%BA%93%E6%9F%A5%E8%AF%A2%E8%BF%87%E7%A8%8B"><span class="toc-number">2.</span> <span class="toc-text">根据执行计划信息推断数据库查询过程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MySQL%E4%BC%98%E5%8C%96%E5%99%A8%E9%80%89%E6%8B%A9%E7%B4%A2%E5%BC%95%E7%9A%84%E5%8E%9F%E5%88%99"><span class="toc-number">3.</span> <span class="toc-text">MySQL优化器选择索引的原则</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BC%98%E5%8C%96%E5%99%A8%E7%9A%84%E9%80%BB%E8%BE%91"><span class="toc-number">3.1.</span> <span class="toc-text">优化器的逻辑</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%B4%A2%E5%BC%95%E7%9A%84%E5%9F%BA%E6%95%B0%E6%80%8E%E4%B9%88%E7%AE%97%E7%9A%84"><span class="toc-number">3.2.</span> <span class="toc-text">索引的基数怎么算的</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#EXPLAIN%E4%B8%AD%E7%9A%84%E6%89%AB%E6%8F%8F%E8%A1%8C%E6%95%B0rows%E5%A6%82%E4%BD%95%E4%BC%B0%E7%AE%97%E7%9A%84"><span class="toc-number">3.3.</span> <span class="toc-text">EXPLAIN中的扫描行数rows如何估算的</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%89%E9%94%99%E7%B4%A2%E5%BC%95%E4%BA%86%E6%80%8E%E4%B9%88%E5%8A%9E"><span class="toc-number">4.</span> <span class="toc-text">选错索引了怎么办</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SQL%E4%BC%98%E5%8C%96%E6%96%B9%E5%90%91"><span class="toc-number">5.</span> <span class="toc-text">SQL优化方向</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#peewee%E7%9B%B8%E5%85%B3%E9%87%87%E5%9D%91"><span class="toc-number">6.</span> <span class="toc-text">peewee相关采坑</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E9%99%85%E6%95%88%E6%9E%9C"><span class="toc-number">7.</span> <span class="toc-text">实际效果</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BC%98%E5%8C%96%E5%89%8D"><span class="toc-number">7.1.</span> <span class="toc-text">优化前</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BC%98%E5%8C%96%E5%90%8E"><span class="toc-number">7.2.</span> <span class="toc-text">优化后</span></a></li></ol></li></ol></div></div></div><header class="post-bg" id="page-header" style="background-image: url(https://cdn.leosocy.top/img/mysql-graphic.png)"><nav id="nav"><span class="pull-left" id="blog_name"><a class="blog_title" id="site-name" href="/">Leosocy's Blog</a></span><span class="pull-right menus"><div id="search_button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div><span class="toggle-menu close"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><div id="post-title"><div class="posttitle">深入理解MySQL——MySQL选错索引怎么办</div></div><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="fa-fw post-meta-icon far fa-calendar-alt"></i><span class="post-meta-label">发表于</span><time datetime="2019-11-27T14:00:42.000Z" title="undefined 2019-11-27 22:00:42">2019-11-27</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%90%8E%E7%AB%AF%E6%8A%80%E8%83%BD/">后端技能</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%90%8E%E7%AB%AF%E6%8A%80%E8%83%BD/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a></span></div><div class="meta-secondline"> <span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">3.2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>16分钟</span></span><span class="post-meta-separator">|</span><span class="leancloud_visitors" id="/posts/83c6/" data-flag-title="深入理解MySQL——MySQL选错索引怎么办"><i class="far fa-fire fa-fw post-meta-icon"></i><span class="post-meta-label">热度:</span><span class="leancloud-visitors-count"></span><span class="du"> °C</span></span></div></div></div></header><main class="layout_post" id="content-inner"><article id="post"><div class="post-content" id="article-container"><p>最近线上的一个张表频繁的报慢查询告警，看了下日志发现一条语句执行要几秒钟，这还是在用了LIMIT的前提下，导致相关接口超时，一个功能对数据量大的用户完全不可用。COUNT了下这张表，一共有400多万的数据，EXPLAIN了慢日志SQL，发现走的索引并不是按照预期的更快的那一个，并且由于分段查询产生了filesort。那么MySQL选错索引的原因是什么呢？这个SQL有没有优化的空间呢？优化的效果如何呢？</p>
+<span id="more"></span>
+
+<h2 id="问题重现"><a href="#问题重现" class="headerlink" title="问题重现"></a>问题重现</h2><p>为了脱敏，我们先建一张与线上数据结构相同的表t，这张表有两个联合索引，其中一个为唯一索引，另一个为普通索引。</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> `t` (</span><br><span class="line">  `id` <span class="type">bigint</span>(<span class="number">20</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> AUTO_INCREMENT,</span><br><span class="line">  `user_id` <span class="type">bigint</span>(<span class="number">20</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  `group_id` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  `a` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  `b` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  <span class="keyword">PRIMARY</span> KEY (`id`),</span><br><span class="line">  <span class="keyword">UNIQUE</span> KEY `uk_t_user_id_group_id_a` (`user_id`,`group_id`,`a`),</span><br><span class="line">  KEY `idx_t_user_id_group_id_b` (`user_id`,`group_id`,`b`)</span><br><span class="line">) ENGINE<span class="operator">=</span>InnoDB <span class="keyword">DEFAULT</span> CHARSET<span class="operator">=</span>utf8mb4 <span class="keyword">COLLATE</span><span class="operator">=</span>utf8mb4_unicode_ci;</span><br></pre></td></tr></table></figure>
+
+<p>然后我们执行如下存储过程，这里构造了300万条数据。</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">create</span></span><br><span class="line">    definer <span class="operator">=</span> root@`<span class="operator">%</span>` <span class="keyword">procedure</span> idata()</span><br><span class="line"><span class="keyword">begin</span></span><br><span class="line">    <span class="keyword">declare</span> user_id <span class="type">int</span>;</span><br><span class="line">    <span class="keyword">declare</span> group_id <span class="type">int</span>;</span><br><span class="line">    <span class="keyword">declare</span> a <span class="type">int</span>;</span><br><span class="line">    <span class="keyword">declare</span> b <span class="type">int</span>;</span><br><span class="line">    <span class="keyword">set</span> group_id<span class="operator">=</span><span class="number">50</span>;</span><br><span class="line">    <span class="keyword">start</span> transaction;</span><br><span class="line">        while(group_id<span class="operator">&gt;</span><span class="number">0</span>)do   # 这边调换插入顺序为了增加回聚簇索引的随机IO成本，让走错索引耗时更长，尽量模拟线上环境</span><br><span class="line">            <span class="keyword">set</span> user_id <span class="operator">=</span> <span class="number">1</span>;</span><br><span class="line">            while(user_id<span class="operator">&lt;=</span><span class="number">20</span>)do</span><br><span class="line">                <span class="keyword">set</span> a<span class="operator">=</span><span class="number">1</span>;</span><br><span class="line">                while(a<span class="operator">&lt;=</span><span class="number">3000</span>)do</span><br><span class="line">                    <span class="keyword">set</span> b <span class="operator">=</span> a <span class="operator">%</span> <span class="number">30</span>;</span><br><span class="line">                    <span class="keyword">insert</span> <span class="keyword">into</span> t(user_id, group_id, a, b) <span class="keyword">values</span>(user_id, group_id, a, b);</span><br><span class="line">                    <span class="keyword">set</span> a<span class="operator">=</span>a<span class="operator">+</span><span class="number">1</span>;</span><br><span class="line">                <span class="keyword">end</span> while ;</span><br><span class="line">                <span class="keyword">set</span> user_id<span class="operator">=</span>user_id<span class="operator">+</span><span class="number">1</span>;</span><br><span class="line">            <span class="keyword">end</span> while ;</span><br><span class="line">            <span class="keyword">set</span> group_id<span class="operator">=</span>group_id<span class="number">-1</span>;</span><br><span class="line">        <span class="keyword">end</span> while ;</span><br><span class="line">    <span class="keyword">commit</span>;</span><br><span class="line"><span class="keyword">end</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">call</span> idata();</span><br></pre></td></tr></table></figure>
+
+<p>然后模拟线上的查询语句，这个语句在业务中的功能大致是：找到指定用户所有分组下不同的a对应的b的最大值，同时使用了分段查询，根据id排序，每次迭代1000条到内存中筛选最大值。</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line">root<span class="variable">@localhost</span>:test<span class="operator">&gt;</span> <span class="keyword">select</span> id, user_id, group_id, a, b <span class="keyword">from</span> t <span class="keyword">where</span> id<span class="operator">&gt;</span><span class="number">0</span> <span class="keyword">and</span> user_id<span class="operator">=</span><span class="number">3</span> <span class="keyword">and</span> group_id <span class="keyword">in</span> (<span class="number">1</span>, <span class="number">2</span>, ..., <span class="number">50</span>) <span class="keyword">and</span> b <span class="operator">&gt;=</span> <span class="number">16</span> <span class="keyword">order</span> <span class="keyword">by</span> id <span class="keyword">asc</span> limit <span class="number">1000</span> <span class="keyword">offset</span> <span class="number">0</span></span><br><span class="line"></span><br><span class="line"><span class="number">1000</span> <span class="keyword">rows</span> <span class="keyword">in</span> <span class="keyword">set</span></span><br><span class="line"><span class="type">Time</span>: <span class="number">7.887</span>s</span><br></pre></td></tr></table></figure>
+
+<p>我们看到这里一条语句耗时8s左右。在查看执行计划之前，我猜测这条语句会走<code>idx_t_user_id_group_id_b</code>索引，因为可以利用索引下推，将<code>b&gt;=16</code>这个条件判断交给引擎层，这样可以返回更少的id记录给服务层，就可以减少回聚簇索引的次数。</p>
+<p>下面我们看下这条语句的执行计划，发现并没有按照我们的预期，而是走了唯一索引，这是为什么呢？</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span>[ <span class="number">1.</span> <span class="type">row</span> ]<span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span><span class="operator">*</span></span><br><span class="line">id            <span class="operator">|</span> <span class="number">1</span></span><br><span class="line">select_type   <span class="operator">|</span> SIMPLE</span><br><span class="line"><span class="keyword">table</span>         <span class="operator">|</span> t</span><br><span class="line">type          <span class="operator">|</span> <span class="keyword">range</span></span><br><span class="line">possible_keys <span class="operator">|</span> <span class="keyword">PRIMARY</span>,uk_t_user_id_group_id_a,idx_t_user_id_group_id_b</span><br><span class="line">key           <span class="operator">|</span> uk_t_user_id_group_id_a</span><br><span class="line">key_len       <span class="operator">|</span> <span class="number">12</span></span><br><span class="line"><span class="keyword">ref</span>           <span class="operator">|</span> <span class="operator">&lt;</span><span class="keyword">null</span><span class="operator">&gt;</span></span><br><span class="line"><span class="keyword">rows</span>          <span class="operator">|</span> <span class="number">13650</span></span><br><span class="line">Extra         <span class="operator">|</span> <span class="keyword">Using</span> index <span class="keyword">condition</span>; <span class="keyword">Using</span> <span class="keyword">where</span>; <span class="keyword">Using</span> MRR; <span class="keyword">Using</span> filesort</span><br></pre></td></tr></table></figure>
+
+<h2 id="根据执行计划信息推断数据库查询过程"><a href="#根据执行计划信息推断数据库查询过程" class="headerlink" title="根据执行计划信息推断数据库查询过程"></a>根据执行计划信息推断数据库查询过程</h2><p>我们先不分析为什么MySQL没有选择<code>idx_t_user_id_group_id_b</code>索引，先来根据执行计划推断下MySQL内部是怎么执行这条SQL的</p>
+<ol>
+<li><p>根据user_id和group_id查询条件，到引擎层根据<code>uk_t_user_id_group_id_a</code>索引查询满足条件的行，命中索引的前两个字段，key_len为12也对的上</p>
+</li>
+<li><p>引擎层每查询到一行满足条件的索引记录，就返回一条给服务层，服务层根据剩下的查询条件，也就是<code>b&gt;=16</code>，做数据过滤</p>
+</li>
+<li><p>服务层根据过滤后记录中的主键id，到聚簇索引中查询完整数据。</p>
+<blockquote>
+<p>注意：这里存在一个优化，根据执行计划，Extra中有个叫MRR的策略，为什么会出现这个呢？因为我们在插入数据时故意让group_id递减，这导致根据<code>uk_t_user_id_group_id_a</code>索引查到的id不是顺序的，这样回表就会出现随机访问，性能相对较差。</p>
+</blockquote>
+</li>
+</ol>
+<p>  <strong>MRR全称Multi-Range Read，这个优化的目的是尽量使用顺序读盘。由于使用了MRR，所以服务层不会拿到一个id就回表查询，而是将id值放入<code>read_rnd_buffer</code>中，直到buffer放满然后对id进行递增排序，排序后的id数组依次到聚簇索引中查询，取出结果。</strong></p>
+<ol start="4">
+<li>上一步取出的结果还不能直接返回给客户端，还要对记录根据id排序。排序分以下两种，显然MySQL选择了第一种<ol>
+<li>全字段排序：将select的字段以及order by的字段存入sort_buffer，对sort_buffer中的数据按照id进行快速排序，如果sort_buffer无法一次性存下所有数据，则需要借助临时文件辅助归并排序，sort_buffer的大小由sort_buffer_size控制</li>
+<li>rowid排序：如果一条待排序数据字段数太多，就有可能造成sort_buffer中同时能够存放的行数很少，需要临时文件就更多，排序性能会很差。所以如果单行很大（根据<code>max_length_for_sort_data</code>判断，默认1024字节），只会将order by字段以及主键放入sort_buffer，排序后取前1000行，然后按照id的值回表取出select的字段</li>
+</ol>
+</li>
+</ol>
+<h2 id="MySQL优化器选择索引的原则"><a href="#MySQL优化器选择索引的原则" class="headerlink" title="MySQL优化器选择索引的原则"></a>MySQL优化器选择索引的原则</h2><p>上面我们分析了走<code>uk_t_user_id_group_id_a</code>索引的查询过程，不难发现这样会导致回表的次数比较多，因为<code>b&gt;=16</code>这个条件是在服务层判断的，而如果走<code>idx_t_user_id_group_id_b</code>索引，是可以直接在第一步就把不满足这个条件的数据过滤掉的，少了很多不必要的回表查询。那么为什么优化器放着更高效的索引不走，而选择了另外的索引呢？</p>
+<h3 id="优化器的逻辑"><a href="#优化器的逻辑" class="headerlink" title="优化器的逻辑"></a>优化器的逻辑</h3><p>优化器选择索引的目的，是找到一个最优的执行方案，并用最小的代价去执行语句。在数据库里面，扫描行数是影响执行代价的因素之一。扫描的行数越少，意味着访问磁盘数据的次数越少，消耗的 CPU 资源越少。当然，扫描行数并不是唯一的判断标准，优化器还会结合是否使用临时表、是否排序等因素进行综合判断。我们这个查询不管走哪个索引都难免要排序，所以 MySQL 选错索引肯定是在判断扫描行数的时候出问题了。那么，问题就是：扫描行数是怎么判断的？</p>
+<h3 id="索引的基数怎么算的"><a href="#索引的基数怎么算的" class="headerlink" title="索引的基数怎么算的"></a>索引的基数怎么算的</h3><p>索引的基数，通俗来讲就是索引的区分度，一个索引上不同的值越多，这个索引的区分度就越好。</p>
+<p>准确的计算公式为 <code>COUNT(DISTINCT(field)) / COUNT(field)</code>，当然MySQL不可能通过这种方式统计基数，因为这样要扫描所有的数据页代价太高了。所以只能选择采样统计，InnoDB默认会选择N个数据也，统计这些页面上的不同值，得到一个平均值，然后乘以这个索引的页面数，就得到了这个索引的基数。而由于是采样统计，所以这个基数是很容易出现偏差的。</p>
+<h3 id="EXPLAIN中的扫描行数rows如何估算的"><a href="#EXPLAIN中的扫描行数rows如何估算的" class="headerlink" title="EXPLAIN中的扫描行数rows如何估算的"></a>EXPLAIN中的扫描行数rows如何估算的</h3><p>首先找到第一个记录所在的page，记为<code>page_left</code>，统计<code>page_left</code>里的记录数，记为<code>records_page_left</code>，然后找到最后一个记录所在的page，记为<code>page_right</code>，统计<code>page_right</code>里的记录数，记为<code>records_page_right</code>，除了两个边界外，还沿着page_left往右连续查找8个page，最后按照如下公式计算</p>
+<figure class="highlight txt"><table><tr><td class="code"><pre><span class="line">rows = (records_page_left + records_page_1 + records_page_2 + ... + records_page_8 + records_page_right) / 10 * page_number</span><br></pre></td></tr></table></figure>
+
+<p>根据公式我们可以得出以下结论</p>
+<ol>
+<li>如果满足条件的总的page数目&lt;=10，那么预估的rows和真实的rows一致</li>
+<li>索引的非顺序插入、频繁删除等操作会导致页分裂和数据不均，就会导致统计信息比实际数据少很多</li>
+</ol>
+<h2 id="选错索引了怎么办"><a href="#选错索引了怎么办" class="headerlink" title="选错索引了怎么办"></a>选错索引了怎么办</h2><p>其实大多数时候优化器都能找到正确的索引，但是偶尔还是会碰到扫描行数估算错误导致原本可以执行很快的语句，却比预想的慢得多。那此时应该怎么办呢？</p>
+<ol>
+<li>由于索引统计信息不准确导致的问题，可以用<code>analyze table</code>来解决，注意这个命令是<em>不需要MDL锁</em>的</li>
+<li>采用force index强制选择一个索引。但是很多人不喜欢用这种语法，一来这种hard code不太优美，二来如果索引改了名字或被删除了，容易忘记更改代码</li>
+<li>新建一个更合适的索引或删除误用的索引，帮助优化器作出正确的选择</li>
+</ol>
+<h2 id="SQL优化方向"><a href="#SQL优化方向" class="headerlink" title="SQL优化方向"></a>SQL优化方向</h2><p>上面几节我们分析了MySQL为什么没有走我们预期的索引。那么针对文章开始提到的SQL，我们有哪些优化手段呢？</p>
+<ul>
+<li><p>强制走预期索引：强制走<code>idx_t_user_id_group_id_b</code>索引，这样可以利用索引下推将<code>b &gt;= 16</code>这个条件下推到引擎层来判断，减少回表的次数</p>
+</li>
+<li><p>只查询需要的字段：只select a, b两个字段，可以减少单行占用空间，sort_buffer_size不变的情况下单次可以排序更多的数据行，减少了文件排序的次数</p>
+</li>
+<li><p>降低filesort成本，或去除filesort：代码中为了防止一次查询太多数据把pod的内存打爆，所以采用了根据id排序然后分段取的机制。但是仔细分析下来，这个场景是不需要担心这个问题的，原因如下</p>
+<ul>
+<li><p>MySQL取数据和发数据的流程如下，所以如果客户端没有及时的读取数据，服务器是会暂停数据查询及发送的</p>
+<ol>
+<li>获取一行，写到net_buffer中，这块内存的大小是由参数<code>net_buffer_length</code>定义的，默认是16k</li>
+<li>重复获取行，制动net_buffer写满，调用网络接口发出去</li>
+<li>如果发送成功，就清空net_buffer，然后继续取下一行，并写入net_buffer</li>
+<li>如果发送函数返回 EAGAIN 或 WSAEWOULDBLOCK，就表示本地网络栈(socket send buffer)写满了，进入等待。知道网络栈重新可写，再继续发送</li>
+</ol>
+</li>
+<li><p>一些ORM会缓存查询的返回数据，为了更高效的进行多次迭代、index等操作，但是应该也提供了可以关闭缓存的查询函数或配置(例如笔者使用的peewee)</p>
+</li>
+<li><p>业务场景上，我们只需要计算每个a对应的最大的b值，所以只会遍历所有数据，用一个字典存储a和b，不会占用太多pod内存</p>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="peewee相关采坑"><a href="#peewee相关采坑" class="headerlink" title="peewee相关采坑"></a>peewee相关采坑</h2><p>如果你刚好用的<code>python+peewee</code>技术栈，那么这节有我实践的一些采坑记录，可以供你参考。</p>
+<ul>
+<li><p>如何指定索引：peewee不支持<code>USE INDEX</code>语法，只能利用<code>model.alias</code> + <code>from_</code></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">alias_name = <span class="string">&quot;tbl&quot;</span></span><br><span class="line">alias_model = Model.alias(alias_name)</span><br><span class="line">table_name = Model._meta.table_name</span><br><span class="line">index_name = <span class="string">&quot;xxx&quot;</span></span><br><span class="line">from_source = <span class="string">&quot;%s AS %s USE INDEX (%s)&quot;</span> % (table_name, alias_name, index_name)</span><br><span class="line"><span class="keyword">for</span> row <span class="keyword">in</span> alias_model.select(xxx).from_(peewee.SQL(from_source)).where(xxx).iterator():</span><br><span class="line">    <span class="keyword">pass</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>MySQLdb或pymysql这些driver是不缓存数据行，但是peewee默认会缓存读取的数据：如果用<code>for row in query</code>这种遍历方法，会缓存每行数据，如果确认只会遍历一遍查询，可以使用<code>for row in query.iterator()</code>关闭缓存</p>
+</li>
+<li><p>使用model_alias查询，导致构造Model对象耗时太久：Model.select会使用ModelObjectCursorWrapper将返回的每行数据构造成model对象，默认情况下是不会在构造时调用<code>get_default_dict</code>方法的，但是由于使用了alias导致在<code>__init__</code>时调用了该方法（具体原因可以看源码），如果字段的default属性有耗时的操作（例如globalid生成），那么会有大量的时间浪费对象构造上。</p>
+</li>
+</ul>
+<h2 id="实际效果"><a href="#实际效果" class="headerlink" title="实际效果"></a>实际效果</h2><p>这里我们直接用python代码实现上述需求，找到指定用户所有分组下不同的a对应的b的最大值</p>
+<p>基本模型</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">T</span>(peewee.Model):</span><br><span class="line">    user_id = peewee.BigIntegerField()</span><br><span class="line">    group_id = peewee.IntegerField()</span><br><span class="line">    a = peewee.IntegerField()</span><br><span class="line">    b = peewee.IntegerField()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">class</span> <span class="title class_">Meta</span>:</span><br><span class="line">        database = db</span><br></pre></td></tr></table></figure>
+
+<h3 id="优化前"><a href="#优化前" class="headerlink" title="优化前"></a>优化前</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">iter_model</span>(<span class="params">model, conditions</span>):</span><br><span class="line">    start_id = <span class="number">0</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        query = (</span><br><span class="line">            model.select()</span><br><span class="line">            .where(model.<span class="built_in">id</span> &gt; start_id, *conditions)</span><br><span class="line">            .order_by(model.<span class="built_in">id</span>.asc())</span><br><span class="line">            .limit(<span class="number">1000</span>)</span><br><span class="line">        )</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">list</span>(query):</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">        <span class="keyword">for</span> v <span class="keyword">in</span> query:</span><br><span class="line">            <span class="keyword">if</span> v.<span class="built_in">id</span> &gt; start_id:</span><br><span class="line">                start_id = v.<span class="built_in">id</span></span><br><span class="line">            <span class="keyword">yield</span> v</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_mapping</span>():</span><br><span class="line">    mapping = defaultdict(<span class="built_in">int</span>)</span><br><span class="line">    <span class="keyword">for</span> row <span class="keyword">in</span> iter_model(</span><br><span class="line">        T, [T.user_id == <span class="number">3</span>, T.group_id.in_([i <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, <span class="number">51</span>)]), T.b &gt;= <span class="number">16</span>]</span><br><span class="line">    ):</span><br><span class="line">        <span class="keyword">if</span> row.b &gt;= mapping[row.a]:</span><br><span class="line">            mapping[row.a] = row.b</span><br><span class="line">    <span class="keyword">return</span> mapping</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    start = time.time()</span><br><span class="line">    rv = get_mapping_perf()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;cost time: %s&quot;</span> % (time.time() - start))</span><br></pre></td></tr></table></figure>
+
+<p>为避免buffer_pool等缓存影响结果，执行前重启了server。执行三次，结果分别为 <code>11.72s</code>, <code>10.11s</code>, <code>10.16s</code>。</p>
+<h3 id="优化后"><a href="#优化后" class="headerlink" title="优化后"></a>优化后</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">get_mapping_perf</span>():</span><br><span class="line">    mapping = defaultdict(<span class="built_in">int</span>)</span><br><span class="line">    alias_name = <span class="string">&quot;tbl&quot;</span></span><br><span class="line">    alias_model = T.alias(alias_name)</span><br><span class="line">    table_name = T._meta.table_name</span><br><span class="line">    index_name = <span class="string">&quot;idx_t_user_id_group_id_b&quot;</span></span><br><span class="line">    from_source = <span class="string">&quot;%s AS %s USE INDEX (%s)&quot;</span> % (table_name, alias_name, index_name)</span><br><span class="line">    <span class="keyword">for</span> row <span class="keyword">in</span> (</span><br><span class="line">        alias_model.select(alias_model.a, alias_model.b)</span><br><span class="line">        .from_(peewee.SQL(from_source))</span><br><span class="line">        .where(</span><br><span class="line">            alias_model.user_id == <span class="number">3</span>,</span><br><span class="line">            alias_model.group_id.in_([i <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, <span class="number">51</span>)]),</span><br><span class="line">            alias_model.b &gt;= <span class="number">16</span>,</span><br><span class="line">        )</span><br><span class="line">        .tuples()</span><br><span class="line">        .iterator()</span><br><span class="line">    ):</span><br><span class="line">        a, b = row[<span class="number">0</span>], row[<span class="number">1</span>]</span><br><span class="line">        <span class="keyword">if</span> b &gt;= mapping[a]:</span><br><span class="line">            mapping[a] = b</span><br><span class="line">    <span class="keyword">return</span> mapping</span><br></pre></td></tr></table></figure>
+
+<p>执行三次，结果分别为 <code>1.70s</code>, <code>1.44s</code>, <code>1.45s</code>。</p>
+</div><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:leosocy@gmail.com" rel="external nofollow noopener noreferrer" target="_blank">Leosocy</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://blog.leosocy.top/posts/83c6/">https://blog.leosocy.top/posts/83c6/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="external nofollow noopener noreferrer">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://blog.leosocy.top" target="_blank">Leosocy's Blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/MySQL/">MySQL</a><a class="post-meta__tags" href="/tags/%E7%B4%A2%E5%BC%95/">索引</a></div><div class="post_share"><div class="social-share" data-image="/img/mysql-graphic.png" data-sites="wechat,weibo,qq,facebook,twitter"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/posts/6d47/"><img class="prev-cover" data-lazy-src="https://cdn.leosocy.top/img/linux-toy-cowsay.png" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">深入了解Linux - COW写时拷贝实现原理</div></div></a></div><div class="next-post pull-right"><a href="/posts/98f0/"><img class="next-cover" data-lazy-src="https://cdn.leosocy.top/img/peewee3-logo.png" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">使用kingshard + peewee过程中遇到的一些“坑”</div></div></a></div></nav><div class="relatedPosts"><div class="relatedPosts_headline"><i class="fas fa-thumbs-up fa-fw"></i><span> 相关推荐</span></div><div class="relatedPosts_list"><div class="relatedPosts_item"><a href="/posts/98f0/" title="使用kingshard + peewee过程中遇到的一些“坑”"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.top/img/peewee3-logo.png"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2019-05-11</div><div class="relatedPosts_title">使用kingshard + peewee过程中遇到的一些“坑”</div></div></a></div><div class="relatedPosts_item"><a href="/posts/57f6/" title="深入理解MySQL——MDL"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.top/img/mysql-lock.png"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2018-12-02</div><div class="relatedPosts_title">深入理解MySQL——MDL</div></div></a></div></div></div><hr><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div><div class="comment-switch"><span class="first-comment">Valine</span><label><input id="switch-comments-btn" type="checkbox"><span class="slider"></span></label><span class="second-comment">Gitalk</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div><div><div id="gitalk-container"></div></div></div></div></article></main><footer id="footer" data-type="color"><div id="footer-wrap"><div class="copyright">&copy;2017 - 2023   <i id="heartbeat" class="fa fas fa-heartbeat"></i>  Leosocy</div><div class="icp"><a target="_blank" rel="external nofollow noopener noreferrer" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=32011302320676"><span>苏ICP备19003706号-1</span></a></div></div><head><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/heartbeat.min.css"></head></footer><script>var bg_index = Math.floor(Math.random() * 21);
+if (true === true)
+  var res = 'background-image: url("https://cdn.leosocy.top/img/background/' + bg_index + '-bg.jpg");'
+else
+  var res = 'background-image: url("https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn/img/background/' + bg_index + '-bg.jpg");'
+document.getElementById('web_bg').style = res
+</script></div><section id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="font_plus" type="button" title="放大字体"><i class="fas fa-plus"></i></button><button id="font_minus" type="button" title="缩小字体"><i class="fas fa-minus"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></section><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"></div></div></div><hr><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module" defer></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js" async></script><script>function panguFn () {
+  if (typeof pangu === 'object') pangu.spacingElementById('content-inner')
+  else {
+    $.getScript('https://cdn.jsdelivr.net/npm/pangu/dist/browser/pangu.min.js', () => {
+      pangu.spacingElementById('content-inner')
+    })
+  }
+}
+
+function panguInit () {
+  if (false){
+    GLOBAL_CONFIG_SITE.isPost && panguFn()
+  } else {
+    panguFn()
+  }
+}
+
+document.addEventListener('DOMContentLoaded', panguFn)</script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadValine () {
+  function initValine () {
+    window.valine = new Valine({
+      el: '#vcomment',
+      appId: 'HrxT0ob97kYUTuWuUo08mkqc-gzGzoHsz',
+      appKey: 'oeKW9UqjBpN6MNv7ENaikdwP',
+      placeholder: '请输入内容',
+      avatar: 'retro',
+      meta: 'nick,mail,link'.split(','),
+      pageSize: '10',
+      lang: 'zh-CN',
+      recordIP: false,
+      serverURLs: 'https://lcapi.leosocy.top',
+      emojiCDN: '',
+      emojiMaps: "",
+      enableQQ: false,
+      path: window.location.pathname,
+      visitor: true
+    });
+    if ('nick') { valine.config.requiredFields= 'nick'.split(',') }
+  }
+
+  if (typeof Valine === 'function') initValine() 
+  else $.getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js', initValine)
+}
+
+if ('Valine' === 'Valine' || !true) {
+  if (true && !true) loadComment(document.querySelector('#vcomment'),loadValine)
+  else setTimeout(() => loadValine(), 0)
+} else {
+  function loadOtherComment () {
+    loadValine()
+  }
+}</script><script>function addGitalkSource () {
+  const ele = document.createElement('link')
+  ele.rel = 'stylesheet'
+  ele.href= 'https://cdn.jsdelivr.net/npm/gitalk/dist/gitalk.min.css'
+  document.getElementsByTagName('head')[0].appendChild(ele)
+}
+
+function loadGitalk () {
+  function initGitalk () {
+    var gitalk = new Gitalk({
+      clientID: '32b06a1ce1ba2d645bb5',
+      clientSecret: 'c4e9c93c5a16234ecb67a9b83b9315f763436cdd',
+      repo: 'comments',
+      owner: 'LeosocyBlog',
+      admin: ['Leosocy'],
+      id: '310ad159785f954236136c4aea90a221',
+      language: 'zh-CN',
+      perPage: 10,
+      distractionFreeMode: true,
+      pagerDirection: 'last',
+      createIssueManually: false,
+      updateCountCallback: commentCount
+    })
+    gitalk.render('gitalk-container')
+  }
+
+  if (typeof Gitalk === 'function') initGitalk()
+  else {
+    addGitalkSource()
+    $.getScript('https://cdn.jsdelivr.net/npm/gitalk@latest/dist/gitalk.min.js', initGitalk)
+  }
+}
+
+function commentCount(n){
+  let isCommentCount = document.querySelector('#post-meta .gitalk-comment-count')
+  if (isCommentCount) {
+    isCommentCount.innerHTML= n
+  }
+}
+
+if ('Valine' === 'Gitalk' || !true) {
+  if (true) loadComment(document.getElementById('gitalk-container'), loadGitalk)
+  else loadGitalk()
+} else {
+  function loadOtherComment () {
+    loadGitalk()
+  }
+}</script><script>cdn_url = "https://cdn.leosocy.top"</script><script src="/"></script></div><script src="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/js/leosocy.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>$(function () {
+  var pjax = new Pjax({
+    selectors: [
+      'title',
+      'meta[name=description]',
+      '#config_change',
+      '#body-wrap',
+      '#rightside-config-hide',
+      '#rightside-config-show',
+      '.js-pjax'
+    ],
+    cacheBust: false,
+  })
+
+  document.addEventListener('pjax:complete', function () {
+    refreshFn()
+
+    $('script[data-pjax]').each(function () {
+      $(this).parent().append($(this).remove())
+    })
+
+    GLOBAL_CONFIG.islazyload && lazyLoadInstance.update()
+
+    typeof chatBtnFn === 'function' && chatBtnFn()
+    typeof panguInit === 'function' && panguInit()
+
+    if (typeof gtag === 'function') {
+      gtag('config', 'G-8EGQPPW7GQ', {'page_path': window.location.pathname});
+    }
+
+    if (document.getElementsByClassName('aplayer').length){
+      typeof loadMeting === 'function' && loadMeting()
+    }
+  })
+
+  document.addEventListener('pjax:send', function () {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+
+    typeof typed === 'object' && typed.destroy()
+
+    $(window).off('scroll')
+
+    //reset readmode
+    $('body').hasClass('read-mode') && $('body').removeClass('read-mode')
+
+    //reset font-size
+    $('body').css('font-size') !== originFontSize && $('body').css('font-size', parseFloat(originFontSize))
+  })
+})</script></div></body></html>

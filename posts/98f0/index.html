@@ -1,0 +1,406 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用kingshard + peewee过程中遇到的一些“坑” | Leosocy's Blog</title><meta name="description" content="当产品用户量、日活与日俱增，后端数据库的负载通常也会越来越大，此时单纯的增加索引已经无法解决亿级数据的CRUD操作了。通常我们会选择分库+分表来解决数据库的瓶颈。使用proxy可以做到对业务层透明，业务无需关心数据库如何shard，SQL如何分发数据如何聚合。我们自己的业务使用的是kingshard这个用Go实现的开源数据库代理，然后ORM一直使用的是peewee。在使用的过程中遇到了一些稀奇古怪"><meta name="keywords" content="MySQL,分库分表"><meta name="author" content="Leosocy,leosocy@gmail.com"><meta name="copyright" content="Leosocy"><meta name="format-detection" content="telephone=no"><link rel="shortcut icon" href="https://cdn.leosocy.top/img/LEO-logo.jpg"><link rel="canonical" href="https://blog.leosocy.top/posts/98f0/"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="preconnect" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//www.google-analytics.com" crossorigin="crossorigin"><link rel="preconnect" href="//fonts.googleapis.com" crossorigin="crossorigin"><meta name="google-site-verification" content="oh1OfqVAIxCAFZ8w5KBBtK7tJK48Z0HuFl2XXbRiM-E"><meta name="baidu-site-verification" content="code-7jpxSWptMj"><meta property="og:type" content="article"><meta property="og:title" content="使用kingshard + peewee过程中遇到的一些“坑”"><meta property="og:url" content="https://blog.leosocy.top/posts/98f0/"><meta property="og:site_name" content="Leosocy's Blog"><meta property="og:description" content="当产品用户量、日活与日俱增，后端数据库的负载通常也会越来越大，此时单纯的增加索引已经无法解决亿级数据的CRUD操作了。通常我们会选择分库+分表来解决数据库的瓶颈。使用proxy可以做到对业务层透明，业务无需关心数据库如何shard，SQL如何分发数据如何聚合。我们自己的业务使用的是kingshard这个用Go实现的开源数据库代理，然后ORM一直使用的是peewee。在使用的过程中遇到了一些稀奇古怪"><meta property="og:image" content="https://blog.leosocy.top/img/peewee3-logo.png"><meta property="article:published_time" content="2019-05-11T08:41:55.000Z"><meta property="article:modified_time" content="2023-11-05T07:26:20.240Z"><meta name="twitter:card" content="summary"><script>var activateDarkMode = function () {
+  document.documentElement.setAttribute('data-theme', 'dark')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#000')
+  }
+}
+var activateLightMode = function () {
+  document.documentElement.setAttribute('data-theme', 'light')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#fff')
+  }
+}
+
+var getCookies = function (name) {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop().split(';').shift()
+}
+
+var autoChangeMode = 'false'
+var t = getCookies('theme')
+if (autoChangeMode === '1') {
+  var isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+  var isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+  var isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+  var hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+
+  if (t === undefined) {
+    if (isLightMode) activateLightMode()
+    else if (isDarkMode) activateDarkMode()
+    else if (isNotSpecified || hasNoSupport) {
+      console.log('You specified no preference for a color scheme or your browser does not support it. I Schedule dark mode during night time.')
+      var now = new Date()
+      var hour = now.getHours()
+      var isNight = hour <= 6 || hour >= 18
+      isNight ? activateDarkMode() : activateLightMode()
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+      if (Cookies.get('theme') === undefined) {
+        e.matches ? activateDarkMode() : activateLightMode()
+      }
+    })
+  } else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else if (autoChangeMode === '2') {
+  now = new Date()
+  hour = now.getHours()
+  isNight = hour <= 6 || hour >= 18
+  if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+  else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else {
+  if (t === 'dark') activateDarkMode()
+  else if (t === 'light') activateLightMode()
+}</script><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css"><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-8EGQPPW7GQ"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-8EGQPPW7GQ');
+</script><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Titillium+Web&amp;display=swap"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  bookmark: {
+    message_prev: '按',
+    message_next: '键将本页加入书签'
+  },
+  runtime_unit: '天',
+  runtime: false,
+  copyright: undefined,
+  ClickShowText: undefined,
+  medium_zoom: false,
+  fancybox: true,
+  Snackbar: {"bookmark":{"message_prev":"按","message_next":"键将本页加入书签"},"chs_to_cht":"你已切换为繁体","cht_to_chs":"你已切换为简体","day_to_night":"你已切换为深色模式","night_to_day":"你已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#121212","position":"bottom-left"},
+  justifiedGallery: {
+    js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+    css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+  },
+  baiduPush: false,
+  highlightCopy: true,
+  highlightLang: true,
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: false    
+}</script><script>(function(win, export_obj) {
+win['TeaAnalyticsObject'] = export_obj;
+if (!win[export_obj]) {
+function _collect() {
+_collect.q.push(arguments);
+}
+_collect.q = _collect.q || [];
+win[export_obj] = _collect;
+}
+win[export_obj].l = +new Date();
+})(window, 'collectEvent');</script><script async src="https://sf1-scmcdn-tos.pstatp.com/goofy/log-sdk/collect/collect-autotrack-rangers.js"></script><script>window.collectEvent('init', {
+app_id: 190292,//  必须替换成申请的 app_id
+channel: 'cn',
+log: true, // 开启调试日志
+autotrack: true // 开启全埋点采集，默认关闭，需要热力图及圈选功能可开启
+});
+window.collectEvent('start');</script><script>var _wr = function(type) {
+  var orig = history[type];
+  return function() {
+    var rv = orig.apply(this, arguments);
+    var e = new Event(type);
+    e.arguments = arguments;
+    window.dispatchEvent(e);
+    return rv;
+  };
+};
+history.pushState = _wr('pushState');
+history.replaceState = _wr('replaceState');
+window.addEventListener("popstate", function(event) {
+  window.collectEvent('predefinePageView');
+});
+window.addEventListener("pushState", function(event) {
+  window.collectEvent('predefinePageView');
+});</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isSidebar: true,
+  postUpdate: '2023-11-05 15:26:20'
+}</script><noscript><style>
+#nav {
+  opacity: 1
+}
+.justified-gallery img {
+  opacity: 1
+}
+</style></noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/leosocy.min.css"><meta name="referrer" content="no-referrer-when-downgrade"><meta name="generator" content="Hexo 7.0.0"></head><body><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" data-lazy-src="https://cdn.leosocy.top/img/avatar-leosocy.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">文章</div><div class="length_num">26</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">标签</div><div class="length_num">40</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">分类</div><div class="length_num">21</div></a></div></div></div><hr><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div></div></div><div id="body-wrap"><div id="web_bg" data-type="photo"></div><div id="sidebar"><i class="fas fa-arrow-right on" id="toggle-sidebar"></i><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar">     </div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%87%86%E5%A4%87"><span class="toc-number">1.</span> <span class="toc-text">准备</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A4%8D%E7%8E%B0"><span class="toc-number">2.</span> <span class="toc-text">复现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8E%9F%E5%9B%A0"><span class="toc-number">3.</span> <span class="toc-text">原因</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#kingshard%E5%A6%82%E4%BD%95%E5%88%A4%E6%96%AD%E5%BD%93%E5%89%8D%E6%98%AF%E5%90%A6%E5%A4%84%E4%BA%8E%E4%B8%80%E4%B8%AA%E4%BA%8B%E5%8A%A1%E4%B8%8B"><span class="toc-number">3.1.</span> <span class="toc-text">kingshard如何判断当前是否处于一个事务下</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#peewee%E5%BB%BA%E7%AB%8B%E8%BF%9E%E6%8E%A5%E6%97%B6%E5%81%9A%E4%BA%86%E4%BB%80%E4%B9%88"><span class="toc-number">3.2.</span> <span class="toc-text">peewee建立连接时做了什么</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A1%AE%E8%AE%A4"><span class="toc-number">3.3.</span> <span class="toc-text">确认</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">4.</span> <span class="toc-text">总结</span></a></li></ol></div></div></div><header class="post-bg" id="page-header" style="background-image: url(https://cdn.leosocy.top/img/peewee3-logo.png)"><nav id="nav"><span class="pull-left" id="blog_name"><a class="blog_title" id="site-name" href="/">Leosocy's Blog</a></span><span class="pull-right menus"><div id="search_button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div><span class="toggle-menu close"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><div id="post-title"><div class="posttitle">使用kingshard + peewee过程中遇到的一些“坑”</div></div><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="fa-fw post-meta-icon far fa-calendar-alt"></i><span class="post-meta-label">发表于</span><time datetime="2019-05-11T08:41:55.000Z" title="undefined 2019-05-11 16:41:55">2019-05-11</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%90%8E%E7%AB%AF%E6%8A%80%E8%83%BD/">后端技能</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%90%8E%E7%AB%AF%E6%8A%80%E8%83%BD/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a></span></div><div class="meta-secondline"> <span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">2.8k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>13分钟</span></span><span class="post-meta-separator">|</span><span class="leancloud_visitors" id="/posts/98f0/" data-flag-title="使用kingshard + peewee过程中遇到的一些“坑”"><i class="far fa-fire fa-fw post-meta-icon"></i><span class="post-meta-label">热度:</span><span class="leancloud-visitors-count"></span><span class="du"> °C</span></span></div></div></div></header><main class="layout_post" id="content-inner"><article id="post"><div class="post-content" id="article-container"><p>当产品用户量、日活与日俱增，后端数据库的负载通常也会越来越大，此时单纯的增加索引已经无法解决亿级数据的CRUD操作了。通常我们会选择分库+分表来解决数据库的瓶颈。使用proxy可以做到对业务层透明，业务无需关心数据库如何shard，SQL如何分发数据如何聚合。我们自己的业务使用的是<a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/flike/kingshard">kingshard</a>这个用Go实现的开源数据库代理，然后ORM一直使用的是<a target="_blank" rel="external nofollow noopener noreferrer" href="http://docs.peewee-orm.com/en/latest/">peewee</a>。在使用的过程中遇到了一些稀奇古怪的问题，这里记录一下排查的过程，以及其中的具体原因，最后给出可行的解决方案。</p>
+<h2 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h2><p>根据kingshard<a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/flike/kingshard/blob/master/doc/KingDoc/how_to_use_kingshard.md#2-%E5%AE%89%E8%A3%85%E5%92%8C%E5%90%AF%E5%8A%A8%E8%AF%B4%E6%98%8E">官方文档</a>，在本地搭建具有两个Node的数据库‘集群’。同时创建好<code>test_shard_hash</code>分表，这里我们以<code>user_id</code>作为shard_key。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">mysql root@localhost:ks1&gt; show create table test_shard_hash_0001;</span><br><span class="line">+----------------------+-------------------------------------------+</span><br><span class="line">| Table                | Create Table                              |</span><br><span class="line">+----------------------+-------------------------------------------+</span><br><span class="line">| test_shard_hash_0001 | CREATE TABLE `test_shard_hash_0001` (     |</span><br><span class="line">|                      |   `id` bigint(64) unsigned NOT NULL,      |</span><br><span class="line">|                      |   `user_id` bigint(64) unsigned NOT NULL, |</span><br><span class="line">|                      |   `name` varchar(255) NOT NULL,           |</span><br><span class="line">|                      |   `age` smallint(6) NOT NULL,             |</span><br><span class="line">|                      |   PRIMARY KEY (`user_id`,`id`)            |</span><br><span class="line">|                      | ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4   |</span><br><span class="line">+----------------------+-------------------------------------------+</span><br></pre></td></tr></table></figure>
+
+<p>pip安装playhouse, peewee, pymysql等package。ipython启动并链接kingshard。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">In [<span class="number">1</span>]: <span class="keyword">import</span> peewee <span class="keyword">as</span> pw</span><br><span class="line">In [<span class="number">2</span>]: <span class="keyword">from</span> playhouse <span class="keyword">import</span> db_url</span><br><span class="line">In [<span class="number">3</span>]: db = db_url.connect(<span class="string">&quot;mysql://127.0.0.1&quot;</span>, port=<span class="number">9696</span>, user=<span class="string">&quot;root&quot;</span>, password=<span class="string">&quot;root&quot;</span>, database=<span class="string">&quot;ks1&quot;</span>)</span><br><span class="line">In [<span class="number">4</span>]: db.get_tables()</span><br><span class="line">Out[<span class="number">4</span>]:</span><br><span class="line">[<span class="string">&#x27;test_shard_hash_0000&#x27;</span>,</span><br><span class="line"> <span class="string">&#x27;test_shard_hash_0001&#x27;</span>,</span><br><span class="line"> <span class="string">&#x27;test_shard_hash_0002&#x27;</span>,</span><br><span class="line"> <span class="string">&#x27;test_shard_hash_0003&#x27;</span>,</span><br><span class="line"> <span class="string">&#x27;test_shard_range_0000&#x27;</span>,</span><br><span class="line"> <span class="string">&#x27;test_shard_range_0001&#x27;</span>,</span><br><span class="line"> <span class="string">&#x27;test_shard_range_0002&#x27;</span>,</span><br><span class="line"> <span class="string">&#x27;test_shard_range_0003&#x27;</span>]</span><br></pre></td></tr></table></figure>
+
+<p>创建对应表结构的model，并绑定到db实例。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">In [<span class="number">6</span>]: <span class="keyword">class</span> <span class="title class_">UserInfo</span>(pw.Model):</span><br><span class="line">   ...:     <span class="built_in">id</span> = pw.BigIntegerField()</span><br><span class="line">   ...:     user_id = pw.BigIntegerField()</span><br><span class="line">   ...:     name = pw.CharField(max_length=<span class="number">255</span>)</span><br><span class="line">   ...:     age = pw.SmallIntegerField()</span><br><span class="line">   ...:     <span class="keyword">class</span> <span class="title class_">Meta</span>:</span><br><span class="line">   ...:         primary_key = pw.CompositeKey(<span class="string">&quot;user_id&quot;</span>, <span class="string">&quot;id&quot;</span>)</span><br><span class="line">   ...:         table_name = <span class="string">&quot;test_shard_hash&quot;</span></span><br><span class="line">In [<span class="number">7</span>]: UserInfo.bind(db)</span><br><span class="line">Out[<span class="number">7</span>]: <span class="literal">True</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="复现"><a href="#复现" class="headerlink" title="复现"></a>复现</h2><p>下面我们打开kingshard sql日志，试一下CRUD等操作。</p>
+<p>create</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">In [<span class="number">10</span>]: UserInfo.create(user_id=<span class="number">1</span>, <span class="built_in">id</span>=<span class="number">1</span>, name=<span class="string">&quot;&quot;</span>, age=<span class="number">0</span>)</span><br><span class="line">Out[<span class="number">10</span>]: &lt;UserInfo: (<span class="number">1</span>, <span class="number">1</span>)&gt;</span><br><span class="line"></span><br><span class="line">kingshard日志</span><br><span class="line">OK - <span class="number">1.0</span>ms - <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span>:<span class="number">59593</span>-&gt;<span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span>:<span class="number">3306</span>:insert  into test_shard_hash_0001(<span class="built_in">id</span>, user_id, name, age) values (<span class="number">1</span>, <span class="number">1</span>, <span class="string">&#x27;&#x27;</span>, <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">测试一下插入冲突</span><br><span class="line">In [<span class="number">11</span>]: UserInfo.create(user_id=<span class="number">1</span>, <span class="built_in">id</span>=<span class="number">1</span>, name=<span class="string">&quot;&quot;</span>, age=<span class="number">0</span>)   <span class="comment"># IntegrityError: (1062, &quot;Duplicate entry &#x27;1-1&#x27; for key &#x27;PRIMARY&#x27;&quot;)</span></span><br><span class="line">In [<span class="number">12</span>]: UserInfo.create(user_id=<span class="number">5</span>, <span class="built_in">id</span>=<span class="number">1</span>, name=<span class="string">&quot;&quot;</span>, age=<span class="number">0</span>)   <span class="comment"># InternalError: (1105, &#x27;transaction in multi node&#x27;)</span></span><br><span class="line">我们发现kingshard报错了，原因是一个事务跨node了，但是我们这里并没有显式开启事务，这是为什么呢？我们下面会分析。</span><br></pre></td></tr></table></figure>
+
+<p>select</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">In [<span class="number">18</span>]: u = UserInfo.select().where(UserInfo.user_id == <span class="number">1</span>).first()</span><br><span class="line">In [<span class="number">19</span>]: u.user_id</span><br><span class="line">Out[<span class="number">19</span>]: <span class="number">1</span></span><br><span class="line"></span><br><span class="line">OK - <span class="number">0.9</span>ms - <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span>:<span class="number">59593</span>-&gt;<span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span>:<span class="number">3306</span>:select t1.<span class="built_in">id</span>, t1.user_id, t1.name, t1.age <span class="keyword">from</span> test_shard_hash_0001 <span class="keyword">as</span> t1 where (t1.user_id = <span class="number">1</span>) limit <span class="number">1</span></span><br><span class="line"></span><br><span class="line">跨node的select</span><br><span class="line">In [<span class="number">43</span>]: UserInfo.select() <span class="comment"># InternalError: (1105, &#x27;transaction in multi node&#x27;)</span></span><br><span class="line">发生了跟之前一样的问题。</span><br></pre></td></tr></table></figure>
+
+<p>count</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">UserInfo.select().where(UserInfo.user_id == <span class="number">1</span>).count()  <span class="comment"># ProgrammingError: (1146, &quot;Table &#x27;ks1.test_shard_hash&#x27; doesn&#x27;t exist&quot;)</span></span><br><span class="line"></span><br><span class="line">ERROR - <span class="number">15.1</span>ms - <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span>:<span class="number">59593</span>-&gt;<span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span>:<span class="number">3306</span>:SELECT COUNT(<span class="number">1</span>) FROM (SELECT <span class="number">1</span> FROM `test_shard_hash` AS `t1` WHERE (`t1`.`user_id` = <span class="number">2</span>)) AS `_wrapped`</span><br><span class="line">这说明这种count方法kingshard没办法根据shard_key计算出发往哪张表。我们换一种方法试试：</span><br><span class="line">----------------------------------------------</span><br><span class="line">In [<span class="number">35</span>]: UserInfo.select(pw.fn.COUNT(<span class="string">&#x27;*&#x27;</span>)).where(UserInfo.user_id == <span class="number">1</span>).scalar()</span><br><span class="line">Out[<span class="number">35</span>]: <span class="number">1</span></span><br><span class="line"></span><br><span class="line">OK - <span class="number">1.2</span>ms - <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span>:<span class="number">59593</span>-&gt;<span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span>:<span class="number">3306</span>:select count(<span class="string">&#x27;*&#x27;</span>) <span class="keyword">from</span> test_shard_hash_0001 <span class="keyword">as</span> t1 where (t1.user_id = <span class="number">1</span>)</span><br><span class="line">看来这种写法可行，我们测试一下跨node的count</span><br><span class="line">In [<span class="number">47</span>]: UserInfo.select(pw.fn.COUNT(<span class="string">&#x27;*&#x27;</span>)).scalar() <span class="comment"># InternalError: (1105, &#x27;transaction in multi node&#x27;)</span></span><br><span class="line">还是不行，看来kingshard的跨node基本的操作在peewee里都搞不起来，下面我们会一步步揭开它的神秘面纱。</span><br></pre></td></tr></table></figure>
+
+<p>update</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">In [<span class="number">50</span>]: UserInfo.update(age=<span class="number">10</span>).where(UserInfo.user_id == <span class="number">1</span>).execute()</span><br><span class="line">Out[<span class="number">50</span>]: <span class="number">1</span></span><br><span class="line"></span><br><span class="line">测试一下kingshard支持的跨node更新</span><br><span class="line">In [<span class="number">56</span>]: UserInfo.update(age=<span class="number">10</span>).where(UserInfo.user_id.in_((<span class="number">1</span>,<span class="number">5</span>))).execute()   <span class="comment"># InternalError: (1105, &#x27;transaction in multi node&#x27;)</span></span><br></pre></td></tr></table></figure>
+
+<p>通过这些例子我们发现，kingshard支持的一些跨node的操作</p>
+<ul>
+<li>范围select</li>
+<li>批量update</li>
+<li>count/sum</li>
+<li>order by</li>
+</ul>
+<p>在peewee中都会报<code>transaction in multi node</code>的错误。</p>
+<p>同时，如果上一条insert/update语句插入冲突报错，再次执行一条分发到另一个node的语句，同样也会报事务跨node的错误。</p>
+<h2 id="原因"><a href="#原因" class="headerlink" title="原因"></a>原因</h2><p>kingshard报<code>transaction in multi node</code>的错误，本质上是因为我们显式或隐式的开启了一个事务，然后执行的SQL经过kingshard计算发现会操作不同的node，进而产生的报错。</p>
+<h3 id="kingshard如何判断当前是否处于一个事务下"><a href="#kingshard如何判断当前是否处于一个事务下" class="headerlink" title="kingshard如何判断当前是否处于一个事务下"></a>kingshard如何判断当前是否处于一个事务下</h3><p>我们简单的分析一下kingshard如何判断事务跨node的</p>
+<ol>
+<li><a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/flike/kingshard/blob/master/proxy/server/conn.go#L306">dispatch</a>： 循环接收处理client请求</li>
+<li><a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/flike/kingshard/blob/master/proxy/server/conn.go#L336">handleQuery</a>：处理CRUD操作，这里我们拿<code>select</code>来说，会走到<a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/flike/kingshard/blob/master/proxy/server/conn_select.go#L99">handleSelecte</a>。</li>
+<li><a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/flike/kingshard/blob/master/proxy/router/router.go#L306">buildSelectPlan</a>根据SQL构建执行计划，决定要发到哪些node哪些表。</li>
+<li><a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/flike/kingshard/blob/master/proxy/server/conn_select.go#L112">getShardConns</a>中，<em>如果in transaction</em>则会根据以下规则判断是否返回<code>transaction in multi node</code>错误<ol>
+<li>一条执行计划中路由到node的数大于1</li>
+<li>当前为事务下执行的第二条SQL，且未与上一条SQL分发到一个node上</li>
+</ol>
+</li>
+</ol>
+<p>下面我们来重点关注一下如何判断in transaction</p>
+<ol>
+<li><a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/flike/kingshard/blob/master/proxy/server/conn_tx.go#L22">isInTransaction</a>会先根据status按位计算如果大于0则表示in trans，这一位是在<a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/flike/kingshard/blob/master/proxy/server/conn_tx.go#L31">handleBegin</a>置上的，也就是显式begin一个事务。</li>
+<li>然后如果上一个条件不满足，会根据<code>autocommit</code>的值来判断，如果autocommit=0，也算是在事务中。这一位是在<a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/flike/kingshard/blob/master/proxy/server/conn_set.go#L78">handleSetAutoCommit</a>置上的，也就是客户端执行<code>SET AUTOCOMMIT=x</code>。默认值<a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/flike/kingshard/blob/master/proxy/server/server.go#L342"><code>c.status = mysql.SERVER_STATUS_AUTOCOMMIT</code></a>，即autocommit=1</li>
+</ol>
+<p>也就是说如果client执行了<code>begin</code>，或者<code>set autocommit=0</code>，kingshard就会认为当前执行的sql在事务下。</p>
+<p>根据上一节的例子，我们并没有显式的开启一个事务，所以一定是peewee建立数据库连接后设置了<code>set autocommit=0</code>，我们继续来看一下peewee在建立连接时做了什么。</p>
+<h3 id="peewee建立连接时做了什么"><a href="#peewee建立连接时做了什么" class="headerlink" title="peewee建立连接时做了什么"></a>peewee建立连接时做了什么</h3><p>首先为了验证上一节的猜想，我们用wireshark抓包看一下client建立数据库连接后是不是主动设置了<code>SET AUTOCOMMIT=0</code></p>
+<p><img src="https://cdn.leosocy.top/img/dinosaurloading.gif" data-lazy-src="https://cdn.leosocy.top/img/20190512222627.png"></p>
+<p>通过上图我们发现，在建立会话后的第一条SQL命令之前，client主动发送了<code>SET AUTOCOMMIT=0</code>来禁用自动提交模式。</p>
+<p>下面是执行了<code>UserInfo.select().where(UserInfo.user_id == 1).get()</code>的抓包结果，我们发现在client在select成功之后，又主动执行了commit语句。这也不难理解，毕竟当前session被设置成了autocommit=0，所以需要执行commit来提交当前事务，并开启下一个事务。</p>
+<p><img src="https://cdn.leosocy.top/img/dinosaurloading.gif" data-lazy-src="https://cdn.leosocy.top/img/20190512224121.png"></p>
+<p>关于autocommit，截取了官网的说明</p>
+<p><img src="https://cdn.leosocy.top/img/dinosaurloading.gif" data-lazy-src="https://cdn.leosocy.top/img/20190512224716.png"></p>
+<p>综上，我们推断出两点</p>
+<ol>
+<li>peewee（准确的说是peewee使用的db driver）在创建数据库连接后，默认会设置session的autocommit=0</li>
+<li>如果不是显式的开启事务，默认情况下每执行一条SQL，会自动commit。</li>
+</ol>
+<p>下面我们通过peewee的源码分析一下</p>
+<p>执行一条SQL最主要的入口可以从Database这个基类开始看</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Database</span>(<span class="title class_ inherited__">_callable_context_manager</span>):</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">execute_sql</span>(<span class="params">self, sql, params=<span class="literal">None</span>, commit=SENTINEL</span>):</span><br><span class="line">        logger.debug((sql, params))</span><br><span class="line">        <span class="keyword">if</span> commit <span class="keyword">is</span> SENTINEL:</span><br><span class="line">            <span class="keyword">if</span> self.in_transaction():</span><br><span class="line">                commit = <span class="literal">False</span></span><br><span class="line">            <span class="keyword">elif</span> self.commit_select:</span><br><span class="line">                commit = <span class="literal">True</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                commit = <span class="keyword">not</span> sql[:<span class="number">6</span>].lower().startswith(<span class="string">&#x27;select&#x27;</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">with</span> __exception_wrapper__:</span><br><span class="line">            cursor = self.cursor(commit)</span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                cursor.execute(sql, params <span class="keyword">or</span> ())</span><br><span class="line">            <span class="keyword">except</span> Exception:</span><br><span class="line">                <span class="keyword">if</span> self.autorollback <span class="keyword">and</span> <span class="keyword">not</span> self.in_transaction():</span><br><span class="line">                    self.rollback()</span><br><span class="line">                <span class="keyword">raise</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="keyword">if</span> commit <span class="keyword">and</span> <span class="keyword">not</span> self.in_transaction():</span><br><span class="line">                    self.commit()</span><br><span class="line">        <span class="keyword">return</span> cursor</span><br></pre></td></tr></table></figure>
+
+<p>通过上面一段代码，我们可以得出以下结论</p>
+<ol>
+<li>有以下两种情况peewee不会帮我们自动commit<ol>
+<li>使用<code>db.atomic</code>等函数显式的开启一个事务</li>
+<li>commit_select为False(MySQLDatabase设置为True)，并且当前执行的SQL是以<code>select</code>开头的</li>
+</ol>
+</li>
+<li>如果MySQL Server执行SQL时抛错(Duplicate/Deadlock/kingshard一些报错)，并且没有设置<code>autorollback</code>，则<em>当前事务不会提交</em>，这也是为什么如果插入一条数据失败，再使用当前连接执行一个shard到不同node的SQL，同样也会报<code>transaction in multi node</code>。</li>
+</ol>
+<p>接着看到<code>cursor = self.cursor(commit)</code>这一行，这个函数内部调用了<code>_connect</code>方法，而这个方法是不同的派生类有不同的实现，我们以MySQL举例，实现代码如下</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">mysql_passwd = <span class="literal">False</span></span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    <span class="keyword">import</span> pymysql <span class="keyword">as</span> mysql</span><br><span class="line"><span class="keyword">except</span> ImportError:</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="keyword">import</span> MySQLdb <span class="keyword">as</span> mysql</span><br><span class="line">        mysql_passwd = <span class="literal">True</span></span><br><span class="line">    <span class="keyword">except</span> ImportError:</span><br><span class="line">        mysql = <span class="literal">None</span></span><br><span class="line">...</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">_connect</span>(<span class="params">self</span>):</span><br><span class="line">    <span class="keyword">if</span> mysql <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">        <span class="keyword">raise</span> ImproperlyConfigured(<span class="string">&#x27;MySQL driver not installed!&#x27;</span>)</span><br><span class="line">    <span class="keyword">return</span> mysql.connect(db=self.database, **self.connect_params)</span><br></pre></td></tr></table></figure>
+
+<p>其实是使用的对应的包提供的方法，我们看一下pymsql的<code>connect</code>方法</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">Connect</span>(<span class="params">*args, **kwargs</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    Connect to the database; see connections.Connection.__init__() for</span></span><br><span class="line"><span class="string">    more information.</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">from</span> .connections <span class="keyword">import</span> Connection</span><br><span class="line">    <span class="keyword">return</span> Connection(*args, **kwargs)</span><br><span class="line">...</span><br><span class="line">connect = Connection = Connect</span><br><span class="line">...</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Connection</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, ..., autocommit=<span class="literal">False</span>, ...</span>):</span><br><span class="line">        ...</span><br><span class="line">        <span class="comment"># specified autocommit mode. None means use server default.</span></span><br><span class="line">        self.autocommit_mode = autocommit</span><br><span class="line">        ...</span><br><span class="line">        self.connect()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">connect</span>(<span class="params">self, sock=<span class="literal">None</span></span>):</span><br><span class="line">        ...</span><br><span class="line">        <span class="keyword">if</span> self.autocommit_mode <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            self.autocommit(self.autocommit_mode)</span><br><span class="line">        ...</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">autocommit</span>(<span class="params">self, value</span>):</span><br><span class="line">        self.autocommit_mode = <span class="built_in">bool</span>(value)</span><br><span class="line">        current = self.get_autocommit()</span><br><span class="line">        <span class="keyword">if</span> value != current:</span><br><span class="line">            self._send_autocommit_mode()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">_send_autocommit_mode</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="string">&quot;&quot;&quot;Set whether or not to commit after every execute()&quot;&quot;&quot;</span></span><br><span class="line">        self._execute_command(COMMAND.COM_QUERY, <span class="string">&quot;SET AUTOCOMMIT = %s&quot;</span> %</span><br><span class="line">                              self.escape(self.autocommit_mode))</span><br><span class="line">        self._read_ok_packet()</span><br></pre></td></tr></table></figure>
+
+<p>终于找到了<code>SET AUTOCOMMIT=0</code>的来源了，由于peewee去除了autocommit参数，所以这段逻辑默认是一定会走到的。</p>
+<h3 id="确认"><a href="#确认" class="headerlink" title="确认"></a>确认</h3><p>我们已经看过了源码，这里可以设置autocommit=1，以支持kingshard支持的一些跨node SQL</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">In [<span class="number">1</span>]: db.connect_params.update(autocommit=<span class="literal">True</span>)</span><br><span class="line">In [<span class="number">2</span>]: db.close()</span><br><span class="line">Out[<span class="number">2</span>]: <span class="literal">True</span></span><br><span class="line">In [<span class="number">3</span>]: db.connect()</span><br><span class="line">Out[<span class="number">3</span>]: <span class="literal">True</span></span><br><span class="line">In [<span class="number">4</span>]: UserInfo.bind(db)</span><br><span class="line">Out[<span class="number">4</span>]: <span class="literal">False</span></span><br><span class="line">In [<span class="number">5</span>]: UserInfo.select(pw.fn.COUNT(<span class="string">&#x27;*&#x27;</span>)).scalar()</span><br><span class="line">Out[<span class="number">5</span>]: <span class="number">5</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>kingshard报错<code>transaction in multi node</code>，有一个前提，就是当前session<em>显式的开启一个事务begin/start transaction</em>或者*设置了<code>autocommit=0</code>*。</p>
+<p>peewee默认情况下做了如下操作</p>
+<ol>
+<li>设置session<code>autocommit = 0</code></li>
+<li>不显式开启事务(<code>with db.atomic()</code>)的情况下，每条SQL<em>执行成功后</em>都会执行<code>commit</code></li>
+</ol>
+<p>MySQL的autocommit有如下机制</p>
+<ol>
+<li>如果开启，MySQL将在每个SQL语句执行成功之后执行提交；如果执行失败，到底是提交还是回滚<a target="_blank" rel="external nofollow noopener noreferrer" href="https://dev.mysql.com/doc/refman/5.7/en/innodb-autocommit-commit-rollback.html">取决于error类型</a>；如果想在一个事务下执行多条SQL，则需显式的begin/start transaction</li>
+<li>如果禁用，则会话始终会打开一个事务，COMMIT或ROLLBACK语句结束当前事务，并启动一个新的事务。如果禁用自动提交的会话在没有显式提交最终事务的情况下结束，MySQL将回滚该事务</li>
+</ol>
+<p>综合以上结论，也就不难得出<a href="#%E5%A4%8D%E7%8E%B0">复现</a>那一节种种报错的原因了。</p>
+<p>那知道了原因，我们如何解决呢？</p>
+<p>简单点处理的话，可以实现一个<code>PooledKingshardDatabase</code>类，继承<code>PooledMySQLDatabase</code>类，并重写<code>_connect</code>方法，传入<code>autocommit=True</code>，设置kingshard的autocommit，这样做使用起来是不会出什么问题的，因为</p>
+<ol>
+<li>常见的select是快照读，本来就不需要加锁，在不在事务下无所谓</li>
+<li>指定shard_key的update/delete操作，由kingshard计算发往指定node，kingshard会将指定后端数据库连接设置成<code>autocommit=1</code>，这样这条语句的执行逻辑与peewee并无差异。<ol>
+<li>kingshard在和node建立连接时是根据MySQL在Response OK返回的Server Status判断对应的连接是否是autocommit，<a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/flike/kingshard/blob/master/backend/backend_conn.go#L183">对应代码</a></li>
+<li>如果不是autocommit，kingshard会主动执行<code>set autocommit = 1</code>，<a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/flike/kingshard/blob/master/backend/backend_conn.go#L115">对应代码</a></li>
+<li>不过这里mysql server有一个bug，即使启动时指定了<code>autocommit=0</code>，Server Status返回的autocommit对应位也是1，所以kingshard的机制在这里并不生效。<a target="_blank" rel="external nofollow noopener noreferrer" href="https://bugs.mysql.com/bug.php?id=66884">对应issue</a>，我自己抓包试了一下确实还是存在这个问题。所以还是使用server默认的autocommit=1这个配置吧。</li>
+</ol>
+</li>
+<li>跨节点的select/update/delete/count/sum/orderby等操作都可以支持，不过count操作要重新实现以下。</li>
+<li>显式的开启事务逻辑与peewee的无异，只不过多了条限制就是不能跨node。</li>
+</ol>
+</div><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:leosocy@gmail.com" rel="external nofollow noopener noreferrer" target="_blank">Leosocy</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://blog.leosocy.top/posts/98f0/">https://blog.leosocy.top/posts/98f0/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="external nofollow noopener noreferrer">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://blog.leosocy.top" target="_blank">Leosocy's Blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/MySQL/">MySQL</a><a class="post-meta__tags" href="/tags/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/">分库分表</a></div><div class="post_share"><div class="social-share" data-image="/img/peewee3-logo.png" data-sites="wechat,weibo,qq,facebook,twitter"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/posts/83c6/"><img class="prev-cover" data-lazy-src="https://cdn.leosocy.top/img/mysql-graphic.png" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">深入理解MySQL——MySQL选错索引怎么办</div></div></a></div><div class="next-post pull-right"><a href="/posts/6e3c/"><img class="next-cover" data-lazy-src="https://cdn.leosocy.top/img/linux-1.jpg" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">epoll深入学习</div></div></a></div></nav><div class="relatedPosts"><div class="relatedPosts_headline"><i class="fas fa-thumbs-up fa-fw"></i><span> 相关推荐</span></div><div class="relatedPosts_list"><div class="relatedPosts_item"><a href="/posts/57f6/" title="深入理解MySQL——MDL"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.top/img/mysql-lock.png"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2018-12-02</div><div class="relatedPosts_title">深入理解MySQL——MDL</div></div></a></div><div class="relatedPosts_item"><a href="/posts/83c6/" title="深入理解MySQL——MySQL选错索引怎么办"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.top/img/mysql-graphic.png"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2019-11-27</div><div class="relatedPosts_title">深入理解MySQL——MySQL选错索引怎么办</div></div></a></div></div></div><hr><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div><div class="comment-switch"><span class="first-comment">Valine</span><label><input id="switch-comments-btn" type="checkbox"><span class="slider"></span></label><span class="second-comment">Gitalk</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div><div><div id="gitalk-container"></div></div></div></div></article></main><footer id="footer" data-type="color"><div id="footer-wrap"><div class="copyright">&copy;2017 - 2023   <i id="heartbeat" class="fa fas fa-heartbeat"></i>  Leosocy</div><div class="icp"><a target="_blank" rel="external nofollow noopener noreferrer" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=32011302320676"><span>苏ICP备19003706号-1</span></a></div></div><head><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/heartbeat.min.css"></head></footer><script>var bg_index = Math.floor(Math.random() * 21);
+if (true === true)
+  var res = 'background-image: url("https://cdn.leosocy.top/img/background/' + bg_index + '-bg.jpg");'
+else
+  var res = 'background-image: url("https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn/img/background/' + bg_index + '-bg.jpg");'
+document.getElementById('web_bg').style = res
+</script></div><section id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="font_plus" type="button" title="放大字体"><i class="fas fa-plus"></i></button><button id="font_minus" type="button" title="缩小字体"><i class="fas fa-minus"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></section><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"></div></div></div><hr><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module" defer></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js" async></script><script>function panguFn () {
+  if (typeof pangu === 'object') pangu.spacingElementById('content-inner')
+  else {
+    $.getScript('https://cdn.jsdelivr.net/npm/pangu/dist/browser/pangu.min.js', () => {
+      pangu.spacingElementById('content-inner')
+    })
+  }
+}
+
+function panguInit () {
+  if (false){
+    GLOBAL_CONFIG_SITE.isPost && panguFn()
+  } else {
+    panguFn()
+  }
+}
+
+document.addEventListener('DOMContentLoaded', panguFn)</script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadValine () {
+  function initValine () {
+    window.valine = new Valine({
+      el: '#vcomment',
+      appId: 'HrxT0ob97kYUTuWuUo08mkqc-gzGzoHsz',
+      appKey: 'oeKW9UqjBpN6MNv7ENaikdwP',
+      placeholder: '请输入内容',
+      avatar: 'retro',
+      meta: 'nick,mail,link'.split(','),
+      pageSize: '10',
+      lang: 'zh-CN',
+      recordIP: false,
+      serverURLs: 'https://lcapi.leosocy.top',
+      emojiCDN: '',
+      emojiMaps: "",
+      enableQQ: false,
+      path: window.location.pathname,
+      visitor: true
+    });
+    if ('nick') { valine.config.requiredFields= 'nick'.split(',') }
+  }
+
+  if (typeof Valine === 'function') initValine() 
+  else $.getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js', initValine)
+}
+
+if ('Valine' === 'Valine' || !true) {
+  if (true && !true) loadComment(document.querySelector('#vcomment'),loadValine)
+  else setTimeout(() => loadValine(), 0)
+} else {
+  function loadOtherComment () {
+    loadValine()
+  }
+}</script><script>function addGitalkSource () {
+  const ele = document.createElement('link')
+  ele.rel = 'stylesheet'
+  ele.href= 'https://cdn.jsdelivr.net/npm/gitalk/dist/gitalk.min.css'
+  document.getElementsByTagName('head')[0].appendChild(ele)
+}
+
+function loadGitalk () {
+  function initGitalk () {
+    var gitalk = new Gitalk({
+      clientID: '32b06a1ce1ba2d645bb5',
+      clientSecret: 'c4e9c93c5a16234ecb67a9b83b9315f763436cdd',
+      repo: 'comments',
+      owner: 'LeosocyBlog',
+      admin: ['Leosocy'],
+      id: '52e3b214fb7d12833460e10167db3933',
+      language: 'zh-CN',
+      perPage: 10,
+      distractionFreeMode: true,
+      pagerDirection: 'last',
+      createIssueManually: false,
+      updateCountCallback: commentCount
+    })
+    gitalk.render('gitalk-container')
+  }
+
+  if (typeof Gitalk === 'function') initGitalk()
+  else {
+    addGitalkSource()
+    $.getScript('https://cdn.jsdelivr.net/npm/gitalk@latest/dist/gitalk.min.js', initGitalk)
+  }
+}
+
+function commentCount(n){
+  let isCommentCount = document.querySelector('#post-meta .gitalk-comment-count')
+  if (isCommentCount) {
+    isCommentCount.innerHTML= n
+  }
+}
+
+if ('Valine' === 'Gitalk' || !true) {
+  if (true) loadComment(document.getElementById('gitalk-container'), loadGitalk)
+  else loadGitalk()
+} else {
+  function loadOtherComment () {
+    loadGitalk()
+  }
+}</script><script>cdn_url = "https://cdn.leosocy.top"</script><script src="/"></script></div><script src="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/js/leosocy.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>$(function () {
+  var pjax = new Pjax({
+    selectors: [
+      'title',
+      'meta[name=description]',
+      '#config_change',
+      '#body-wrap',
+      '#rightside-config-hide',
+      '#rightside-config-show',
+      '.js-pjax'
+    ],
+    cacheBust: false,
+  })
+
+  document.addEventListener('pjax:complete', function () {
+    refreshFn()
+
+    $('script[data-pjax]').each(function () {
+      $(this).parent().append($(this).remove())
+    })
+
+    GLOBAL_CONFIG.islazyload && lazyLoadInstance.update()
+
+    typeof chatBtnFn === 'function' && chatBtnFn()
+    typeof panguInit === 'function' && panguInit()
+
+    if (typeof gtag === 'function') {
+      gtag('config', 'G-8EGQPPW7GQ', {'page_path': window.location.pathname});
+    }
+
+    if (document.getElementsByClassName('aplayer').length){
+      typeof loadMeting === 'function' && loadMeting()
+    }
+  })
+
+  document.addEventListener('pjax:send', function () {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+
+    typeof typed === 'object' && typed.destroy()
+
+    $(window).off('scroll')
+
+    //reset readmode
+    $('body').hasClass('read-mode') && $('body').removeClass('read-mode')
+
+    //reset font-size
+    $('body').css('font-size') !== originFontSize && $('body').css('font-size', parseFloat(originFontSize))
+  })
+})</script></div></body></html>

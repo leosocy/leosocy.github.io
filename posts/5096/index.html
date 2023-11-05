@@ -1,0 +1,846 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CMake语言和语法 | Leosocy's Blog</title><meta name="description" content="在项目或者工作中，会不可避免的使用到cmake来构建我们的项目，所以掌握cmake的基本语法，以及常用的和进阶的使用方法是非常重要的。 下面我们将从一个简单的hello cmake示例开始，一步步的深入了解cmake的用法。   Let’s Go! 初探CMake，hello cmake准备工作创建目录 &#x2F;home&#x2F;workspace&#x2F;cmake_practice，我们之后的练习都放到这个目录的子"><meta name="keywords" content="CMake,开发工具"><meta name="author" content="Leosocy,leosocy@gmail.com"><meta name="copyright" content="Leosocy"><meta name="format-detection" content="telephone=no"><link rel="shortcut icon" href="https://cdn.leosocy.top/img/LEO-logo.jpg"><link rel="canonical" href="https://blog.leosocy.top/posts/5096/"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="preconnect" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//www.google-analytics.com" crossorigin="crossorigin"><link rel="preconnect" href="//fonts.googleapis.com" crossorigin="crossorigin"><meta name="google-site-verification" content="oh1OfqVAIxCAFZ8w5KBBtK7tJK48Z0HuFl2XXbRiM-E"><meta name="baidu-site-verification" content="code-7jpxSWptMj"><meta property="og:type" content="article"><meta property="og:title" content="CMake语言和语法"><meta property="og:url" content="https://blog.leosocy.top/posts/5096/"><meta property="og:site_name" content="Leosocy's Blog"><meta property="og:description" content="在项目或者工作中，会不可避免的使用到cmake来构建我们的项目，所以掌握cmake的基本语法，以及常用的和进阶的使用方法是非常重要的。 下面我们将从一个简单的hello cmake示例开始，一步步的深入了解cmake的用法。   Let’s Go! 初探CMake，hello cmake准备工作创建目录 &#x2F;home&#x2F;workspace&#x2F;cmake_practice，我们之后的练习都放到这个目录的子"><meta property="og:image" content="https://blog.leosocy.top/img/cmake-logo.png"><meta property="article:published_time" content="2018-04-04T16:00:00.000Z"><meta property="article:modified_time" content="2023-11-05T07:26:20.236Z"><meta name="twitter:card" content="summary"><script>var activateDarkMode = function () {
+  document.documentElement.setAttribute('data-theme', 'dark')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#000')
+  }
+}
+var activateLightMode = function () {
+  document.documentElement.setAttribute('data-theme', 'light')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#fff')
+  }
+}
+
+var getCookies = function (name) {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop().split(';').shift()
+}
+
+var autoChangeMode = 'false'
+var t = getCookies('theme')
+if (autoChangeMode === '1') {
+  var isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+  var isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+  var isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+  var hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+
+  if (t === undefined) {
+    if (isLightMode) activateLightMode()
+    else if (isDarkMode) activateDarkMode()
+    else if (isNotSpecified || hasNoSupport) {
+      console.log('You specified no preference for a color scheme or your browser does not support it. I Schedule dark mode during night time.')
+      var now = new Date()
+      var hour = now.getHours()
+      var isNight = hour <= 6 || hour >= 18
+      isNight ? activateDarkMode() : activateLightMode()
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+      if (Cookies.get('theme') === undefined) {
+        e.matches ? activateDarkMode() : activateLightMode()
+      }
+    })
+  } else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else if (autoChangeMode === '2') {
+  now = new Date()
+  hour = now.getHours()
+  isNight = hour <= 6 || hour >= 18
+  if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+  else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else {
+  if (t === 'dark') activateDarkMode()
+  else if (t === 'light') activateLightMode()
+}</script><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css"><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-8EGQPPW7GQ"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-8EGQPPW7GQ');
+</script><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Titillium+Web&amp;display=swap"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  bookmark: {
+    message_prev: '按',
+    message_next: '键将本页加入书签'
+  },
+  runtime_unit: '天',
+  runtime: false,
+  copyright: undefined,
+  ClickShowText: undefined,
+  medium_zoom: false,
+  fancybox: true,
+  Snackbar: {"bookmark":{"message_prev":"按","message_next":"键将本页加入书签"},"chs_to_cht":"你已切换为繁体","cht_to_chs":"你已切换为简体","day_to_night":"你已切换为深色模式","night_to_day":"你已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#121212","position":"bottom-left"},
+  justifiedGallery: {
+    js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+    css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+  },
+  baiduPush: false,
+  highlightCopy: true,
+  highlightLang: true,
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: false    
+}</script><script>(function(win, export_obj) {
+win['TeaAnalyticsObject'] = export_obj;
+if (!win[export_obj]) {
+function _collect() {
+_collect.q.push(arguments);
+}
+_collect.q = _collect.q || [];
+win[export_obj] = _collect;
+}
+win[export_obj].l = +new Date();
+})(window, 'collectEvent');</script><script async src="https://sf1-scmcdn-tos.pstatp.com/goofy/log-sdk/collect/collect-autotrack-rangers.js"></script><script>window.collectEvent('init', {
+app_id: 190292,//  必须替换成申请的 app_id
+channel: 'cn',
+log: true, // 开启调试日志
+autotrack: true // 开启全埋点采集，默认关闭，需要热力图及圈选功能可开启
+});
+window.collectEvent('start');</script><script>var _wr = function(type) {
+  var orig = history[type];
+  return function() {
+    var rv = orig.apply(this, arguments);
+    var e = new Event(type);
+    e.arguments = arguments;
+    window.dispatchEvent(e);
+    return rv;
+  };
+};
+history.pushState = _wr('pushState');
+history.replaceState = _wr('replaceState');
+window.addEventListener("popstate", function(event) {
+  window.collectEvent('predefinePageView');
+});
+window.addEventListener("pushState", function(event) {
+  window.collectEvent('predefinePageView');
+});</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isSidebar: true,
+  postUpdate: '2023-11-05 15:26:20'
+}</script><noscript><style>
+#nav {
+  opacity: 1
+}
+.justified-gallery img {
+  opacity: 1
+}
+</style></noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/leosocy.min.css"><meta name="referrer" content="no-referrer-when-downgrade"><meta name="generator" content="Hexo 7.0.0"></head><body><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" data-lazy-src="https://cdn.leosocy.top/img/avatar-leosocy.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">文章</div><div class="length_num">26</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">标签</div><div class="length_num">40</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">分类</div><div class="length_num">21</div></a></div></div></div><hr><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div></div></div><div id="body-wrap"><div id="web_bg" data-type="photo"></div><div id="sidebar"><i class="fas fa-arrow-right on" id="toggle-sidebar"></i><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar">     </div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%9D%E6%8E%A2CMake%EF%BC%8Chello-cmake"><span class="toc-number">1.</span> <span class="toc-text">初探CMake，hello cmake</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C"><span class="toc-number">1.1.</span> <span class="toc-text">准备工作</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%BC%80%E5%A7%8B%E6%9E%84%E5%BB%BA"><span class="toc-number">1.2.</span> <span class="toc-text">开始构建</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%A4%BA%E4%BE%8B%E7%9A%84%E8%AF%AD%E6%B3%95%E8%A7%A3%E9%87%8A"><span class="toc-number">1.3.</span> <span class="toc-text">示例的语法解释</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%9F%BA%E6%9C%AC%E8%AF%AD%E6%B3%95%E8%A7%84%E5%88%99"><span class="toc-number">1.4.</span> <span class="toc-text">基本语法规则</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%86%85%E9%83%A8%E6%9E%84%E5%BB%BA%E4%B8%8E%E5%A4%96%E9%83%A8%E6%9E%84%E5%BB%BA"><span class="toc-number">1.5.</span> <span class="toc-text">内部构建与外部构建</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%B0%8F%E7%BB%93"><span class="toc-number">1.6.</span> <span class="toc-text">小结</span></a></li></ol></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9B%B4%E5%83%8F%E4%B8%80%E4%B8%AA%E9%A1%B9%E7%9B%AE%E7%9A%84hello-cmake"><span class="toc-number"></span> <span class="toc-text">更像一个项目的hello cmake</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C-1"><span class="toc-number">0.1.</span> <span class="toc-text">准备工作</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B7%BB%E5%8A%A0%E5%AD%90%E7%9B%AE%E5%BD%95src"><span class="toc-number">0.2.</span> <span class="toc-text">添加子目录src</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%AF%AD%E6%B3%95%E8%A7%A3%E9%87%8A"><span class="toc-number">0.3.</span> <span class="toc-text">语法解释</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%8D%A2%E4%B8%AA%E5%9C%B0%E6%96%B9%E4%BF%9D%E5%AD%98%E7%9B%AE%E6%A0%87%E4%BA%8C%E8%BF%9B%E5%88%B6"><span class="toc-number">0.4.</span> <span class="toc-text">换个地方保存目标二进制</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E5%AE%89%E8%A3%85"><span class="toc-number">0.5.</span> <span class="toc-text">如何安装</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%AE%A9%E6%88%91%E4%BB%AC%E7%9A%84hello-cmake%E6%94%AF%E6%8C%81%E5%AE%89%E8%A3%85"><span class="toc-number">0.6.</span> <span class="toc-text">让我们的hello cmake支持安装</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%B0%8F%E7%BB%93-1"><span class="toc-number">0.7.</span> <span class="toc-text">小结</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%9D%99%E6%80%81%E5%BA%93%E4%B8%8E%E5%8A%A8%E6%80%81%E5%BA%93"><span class="toc-number"></span> <span class="toc-text">静态库与动态库</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%90%8D%E5%AD%97%E7%9B%B8%E5%90%8C%E7%9A%84%E5%8A%A8%E6%80%81%E5%BA%93%E5%92%8C%E9%9D%99%E6%80%81%E5%BA%93%E5%90%8C%E6%97%B6%E5%AD%98%E5%9C%A8"><span class="toc-number">0.1.</span> <span class="toc-text">名字相同的动态库和静态库同时存在</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8A%A8%E6%80%81%E5%BA%93%E7%89%88%E6%9C%AC%E5%8F%B7"><span class="toc-number">0.2.</span> <span class="toc-text">动态库版本号</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%AE%89%E8%A3%85%E5%85%B1%E4%BA%AB%E5%BA%93%E5%92%8C%E5%A4%B4%E6%96%87%E4%BB%B6"><span class="toc-number">0.3.</span> <span class="toc-text">安装共享库和头文件</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%B0%8F%E7%BB%93-2"><span class="toc-number">0.4.</span> <span class="toc-text">小结</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8%E5%A4%96%E9%83%A8%E5%85%B1%E4%BA%AB%E5%BA%93%E5%92%8C%E5%A4%B4%E6%96%87%E4%BB%B6"><span class="toc-number"></span> <span class="toc-text">如何使用外部共享库和头文件</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%87%86%E5%A4%87"><span class="toc-number">0.1.</span> <span class="toc-text">准备</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%BA%90%E6%96%87%E4%BB%B6%E5%92%8CCMakeLists"><span class="toc-number">0.2.</span> <span class="toc-text">源文件和CMakeLists</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A4%96%E9%83%A8%E6%9E%84%E5%BB%BA"><span class="toc-number">0.3.</span> <span class="toc-text">外部构建</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%BC%95%E5%85%A5%E5%A4%B4%E6%96%87%E4%BB%B6%E6%90%9C%E7%B4%A2%E8%B7%AF%E5%BE%84"><span class="toc-number">0.4.</span> <span class="toc-text">引入头文件搜索路径</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%B8%BAtarget%E6%B7%BB%E5%8A%A0%E5%85%B1%E4%BA%AB%E5%BA%93"><span class="toc-number">0.5.</span> <span class="toc-text">为target添加共享库</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%B0%8F%E7%BB%93-3"><span class="toc-number">0.6.</span> <span class="toc-text">小结</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CMake%E5%B8%B8%E7%94%A8%E5%8F%98%E9%87%8F%E5%92%8C%E5%B8%B8%E7%94%A8%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F"><span class="toc-number"></span> <span class="toc-text">CMake常用变量和常用环境变量</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#CMake%E5%B8%B8%E7%94%A8%E5%8F%98%E9%87%8F"><span class="toc-number">0.1.</span> <span class="toc-text">CMake常用变量</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#CMake%E8%B0%83%E7%94%A8%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F"><span class="toc-number">0.2.</span> <span class="toc-text">CMake调用环境变量</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%B8%BB%E8%A6%81%E5%BC%80%E5%85%B3%E9%80%89%E9%A1%B9"><span class="toc-number">0.3.</span> <span class="toc-text">主要开关选项</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CMake%E5%B8%B8%E7%94%A8%E6%8C%87%E4%BB%A4"><span class="toc-number"></span> <span class="toc-text">CMake常用指令</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%9F%BA%E6%9C%AC%E6%8C%87%E4%BB%A4"><span class="toc-number">0.1.</span> <span class="toc-text">基本指令</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%8E%A7%E5%88%B6%E5%91%BD%E4%BB%A4"><span class="toc-number">0.2.</span> <span class="toc-text">控制命令</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A8%A1%E5%9D%97%E7%9A%84%E4%BD%BF%E7%94%A8%E5%92%8C%E8%87%AA%E5%AE%9A%E4%B9%89%E6%A8%A1%E5%9D%97"><span class="toc-number"></span> <span class="toc-text">模块的使用和自定义模块</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BC%96%E5%86%99FindHello%E6%A8%A1%E5%9D%97"><span class="toc-number">0.1.</span> <span class="toc-text">编写FindHello模块</span></a></li></ol></li></div></div></div><header class="post-bg" id="page-header" style="background-image: url(https://cdn.leosocy.top/img/cmake-logo.png)"><nav id="nav"><span class="pull-left" id="blog_name"><a class="blog_title" id="site-name" href="/">Leosocy's Blog</a></span><span class="pull-right menus"><div id="search_button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div><span class="toggle-menu close"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><div id="post-title"><div class="posttitle">CMake语言和语法</div></div><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="fa-fw post-meta-icon far fa-calendar-alt"></i><span class="post-meta-label">发表于</span><time datetime="2018-04-04T16:00:00.000Z" title="undefined 2018-04-05 00:00:00">2018-04-05</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/">开发工具</a></span></div><div class="meta-secondline"> <span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">8k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>40分钟</span></span><span class="post-meta-separator">|</span><span class="leancloud_visitors" id="/posts/5096/" data-flag-title="CMake语言和语法"><i class="far fa-fire fa-fw post-meta-icon"></i><span class="post-meta-label">热度:</span><span class="leancloud-visitors-count"></span><span class="du"> °C</span></span></div></div></div></header><main class="layout_post" id="content-inner"><article id="post"><div class="post-content" id="article-container"><p>在项目或者工作中，会不可避免的使用到cmake来构建我们的项目，所以掌握cmake的基本语法，以及常用的和进阶的使用方法是非常重要的。</p>
+<p>下面我们将从一个简单的<code>hello cmake</code>示例开始，一步步的深入了解cmake的用法。</p>
+<span id="more"></span>
+
+<p><strong><em>Let’s Go!</em></strong></p>
+<h3 id="初探CMake，hello-cmake"><a href="#初探CMake，hello-cmake" class="headerlink" title="初探CMake，hello cmake"></a>初探CMake，hello cmake</h3><h4 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a>准备工作</h4><p>创建目录 /home/workspace/cmake_practice，我们之后的练习都放到这个目录的子目录下</p>
+<p>在cmake_practice目录下创建test1</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cd /home/workspace/cmake_practice</span><br><span class="line">mkdir test1</span><br><span class="line">cd test1</span><br></pre></td></tr></table></figure>
+
+<p>创建main.c以及CMakeLists.txt</p>
+<p>main.c内容如下</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">include &lt;stdio.h&gt;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Hello CMake!\n&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>CMakeLists.txt内容如下</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">PROJECT</span>(hello-cmake)</span><br><span class="line"><span class="keyword">SET</span>(SRC_LIST main.c)</span><br><span class="line"><span class="keyword">MESSAGE</span>(STATUS <span class="string">&quot;This is BINARY dir&quot;</span> <span class="variable">$&#123;PROJECT_BINARY_DIR&#125;</span>)</span><br><span class="line"><span class="keyword">MESSAGE</span>(STATUS <span class="string">&quot;This is SOURCE dir&quot;</span> <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>)</span><br><span class="line"><span class="keyword">ADD_EXECUTABLE</span>(hello-cmake <span class="variable">$&#123;SRC_LIST&#125;</span>)</span><br></pre></td></tr></table></figure>
+
+<h4 id="开始构建"><a href="#开始构建" class="headerlink" title="开始构建"></a>开始构建</h4><p>在test1目录下执行<code>cmake .</code>(. 代表当前目录)</p>
+<p>这时会在当前目录生成<code>CMakeFiles</code>、<code>cmake_install.cmake</code>、<code>Makefile</code>等文件</p>
+<p>我们只要关心Makefile就可以了，此时执行<code>make</code>，我们就得到了可执行文件<code>hello-cmake</code></p>
+<p>运行<code>./hello-cmake</code></p>
+<p>得到输出</p>
+<p><code>Hello CMake!</code></p>
+<h4 id="示例的语法解释"><a href="#示例的语法解释" class="headerlink" title="示例的语法解释"></a>示例的语法解释</h4><p>cmake的函数可以通过<code>cmake --help-command cmd</code>来查看具体的语法及使用方法</p>
+<ul>
+<li><p>PROJECT</p>
+<p>  语法：</p>
+  <figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">project</span>(&lt;projectname&gt; [languageName1 languageName2 ... ] )</span><br></pre></td></tr></table></figure>
+<p>  设置项目名称并可指定工程支持的语言，支持的语言列表是可以忽略的，默认情况表示支持所有语言。这个指令隐式的定义了两个cmake变量:</p>
+<pre><code>  - &lt;projectname&gt;_BINARY_DIR
+  - &lt;projectname&gt;_SOURCE_DIR
+</code></pre>
+<p>  因为采用的是内部编译，两个变量目前指的都是工程所在路径/home/workspace/cmake_practice/test1，后面我们会讲到外部编译，两者所指代的内容会有所不同。</p>
+<p>  同时 cmake 系统也帮助我们预定义了 <code>PROJECT_BINARY_DIR</code> 和 <code>PROJECT_SOURCE_DIR</code><br>  变量，他们的值分别跟 <code>&lt;projectname&gt;_BINARY_DIR</code> 与 <code>&lt;projectname&gt;_SOURCE_DIR</code> 一致。</p>
+<p>  为了统一起见，建议以后直接使用 <code>PROJECT_BINARY_DIR</code>，<code>PROJECT_SOURCE_DIR</code>，即<br>  使修改了工程名称，也不会影响这两个变量。如果使用了<br>  <code>&lt;projectname&gt;_SOURCE_DIR</code>，修改工程名称后，需要同时修改这些变量。</p>
+</li>
+<li><p>SET</p>
+<p>  语法：</p>
+  <figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SET</span>(&lt;variable&gt; &lt;value&gt;</span><br><span class="line">    [[CACHE &lt;type&gt; &lt;docstring&gt; [FORCE]] | PARENT_SCOPE])</span><br></pre></td></tr></table></figure>
+<p>  在初探阶段，我们只需要知道<code>SET</code>命令可以用来显示的定义一个变量。<br>  比如在这个例子中<code>SET(SRC_LIST main.c)</code>，即定义了一个变量<code>SRC_LIST</code>，此变量的值为<code>main.c</code>。当然如果有多个源文件，可以定义为<code>SET(SRC_LIST main.c test1.c test2.c)</code>。</p>
+</li>
+<li><p>MESSAGE</p>
+<p>  语法：</p>
+  <figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">message</span>([STATUS|WARNING|AUTHOR_WARNING|FATAL_ERROR|SEND_ERROR]</span><br><span class="line">        <span class="string">&quot;message to display&quot;</span> ...)</span><br></pre></td></tr></table></figure>
+<p>  可选关键字决定消息的类型：</p>
+<ul>
+<li>none          = 重要信息</li>
+<li>STATUS        = 附带信息</li>
+<li>WARNING       = CMake警告，继续处理</li>
+<li>AUTHOR_WARNING= CMake警告（dev），继续处理</li>
+<li>SEND_ERROR    = CMake错误，继续处理，但跳过生成</li>
+<li>FATAL_ERROR   = CMake错误，停止处理和生成</li>
+</ul>
+</li>
+<li><p>ADD_EXECUTABLE</p>
+<p>  语法：</p>
+  <figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">ADD_EXECUTABLE</span>(&lt;name&gt; [WIN32] [MACOSX_BUNDLE]</span><br><span class="line">                [EXCLUDE_FROM_ALL]</span><br><span class="line">                source1 source2 ... sourceN)</span><br></pre></td></tr></table></figure>
+<p>  用于生成可执行的文件，源文件列表为<code>SRC_LIST</code>定义的源文件。在本例中我们使用<code>$&#123;&#125;</code>来引用变量，这个cmake的变量使用方式。</p>
+</li>
+</ul>
+<h4 id="基本语法规则"><a href="#基本语法规则" class="headerlink" title="基本语法规则"></a>基本语法规则</h4><p>本例中使用的基本语法规则有：</p>
+<ol>
+<li><p>变量使用<code>$&#123;&#125;</code>方式取值，但是在<code>IF</code>控制语句中是直接使用变量名</p>
+</li>
+<li><p>COMMAND(param1 param2 …)，参数间用<em>空格</em>或者<em>分号</em>分隔</p>
+<p> e.g.</p>
+<ul>
+<li>ADD(hello-cmake main.c func.c)</li>
+<li>ADD(hello-cmake main.c;func.c)</li>
+</ul>
+</li>
+<li><p>command是大小写无关的，但是参数和变量是大小写敏感的</p>
+</li>
+</ol>
+<h4 id="内部构建与外部构建"><a href="#内部构建与外部构建" class="headerlink" title="内部构建与外部构建"></a>内部构建与外部构建</h4><p>在本例中我们使用的是内部构建，即在<code>CMakeLists.txt</code>同级的目录下执行<code>cmake .</code>。内部构建会在SOURCE_DIR下生成很多临时的中间文件，不方便删除，也影响的源代码的阅读。</p>
+<p>所以我们推荐外部构建，所谓外部构建就是在一个单独的文件夹下面执行cmake，生成的中间文件和结果都在此文件夹下。</p>
+<p>对于本例，使用外部构建过程如下：</p>
+<ol>
+<li>首先清除test1目录下除<code>main.c</code>、<code>CMakeLists.txt</code>外的所有文件及文件夹，最关键的是CMakeCache.txt，如果不清除cache，还是会构建到之前的构建目录下。</li>
+<li>在test1目录下创建build文件夹</li>
+<li>进入build文件夹，执行<code>cmake ..</code>(<code>..</code>代表上一层目录，即CMakeLists所在的文件夹)</li>
+<li>运行make，即可在build文件夹下生成对应的可执行文件</li>
+</ol>
+<p>上述过程即为out-of-source外部编译。一个最大的好处是，对于原有的工程没有任何影响，所有动作全部发生在编译目录。</p>
+<p>通过外部编译进行工程构建，<code>PROJECT_SOURCE_DIR</code>仍然指代工程路径，即CMakeLists所在路径，<br>而<code>PROJECT_BINARY_DIR</code>则指代编译路径，即<code>/home/workspace/cmake_practice/test1/build</code>。</p>
+<h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p>本结我们通过一个简单的hello cmake示例，介绍了最基本的CMakeLists编写，以及一些基本的语法和命令用法。同时介绍了内部编译和外部编译，及外部编译的好处。</p>
+<p>下一节我们将丰富我们的hello cmake示例，使其看起来更像一个项目。</p>
+<h2 id="更像一个项目的hello-cmake"><a href="#更像一个项目的hello-cmake" class="headerlink" title="更像一个项目的hello cmake"></a>更像一个项目的hello cmake</h2><p>本节的目标是让上一节的hello cmake更像一个项目，我们接下来要做的是:</p>
+<ol>
+<li>为工程添加一个子目录，用来放置项目的源代码</li>
+<li>添加一个子目录doc，用来工程文档<code>hello.txt</code></li>
+<li>在工程目录添加COPYRIGHT和README</li>
+<li>在工程目录添加一个run_hello_cmake.sh脚本，用来调用<code>hello_cmake</code>可执行文件</li>
+<li>将构建的结果放置构建目录的bin子目录</li>
+<li>最终安装这些文件，将<code>hello_cmake</code>二进制文件以及<code>run_hello_cmake.sh</code>安装至<code>/usr/bin</code>目录下，将doc目录下的文件以及COPYRIGHT、README安装至<code>/usr/share/doc/cmake_practice/test1</code>目录下</li>
+</ol>
+<h4 id="准备工作-1"><a href="#准备工作-1" class="headerlink" title="准备工作"></a>准备工作</h4><p>在<code>/home/workspace/cmake_practice</code>目录下建立<code>test2</code>目录，将上一节中的<code>main.c CMakeLists.txt</code>拷贝到test2目录</p>
+<h4 id="添加子目录src"><a href="#添加子目录src" class="headerlink" title="添加子目录src"></a>添加子目录src</h4><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">mkdir src</span><br><span class="line">mv main.c src</span><br></pre></td></tr></table></figure>
+
+<p>现在工程中有一个子目录<code>src</code>以及<code>CMakeLists.txt</code>。进入子目录，添加CMakeList如下</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">ADD_EXECUTABLE</span>(hello_cmake main.c)</span><br></pre></td></tr></table></figure>
+
+<p>将test2工程的CMakeLists修改为</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">PROJECT</span>(hello-cmake)</span><br><span class="line"><span class="keyword">ADD_SUBDIRECTORY</span>(src bin)</span><br></pre></td></tr></table></figure>
+
+<p>然后建立build目录，进入build，执行<code>cmake .. &amp; make</code>，构建完成后，目标文件hello-cmake位于<code>build/bin</code>目录下。</p>
+<h4 id="语法解释"><a href="#语法解释" class="headerlink" title="语法解释"></a>语法解释</h4><ul>
+<li><p>ADD_SUBDIRECTORY</p>
+<p>  语法：</p>
+  <figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">ADD_SUBDIRECTORY</span>(source_dir [binary_dir]</span><br><span class="line">                [EXCLUDE_FROM_ALL])</span><br></pre></td></tr></table></figure>
+<p>  用于向当前工程添加存放源文件的子目录，并可以指定中间二进制和目标二进制存放的位置。</p>
+<p>  <code>EXCLUDE_FROM_ALL</code>参数的含义是将这个目录从编译过程中排除，比如，工程的<code>example</code>，可能需要工程构建完成之后，再进入<code>example</code>目录单独进行构建。</p>
+</li>
+</ul>
+<p>上面的例子定义了将src子目录加入工程，并指定了编译输出路径为bin目录。如果不指定bin目录，那么编译的结果都将存放在build/src目录</p>
+<h4 id="换个地方保存目标二进制"><a href="#换个地方保存目标二进制" class="headerlink" title="换个地方保存目标二进制"></a>换个地方保存目标二进制</h4><p>我们可以通过SET指令重新定义<code>EXECUTABLE_OUTPUT_PATH</code>和<code>LIBRARY_OUTPUT_PATH</code>变量，来指定最终的目标二进制的位置(指最终生成的 hello_cmake或者最终的共享库，不包含编译生成的中间文件)</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SET</span>(EXECUTABLE_OUTPUT_PATH <span class="variable">$&#123;PROJECT_BINARY_PATH&#125;</span>/bin)</span><br><span class="line"><span class="keyword">SET</span>(LIBRARY_OUTPUT_PATH <span class="variable">$&#123;PROJECT_BINARY_PATH&#125;</span>/lib)</span><br></pre></td></tr></table></figure>
+
+<p>在第一节我们提到了<code>&lt;projectname&gt;_BINARY_DIR</code>和<code>PROJECT_BINARY_DIR</code>变量，他们指的编译发生的当前目录，如果是内部编译，就相当于<code>PROJECT_SOURCE_DIR</code>也就是工程代码所在目录，如果是外部编译，指的是外部编译所在目录，也就是本例中的<code>build</code>目录。</p>
+<p>所以，上面两个指令分别定义了：可执行二进制的输出路径为<code>build/bin</code>和库的输出路径为<code>build/lib</code>。</p>
+<p>至于将这两条指令写在工程的CMakeLists中还是src目录下的CMakeList，只需要按照一个原则：在哪里<code>ADD_EXECUTABLE</code>或<code>ADD_LIBRARY</code>，如果需要改变目标存放的路径，就在其上加入上述定义。</p>
+<h4 id="如何安装"><a href="#如何安装" class="headerlink" title="如何安装"></a>如何安装</h4><p>安装的需要有两种，一种是从代码编译后直接<code>make install</code>安装，一种是打包时的指定目录安装。</p>
+<p>那我们的hello_cmake应该怎么进行安装呢？</p>
+<p>这里我们要用到一个新的cmake指令<code>INSTALL</code>和一个非常有用的变量<code>CMAKE_INSTALL_PREFIX</code></p>
+<ul>
+<li><p><code>CMAKE_INSTALL_PREFIX</code>变量类似于configure脚本的–prefix，常见的使用方法形如：</p>
+<p>  <code>cmake -DCMAKE_INSTALL_PREFIX=/usr .</code></p>
+</li>
+<li><p><code>INSTALL</code>指令用于定义安装规则，安装的内容可以包括</p>
+<ol>
+<li>目标二进制</li>
+<li>动态库</li>
+<li>静态库</li>
+<li>文件、目录、脚本</li>
+</ol>
+</li>
+</ul>
+<p>INSTALL指令包含了各种安装类型，我们需要一个个分开解释</p>
+<ul>
+<li><p>目标文件的安装</p>
+<p>  语法：</p>
+  <figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">install</span>(TARGETS targets...</span><br><span class="line">        [[ARCHIVE|LIBRARY|RUNTIME]</span><br><span class="line">        [DESTINATION &lt;dir&gt;]</span><br><span class="line">        [PERMISSIONS permissions...]</span><br><span class="line">        [CONFIGURATIONS [Debug|Release|...]]</span><br><span class="line">        [COMPONENT &lt;component&gt;]</span><br><span class="line">        [OPTIONAL]</span><br><span class="line">        ] [...])</span><br></pre></td></tr></table></figure>
+<p>  参数中的<code>TARGETS</code>后面跟的就是我们通过<code>ADD_EXECUTABLE</code>或者<code>ADD_LIBRARY</code>定义的目标文件，可能是可执行二进制、动态库、静态库。</p>
+<p>  目标类型也就相对应的有三种，<code>ARCHIVE</code>特指静态库，<code>LIBRARY</code>特指动态库，<code>RUNTIME</code>特指可执行目标二进制。</p>
+<p>  <code>DESTINATION</code>定义了安装的路径，如果路径以/开头，那么指的是绝对路径，这时候<code>CMAKE_INSTALL_PREFIX</code>其实就无效了。如果你希望使用<code>CMAKE_INSTALL_PREFIX</code>来定义安装路径，就要写成相对路径，即不要以/开头，那么安装后的路径就是<code>$&#123;CMAKE_INSTALL_PREFIX&#125;/&lt;DESTINATION 定义的路径&gt;</code></p>
+<p>  e.g.</p>
+  <figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">install</span>(TARGETS myExe mySharedLib myStaticLib</span><br><span class="line">        RUNTIME DESTINATION bin</span><br><span class="line">        LIBRARY DESTINATION lib</span><br><span class="line">        ARCHIVE DESTINATION lib/static)</span><br></pre></td></tr></table></figure>
+
+<p>  将会把</p>
+<p>  <code>myExe</code>安装到<code>$&#123;CMAKE_INSTALL_PREFIX&#125;/bin</code><br>  <code>mySharedLib</code>安装到<code>$&#123;CMAKE_INSTALL_PREFIX&#125;/lib</code><br>  <code>myStaticLib</code>安装到<code>$&#123;CMAKE_INSTALL_PREFIX&#125;/lib/static</code></p>
+</li>
+<li><p>普通文件的安装</p>
+<p>  语法：</p>
+  <figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">install</span>(FILES files... DESTINATION &lt;dir&gt;</span><br><span class="line">        [PERMISSIONS permissions...]</span><br><span class="line">        [CONFIGURATIONS [Debug|Release|...]]</span><br><span class="line">        [COMPONENT &lt;component&gt;]</span><br><span class="line">        [RENAME &lt;name&gt;] [OPTIONAL])</span><br></pre></td></tr></table></figure>
+
+<p>  可用于安装一般文件，并可以指定访问权限，文件名是此指令所在路径下的相对路径。如果默认不定义权限<code>PERMISSIONS</code>，安装后的权限为：</p>
+<p>  <code>OWNER_WRITE</code>, <code>OWNER_READ</code>, <code>GROUP_READ</code>,和 <code>WORLD_READ</code>，即 644 权限</p>
+</li>
+<li><p>非目标文件的</p>
+<p>  语法：</p>
+  <figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">install</span>(PROGRAMS files... DESTINATION &lt;dir&gt;</span><br><span class="line">        [PERMISSIONS permissions...]</span><br><span class="line">        [CONFIGURATIONS [Debug|Release|...]]</span><br><span class="line">        [COMPONENT &lt;component&gt;]</span><br><span class="line">        [RENAME &lt;name&gt;] [OPTIONAL])</span><br></pre></td></tr></table></figure>
+
+<p>  跟上面的 FILES 指令使用方法一样，唯一的不同是安装后权限为:<br><code>OWNER_EXECUTE</code>, <code>GROUP_EXECUTE</code>, 和 <code>WORLD_EXECUTE</code>，即 755 权限</p>
+</li>
+<li><p>目录的安装</p>
+<p>  语法：</p>
+  <figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">install</span>(DIRECTORY dirs... DESTINATION &lt;dir&gt;</span><br><span class="line">        [FILE_PERMISSIONS permissions...]</span><br><span class="line">        [DIRECTORY_PERMISSIONS permissions...]</span><br><span class="line">        [USE_SOURCE_PERMISSIONS] [OPTIONAL]</span><br><span class="line">        [CONFIGURATIONS [Debug|Release|...]]</span><br><span class="line">        [COMPONENT &lt;component&gt;] [FILES_MATCHING]</span><br><span class="line">        [[PATTERN &lt;pattern&gt; | REGEX &lt;regex&gt;]</span><br><span class="line">        [EXCLUDE] [PERMISSIONS permissions...]] [...])</span><br></pre></td></tr></table></figure>
+
+<p>  这里主要介绍其中的<code>DIRECTORY</code>、<code>PATTERN</code>、<code>PERMISSIONS</code>参数。</p>
+<ul>
+<li><p>DIRECTORY：后面链接的是所在source目录的相对路径。但是abc和abc/有很大区别。如果目录名不以/结尾，那么这个目录将被安装为目标路径下的abc；如果目录名以/结尾，代表将这个目录中的内容安装到目标路径，但不包括这个目录本身。</p>
+</li>
+<li><p>PATTERN：用于使用正则表达式进行过滤，<code>PERMISSIONS</code>用于指定PATTERN过滤后的文件权限。</p>
+<p>e.g.</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">INSTALL</span>(DIRECTORY icons scripts/ DESTINATION share/myproj</span><br><span class="line">        PATTERN <span class="string">&quot;CVS&quot;</span> EXCLUDE</span><br><span class="line">        PATTERN <span class="string">&quot;scripts/*&quot;</span></span><br><span class="line">        PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ</span><br><span class="line">            GROUP_EXECUTE GROUP_READ)</span><br></pre></td></tr></table></figure>
+<p>这条指令的执行结果是：<br>将<code>icons </code>目录安装到<code>&lt;prefix&gt;/share/myproj</code>，将<code>scripts/</code>中的内容安装到<code>&lt;prefix&gt;/share/myproj</code>不包含目录名为 CVS 的目录，对于 <code>scripts/*</code>文件指定权限为OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ.</p>
+</li>
+</ul>
+</li>
+<li><p>安装时CMAKE脚本的执行</p>
+<p>  语法：</p>
+  <figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">install</span>([[SCRIPT &lt;<span class="keyword">file</span>&gt;] [CODE &lt;code&gt;]] [...])</span><br></pre></td></tr></table></figure>
+
+<p>  SCRIPT参数用于在安装时调用cmake脚本文件（<code>也就是&lt;abc&gt;.cmake</code>文件）CODE 参数用于执行CMAKE指令，必须以双引号括起来。比如：<br>  <code>INSTALL(CODE &quot;MESSAGE(\&quot;Sample install message.\&quot;)&quot;)</code></p>
+</li>
+</ul>
+<h4 id="让我们的hello-cmake支持安装"><a href="#让我们的hello-cmake支持安装" class="headerlink" title="让我们的hello cmake支持安装"></a>让我们的hello cmake支持安装</h4><p>安装本节开始的要求，下面改写各个目录的CMakeLists</p>
+<ol>
+<li>安装COPYRIGHT/README，直接修改主工程文件CMakeLists.txt，加入以下指令：<code>INSTALL(FILES COPYRIGHT README DESTINATION share/doc/cmake_practice/test2)</code></li>
+<li>安装<code>hello_cmake</code>、<code>run_hello_cmake.sh</code>，修改主工程文件CMakeLists.txt，加入以下指令：<code>INSTALL(PROGRAMS run_hello_cmake.sh DESTINATION bin)</code>；修改src目录下CMakeLists.txt，加入以下命令：<code>INSTALL(PROGRAMS $&#123;PROJECT_BINARY_DIR&#125;/bin/hello_cmake DESTINATION bin)</code></li>
+<li>安装doc中的hello.txt，这里有两种方式：一是通过在 doc 目录建立CMakeLists.txt并将<code>doc</code>目录通过<code>ADD_SUBDIRECTORY</code>加入工程来完成。另一种方法是直接在工程目录通过<code>INSTALL(DIRECTORY 来完成)</code>。我们来尝试后者，顺便演示一下<code>DIRECTORY</code>的安装。因为<code>hello.txt</code>要安装到<code>/&lt;prefix&gt;/share/doc/cmake_practice/test2</code>，所以我们不能直接安装整个doc目录，这里采用的方式是安装doc目录中的内容，也就是使用”doc/“在工程文件中添加<code>INSTALL(DIRECTORY doc/hello.txt DESTINATION share/doc/cmake_practice/test2)</code></li>
+</ol>
+<p>如果没有定义<code>CMAKE_INSTALL_PREFIX</code>，会默认安装到/usr/local下</p>
+<h4 id="小结-1"><a href="#小结-1" class="headerlink" title="小结"></a>小结</h4><p>本小节主要描述了如何在工程中使用多目录、各种安装指令以及<code>CMAKE_INSTALL_PREFIX</code>变量。</p>
+<p>在下一小节，我们将探讨如何在cmake中构建动态库和静态库，以及如何使用外部头文件和外部共享库。</p>
+<h2 id="静态库与动态库"><a href="#静态库与动态库" class="headerlink" title="静态库与动态库"></a>静态库与动态库</h2><p>静态库与动态库的创建知识点并不多，主要新引入了一个新的命令如下：</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">ADD_LIBRARY</span>(&lt;name&gt; [STATIC | SHARED | MODULE]</span><br><span class="line">            [EXCLUDE_FROM_ALL]</span><br><span class="line">            source1 source2 ... sourceN)</span><br></pre></td></tr></table></figure>
+
+<p>类型有三种：</p>
+<ol>
+<li><code>SHARED</code> : 动态库</li>
+<li><code>STATIC</code> : 静态库</li>
+<li><code>MODULE</code> : 在使用dyld的系统有效，如果不支持dyld，则被当作SHARED对待</li>
+</ol>
+<p><code>EXCLUDE_FROM_ALL</code>参数的意思是这个库不会被默认构建，除非有其他的组建依赖或者手工构建</p>
+<h4 id="名字相同的动态库和静态库同时存在"><a href="#名字相同的动态库和静态库同时存在" class="headerlink" title="名字相同的动态库和静态库同时存在"></a>名字相同的动态库和静态库同时存在</h4><p>在同一个CMake中，如果<code>ADD_LIBRARY</code>的target名称相同，则后一个目标会覆盖前一个目标。如果我们想让名字相同的静态库和动态库同时存在，需要用到另外一个命令：</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SET_TARGET_PROPERTIES</span>(target1 target2 ...</span><br><span class="line">                      PROPERTIES prop1 value1</span><br><span class="line">                      prop2 value2 ...)</span><br></pre></td></tr></table></figure>
+
+<p>这条指令可以用来设置输出的名称，对于动态库，还可以用来指定<code>动态库版本</code>和<code>API版本</code>。</p>
+<p>只需要在CMakeLists.txt中加如<code>SET_TARGET_PROPERTIES(hello_static PROPERTIES OUTPUT_NAME &quot;hello&quot;)</code>，就可以同时得到libhello.a/libhello.so两个库了。</p>
+<h4 id="动态库版本号"><a href="#动态库版本号" class="headerlink" title="动态库版本号"></a>动态库版本号</h4><p>为了实现动态库版本号，我们仍然需要使用<code>SET_TARGET_PROPERTIES</code>指令。具体使用方法：<code>SET_TARGET_PROPERTIES(hello PROPERTIES VERSION 1.2 SOVERSION 1)</code></p>
+<p><code>VERSION</code>指代动态库版本，<code>SOVERSION</code>指代 API 版本。</p>
+<p>加如CMakeLists重新构建，在build目录下会生成：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">libhello.so.1.2</span><br><span class="line">libhello.so.1-&gt;libhello.so.1.2</span><br><span class="line">libhello.so -&gt;libhello.so.1</span><br></pre></td></tr></table></figure>
+
+<h4 id="安装共享库和头文件"><a href="#安装共享库和头文件" class="headerlink" title="安装共享库和头文件"></a>安装共享库和头文件</h4><p>利用上一节提到的<code>INSTALL</code>指令，我们将动态库以及静态库安装到指定的目录</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">INSTALL</span>(TARGETS hello hello_static</span><br><span class="line">        LIBRARY DESTINATION lib</span><br><span class="line">        ARCHIVE DESTINATION lib)</span><br></pre></td></tr></table></figure>
+
+<h4 id="小结-2"><a href="#小结-2" class="headerlink" title="小结"></a>小结</h4><p>本小节，我们谈到了：</p>
+<ol>
+<li>如何通过<code>ADD_LIBRARY</code>指令构建动态库和静态库。</li>
+<li>如何通过<code>SET_TARGET_PROPERTIES</code>同时构建同名的动态库和静态库。</li>
+<li>如何通过<code>SET_TARGET_PROPERTIES</code>控制动态库版本</li>
+<li>最终使用上一节谈到的<code>INSTALL</code>指令来安装动态、静态库。</li>
+</ol>
+<h2 id="如何使用外部共享库和头文件"><a href="#如何使用外部共享库和头文件" class="headerlink" title="如何使用外部共享库和头文件"></a>如何使用外部共享库和头文件</h2><h4 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h4><p>在<code>/home/workspace/cmake_practice</code>目录下建立test4目录，按照上一节，编写CMakeLists，生成自己的hello动态库静态库以及头文件，并安装到/usr/local下。</p>
+<h4 id="源文件和CMakeLists"><a href="#源文件和CMakeLists" class="headerlink" title="源文件和CMakeLists"></a>源文件和CMakeLists</h4><p>重复以前的步骤，建立<code>src</code>目录，编写源文件<code>main.c</code>，内容如下：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;hello.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">    print_hello();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>编写工程主文件<code>CMakeLists.txt</code></p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">PROJECT</span>(NEWHELLO)</span><br><span class="line"><span class="keyword">ADD_SUBDIRECTORY</span>(src)</span><br></pre></td></tr></table></figure>
+
+<p>编写<code>src/CMakeLists.txt</code></p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">ADD_EXECUTABLE</span>(main main.c)</span><br></pre></td></tr></table></figure>
+
+<h4 id="外部构建"><a href="#外部构建" class="headerlink" title="外部构建"></a>外部构建</h4><p>按照习惯，仍然建立 build 目录，使用 cmake ..方式构建。<br>过程：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cmake ..</span><br><span class="line">make</span><br></pre></td></tr></table></figure>
+
+<p>构建失败，如果需要查看细节，可以用<code>make VERBOSE=1</code>来构建</p>
+<p>错误输出是：</p>
+<figure class="highlight txt"><table><tr><td class="code"><pre><span class="line">/home/workspace/cmake_practice/test4/src/main.c:1:19: fatal error: hello.h: No such file or directory</span><br></pre></td></tr></table></figure>
+
+<h4 id="引入头文件搜索路径"><a href="#引入头文件搜索路径" class="headerlink" title="引入头文件搜索路径"></a>引入头文件搜索路径</h4><p>hello.h位于<code>/usr/local/include/hello</code>目录中，并没有位于系统标准的头文件路径。</p>
+<p>为了让我们的工程能够找到<code>hello.h</code>头文件，我们需要引入一个新的指令<br><code>INCLUDE_DIRECTORIES</code>，其完整语法为：</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">include_directories</span>([AFTER|BEFORE] [SYSTEM] dir1 dir2 ...)</span><br></pre></td></tr></table></figure>
+
+<p>这条指令可以用来向工程添加多个特定的头文件搜索路径，路径之间用空格分割，如果路径中包含了空格，可以使用双引号将它括起来，默认的行为是追加到当前的头文件搜索路径的后面。</p>
+<p>现在我们在<code>src/CMakeLists.txt</code>中添加一个头文件搜索路径，方式很简单，加入：<code>INCLUDE_DIRECTORIES(/usr/local/include/hello)</code></p>
+<p>进入build目录，重新进行构建，这时找不到hello.h的错误已经消失，但是出现了一个新的错误：</p>
+<figure class="highlight txt"><table><tr><td class="code"><pre><span class="line">main.c:(.text+0xa): undefined reference to `print_hello&#x27;</span><br></pre></td></tr></table></figure>
+
+<p>因为我们并没有link到共享库libhello上</p>
+<h4 id="为target添加共享库"><a href="#为target添加共享库" class="headerlink" title="为target添加共享库"></a>为target添加共享库</h4><p>我们现在需要完成的任务是将目标文件链接到libhello，这里我们需要引入两个新的指令：</p>
+<p><code>LINK_DIRECTORIES</code>和<code>TARGET_LINK_LIBRARIES</code></p>
+<p>LINK_DIRECTORIES的语法是：</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">link_directories</span>(directory1 directory2 ...)</span><br></pre></td></tr></table></figure>
+
+<p>这个指令非常简单，添加非标准的共享库搜索路径，比如，在工程内部同时存在共享库和可执行二进制，在编译时就需要指定一下这些共享库的路径。这个例子中我们没有用到这个指令。</p>
+<p>TARGET_LINK_LIBRARIES的语法是:</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">TARGET_LINK_LIBRARIES</span>(<span class="keyword">target</span> library1</span><br><span class="line">                      &lt;debug | optimized&gt; library2</span><br><span class="line">                      ...)</span><br></pre></td></tr></table></figure>
+
+<p>这个指令可以用来为<code>target</code>添加需要链接的共享库，本例中是一个可执行文件，但是同样可以用于为自己编写的共享库添加共享库链接。</p>
+<p>为了解决我们前面遇到的<code>print_hello</code>未定义错误，我们需要作的是向<br>src/CMakeLists.txt中添加如下指令：</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">LINK_DIRECTORIES</span>(/usr/local/lib)</span><br><span class="line"><span class="keyword">TARGET_LINK_LIBRARIES</span>(main hello)</span><br></pre></td></tr></table></figure>
+
+<p>这里的hello指的是我们上一节构建的共享库libhello。</p>
+<p>进入build目录重新进行构建。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cmake ..</span><br><span class="line">make</span><br></pre></td></tr></table></figure>
+
+<p>这是我们就得到了一个连接到libhello的可执行程序 main，位于 build/src目录，运行main的结果是输出：</p>
+<p><code>Hello CMake!</code></p>
+<p>让我们来检查一下<code>main</code>的链接情况：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">[root@localhost src]# ldd main</span><br><span class="line">        linux-vdso.so.1 =&gt;  (0x00007ffdb59ea000)</span><br><span class="line">        libhello.so.1 =&gt; /usr/local/lib/libhello.so.1 (0x00007fe24b577000)</span><br><span class="line">        libc.so.6 =&gt; /lib64/libc.so.6 (0x00007fe24b18e000)</span><br><span class="line">        /lib64/ld-linux-x86-64.so.2 (0x00007fe24b77a000)</span><br></pre></td></tr></table></figure>
+
+<p>可以清楚的看到<code>main</code>确实链接了共享库<code>libhello</code>，而且链接的是动态库<br><code>libhello.so.1</code></p>
+<p>那如何链接到静态库呢？方法很简单：将<code>TARGET_LINK_LIBRRARIES</code>指令修改为:</p>
+<p><code>TARGET_LINK_LIBRARIES(main libhello.a)</code></p>
+<p>重新构建后再来看一下<code>main</code>的链接情况</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">[root@localhost src]# ldd main</span><br><span class="line">        linux-vdso.so.1 =&gt;  (0x00007fffa2597000)</span><br><span class="line">        libc.so.6 =&gt; /lib64/libc.so.6 (0x00007fb216c97000)</span><br><span class="line">        /lib64/ld-linux-x86-64.so.2 (0x00007fb217080000)</span><br></pre></td></tr></table></figure>
+
+<p>说明<code>main</code>确实链接到了静态库<code>libhello.a</code>。</p>
+<h4 id="小结-3"><a href="#小结-3" class="headerlink" title="小结"></a>小结</h4><p>本节我们探讨了:</p>
+<ul>
+<li>如何通过<code>INCLUDE_DIRECTORIES</code>指令加入非标准的头文件搜索路径。</li>
+<li>如何通过<code>LINK_DIRECTORIES</code>指令加入非标准的库文件搜索路径。</li>
+<li>如果通过<code>TARGET_LINK_LIBRARIES</code>为库或可执行二进制加入库链接。</li>
+</ul>
+<p>到这里为止，您应该基本可以使用<code>cmake</code>工作了，但是还有很多高级的话题没有探讨，比如<strong>编译条件检查</strong>、<strong>编译器定义</strong>、<strong>平台判断</strong>等等。</p>
+<p>到这里，或许你可以理解前面讲到的“cmake的使用过程其实就是学习cmake语言并编写cmake程序的过程”，既然是“cmake语言”，自然涉及到变量、语法等。</p>
+<p>下一节，我们将抛开程序的话题，看看常用的CMAKE变量以及一些基本的控制语法规则。</p>
+<h2 id="CMake常用变量和常用环境变量"><a href="#CMake常用变量和常用环境变量" class="headerlink" title="CMake常用变量和常用环境变量"></a>CMake常用变量和常用环境变量</h2><p>使用<code>$&#123;&#125;</code>进行变量的引用。在IF等语句中，是直接使用变量名而不通过<code>$&#123;&#125;</code>取值。</p>
+<h4 id="CMake常用变量"><a href="#CMake常用变量" class="headerlink" title="CMake常用变量"></a>CMake常用变量</h4><ul>
+<li><p><code>CMAKE_BINARY_DIR</code></p>
+<p>  <code>PROJECT_BINARY_DIR</code></p>
+<p>  <code>&lt;projectname&gt;_BINARY_DIR</code></p>
+<p>  这三个变量指代的内容是一致的，如果是<code>in source</code>编译，指得就是工程顶层目录，如果是<code>out-of-source</code>编译，指的是工程编译发生的目录。<code>PROJECT_BINARY_DIR</code>跟其他指令稍有区别，现在，你可以理解为他们是一致的。</p>
+</li>
+<li><p><code>CMAKE_SOURCE_DIR</code></p>
+<p>  <code>PROJECT_SOURCE_DIR</code></p>
+<p>  <code>&lt;projectname&gt;_SOURCE_DIR</code></p>
+<p>  这三个变量指代的内容是一致的，不论采用何种编译方式，都是工程顶层目录。也就是在<code>in source</code>编译时，他跟<code>CMAKE_BINARY_DIR</code>等变量一致。<code>PROJECT_SOURCE_DIR</code>跟其他指令稍有区别，现在，你可以理解为他们是一致的。</p>
+</li>
+<li><p><code>CMAKE_CURRENT_SOURCE_DIR</code></p>
+</li>
+</ul>
+<p>指的是当前处理的<code>CMakeLists.txt</code>所在的路径，比如上面我们提到的src子目录。</p>
+<ul>
+<li><code>CMAKE_CURRRENT_BINARY_DIR</code></li>
+</ul>
+<p>如果是<code>in-source</code>编译，它跟<code>CMAKE_CURRENT_SOURCE_DIR</code>一致，如果是<code>out-ofsource</code>编译，他指的是<code>target</code>编译目录。使用我们上面提到的<code>ADD_SUBDIRECTORY(src bin)</code>可以更改这个变量的值。<br>使用<code>SET(EXECUTABLE_OUTPUT_PATH &lt;新路径&gt;)</code>并不会对这个变量造成影响，它仅仅修改了最终目标文件存放的路径。</p>
+<ul>
+<li><code>CMAKE_MODULE_PATH</code></li>
+</ul>
+<p>这个变量用来定义自己的 cmake 模块所在的路径。如果你的工程比较复杂，有可能会自己编写一些 cmake 模块，这些 cmake 模块是随你的工程发布的，为了让 cmake 在处理CMakeLists.txt 时找到这些模块，你需要通过 SET 指令，将自己的 cmake 模块路径设置一下。<br>比如</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SET</span>(CMAKE_MODULE_PATH <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/cmake)</span><br></pre></td></tr></table></figure>
+
+<p>这时候你就可以通过<code>INCLUDE</code>指令来调用自己的模块了。</p>
+<h4 id="CMake调用环境变量"><a href="#CMake调用环境变量" class="headerlink" title="CMake调用环境变量"></a>CMake调用环境变量</h4><p>使用<code>$ENV&#123;NAME&#125;</code>指令就可以调用系统的环境变量了。</p>
+<p>比如</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">MESSAGE</span>(STATUS <span class="string">&quot;HOME dir: $ENV&#123;HOME&#125;&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>设置环境变量的方式是：</p>
+<p><code>SET(ENV&#123;KEY&#125; VALUE)</code></p>
+<h4 id="主要开关选项"><a href="#主要开关选项" class="headerlink" title="主要开关选项"></a>主要开关选项</h4><ul>
+<li><code>BUILD_SHARED_LIBS</code></li>
+</ul>
+<p>这个开关用来控制默认的库编译方式，如果不进行设置，使用 ADD_LIBRARY并没有指定库类型的情况下，默认编译生成的库都是静态库。<br>如果<code>SET(BUILD_SHARED_LIBS ON)</code>后，默认生成的为动态库。</p>
+<ul>
+<li><code>CMAKE_C_FLAGS</code></li>
+</ul>
+<p>设置C编译选项，也可以通过指令<code>ADD_DEFINITIONS()</code>添加。</p>
+<ul>
+<li><code>CMAKE_CXX_FLAGS</code></li>
+</ul>
+<p>设置C++编译选项，也可以通过指令<code>ADD_DEFINITIONS()</code>添加。</p>
+<h2 id="CMake常用指令"><a href="#CMake常用指令" class="headerlink" title="CMake常用指令"></a>CMake常用指令</h2><h4 id="基本指令"><a href="#基本指令" class="headerlink" title="基本指令"></a>基本指令</h4><ul>
+<li><code>ADD_DEFINITIONS</code></li>
+</ul>
+<p>向C/C++编译器添加-D定义，比如:<code>ADD_DEFINITIONS(-DENABLE_DEBUG -DABC)</code>，参数之间用空格分割。如果你的代码中定义了<code>#ifdef ENABLE_DEBUG #endif</code>，这个代码块就会生效。如果要添加其他的编译器开关，可以通过<code>CMAKE_C_FLAGS</code>变量和<code>CMAKE_CXX_FLAGS</code>变量设置</p>
+<ul>
+<li><code>ADD_DEPENDENCIES</code></li>
+</ul>
+<p>定义target依赖的其他target，确保在编译本target之前，其他的 target 已经被构建。</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">ADD_DEPENDENCIES</span>(<span class="keyword">target</span>-name depend-target1</span><br><span class="line">                 depend-target2 ...)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>ADD_TEST</code>与<code>ENABLE_TESTING</code></li>
+</ul>
+<p><code>ENABLE_TESTING</code>指令用来控制Makefile是否构建test目标，涉及工程所有目录。语法很简单，没有任何参数，ENABLE_TESTING()，一般情况这个指令放在工程的主CMakeLists.txt中。</p>
+<p><code>ADD_TEST</code>指令的语法是:<code>ADD_TEST(testname Exename arg1 arg2 ...)</code></p>
+<p>testname是自定义的test名称，Exename可以是构建的目标文件也可以是外部脚本等等。后面连接传递给可执行文件的参数。如果没有在同一个CMakeLists.txt 中打开<code>ENABLE_TESTING()</code>指令，任何<code>ADD_TEST</code>都是无效的。</p>
+<p>比如我们前面的Helloworld例子，可以在工程主CMakeLists.txt 中添加</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">ADD_TEST</span>(mytest <span class="variable">$&#123;PROJECT_BINARY_DIR&#125;</span>/bin/main)</span><br><span class="line"><span class="keyword">ENABLE_TESTING</span>()</span><br></pre></td></tr></table></figure>
+
+<p>生成<code>Makefile</code>后，就可以运行<code>make test</code>来执行测试了。</p>
+<ul>
+<li><code>AUX_SOURCE_DIRECTORY</code></li>
+</ul>
+<p>基本语法：<code>AUX_SOURCE_DIRECTORY(dir VARIABLE)</code></p>
+<p>作用是发现一个目录下所有的源代码文件并将列表存储在一个变量中，这个指令临时被用来自动构建源文件列表。因为目前 cmake 还不能自动发现新添加的源文件。</p>
+<p>比如</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">AUX_SOURCE_DIRECTORY</span>(. SRC_LIST)</span><br><span class="line"><span class="keyword">ADD_EXECUTABLE</span>(main <span class="variable">$&#123;SRC_LIST&#125;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>你也可以通过后面提到的<code>FOREACH</code>指令来处理这个<code>LIST</code></p>
+<ul>
+<li><code>CMAKE_MINIMUM_REQUIRED</code></li>
+</ul>
+<p>其语法为<code>CMAKE_MINIMUM_REQUIRED(VERSION versionNumber [FATAL_ERROR])</code> 比如 <code>CMAKE_MINIMUM_REQUIRED(VERSION 2.5 FATAL_ERROR)</code> 如果cmake版本小与 2.5，则出现严重错误，整个过程中止。</p>
+<ul>
+<li><code>EXEC_PROGRAM</code></li>
+</ul>
+<p>在CMakeLists.txt处理过程中执行命令，并不会在生成的Makefile中执行。具体语法为：</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">EXEC_PROGRAM</span>(Executable [directory in which to run]</span><br><span class="line">            [ARGS &lt;arguments to executable&gt;]</span><br><span class="line">            [OUTPUT_VARIABLE &lt;var&gt;]</span><br><span class="line">            [RETURN_VALUE &lt;var&gt;])</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>用于在指定的目录运行某个程序，通过ARGS添加参数，如果要获取输出和返回值，可通过<code>OUTPUT_VARIABLE</code>和<code>RETURN_VALUE</code>分别定义两个变量。</p>
+<p>这个指令可以帮助你在<code>CMakeLists.txt</code>处理过程中支持任何命令，比如根据系统情况去修改代码文件等等。</p>
+<p>举个简单的例子，我们要在src目录执行ls命令，并把结果和返回值存下来。</p>
+<p>可以直接在src/CMakeLists.txt中添加：</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">EXEC_PROGRAM</span>(ls ARGS <span class="string">&quot;*.c&quot;</span> OUTPUT_VARIABLE LS_OUTPUT RETURN_VALUE LS_RVALUE)</span><br><span class="line"><span class="keyword">IF</span>(<span class="keyword">not</span> LS_RVALUE)</span><br><span class="line">    <span class="keyword">MESSAGE</span>(STATUS <span class="string">&quot;ls result: &quot;</span> <span class="variable">$&#123;LS_OUTPUT&#125;</span>)</span><br><span class="line"><span class="keyword">ENDIF</span>(<span class="keyword">not</span> LS_RVALUE)</span><br></pre></td></tr></table></figure>
+
+<p>在cmake生成Makefile的过程中，就会执行ls命令，如果返回0，则说明成功执行，那么就输出 ls *.c 的结果。关于IF语句，后面的控制指令会提到。</p>
+<ul>
+<li><p><code>FILE</code></p>
+<ul>
+<li>FILE(WRITE filename “message to write”… )</li>
+<li>FILE(APPEND filename “message to write”… )</li>
+<li>FILE(READ filename variable)</li>
+<li>FILE(GLOB variable [RELATIVE path] [globbing expressions]…)</li>
+<li>FILE(GLOB_RECURSE variable [RELATIVE path] [globbing expressions]…)</li>
+<li>FILE(REMOVE [directory]…)</li>
+<li>FILE(REMOVE_RECURSE [directory]…)</li>
+<li>FILE(MAKE_DIRECTORY [directory]…)</li>
+<li>FILE(RELATIVE_PATH variable directory file)</li>
+<li>FILE(TO_CMAKE_PATH path result)</li>
+<li>FILE(TO_NATIVE_PATH path result)</li>
+</ul>
+</li>
+</ul>
+<p>这里的语法都比较简单，不在展开介绍了。</p>
+<ul>
+<li><code>INCLUDE</code></li>
+</ul>
+<p>用来载入CMakeLists.txt文件，也用于载入预定义的cmake模块。</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">INCLUDE</span>(file1 [OPTIONAL])</span><br><span class="line"><span class="keyword">INCLUDE</span>(module [OPTIONAL])</span><br></pre></td></tr></table></figure>
+
+<p>OPTIONAL参数的作用是文件不存在也不会产生错误。你可以指定载入一个文件，如果定义的是一个模块，那么将在<code>CMAKE_MODULE_PATH</code>中搜索这个模块并载入。载入的内容将在处理到INCLUDE语句是直接执行。</p>
+<ul>
+<li><p><code>FILE_</code>指令</p>
+<ul>
+<li><p>FIND_FILE(<var> name1 path1 path2 …)</var></p>
+<p>  VAR 变量代表找到的文件全路径，包含文件名</p>
+</li>
+<li><p>FIND_LIBRARY(<var> name1 path1 path2 …)</var></p>
+<p>  VAR 变量表示找到的库全路径，包含库文件名</p>
+</li>
+<li><p>FIND_PATH(<var> name1 path1 path2 …)</var></p>
+<p>  VAR 变量代表包含这个文件的路径。</p>
+</li>
+<li><p>FIND_PROGRAM(<var> name1 path1 path2 …)</var></p>
+<p>  VAR 变量代表包含这个程序的全路径。</p>
+</li>
+<li><p>FIND_PACKAGE(<name> [major.minor] [QUIET] [NO_MODULE] [[REQUIRED|COMPONENTS] [componets…]])</name></p>
+<p>  用来调用预定义在 CMAKE_MODULE_PATH 下的 Find<name>.cmake 模块，你也可以自己定义<code>Find&lt;name&gt;</code>模块，通过<code>SET(CMAKE_MODULE_PATH dir)</code>将其放入工程的某个目录中供工程使用，我们在后面的章节会详细介绍<code>FIND_PACKAGE</code>的使用方法和<code>Find</code>模块的编写。</name></p>
+<p>  FIND_LIBRARY 示例：</p>
+  <figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">FIND_LIBRARY</span>(libX X11 /usr/lib)</span><br><span class="line"><span class="keyword">IF</span>(<span class="keyword">NOT</span> libX)</span><br><span class="line">    <span class="keyword">MESSAGE</span>(FATAL_ERROR “libX <span class="keyword">not</span> found”)</span><br><span class="line"><span class="keyword">ENDIF</span>(<span class="keyword">NOT</span> libX)</span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+</li>
+</ul>
+<h4 id="控制命令"><a href="#控制命令" class="headerlink" title="控制命令"></a>控制命令</h4><ul>
+<li><code>IF</code></li>
+</ul>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">IF</span>(expression)</span><br><span class="line">    <span class="comment"># THEN section.</span></span><br><span class="line">    COMMAND1(ARGS ...)</span><br><span class="line">    COMMAND2(ARGS ...)</span><br><span class="line">    ...</span><br><span class="line"><span class="keyword">ELSE</span>(expression)</span><br><span class="line">    <span class="comment"># ELSE section.</span></span><br><span class="line">    COMMAND1(ARGS ...)</span><br><span class="line">    COMMAND2(ARGS ...)</span><br><span class="line">    ...</span><br><span class="line"><span class="keyword">ENDIF</span>(expression)</span><br></pre></td></tr></table></figure>
+
+<p>另外一个指令是<code>ELSEIF</code>，总体把握一个原则，凡是出现IF的地方一定要有对应的ENDIF。出现 ELSEIF 的地方，ENDIF是可选的。</p>
+<p>表达式的使用方法如下:</p>
+<p>IF(var)，如果变量不是：空，0，N, NO, OFF, FALSE, NOTFOUND 或<br><var>_NOTFOUND 时，表达式为真。</var></p>
+<p>IF(NOT var )，与上述条件相反。</p>
+<p>IF(var1 AND var2)，当两个变量都为真是为真。</p>
+<p>IF(var1 OR var2)，当两个变量其中一个为真时为真。</p>
+<p>IF(COMMAND cmd)，当给定的 cmd 确实是命令并可以调用是为真。</p>
+<p>IF(EXISTS dir)或者 IF(EXISTS file)，当目录名或者文件名存在时为真。</p>
+<p>IF(file1 IS_NEWER_THAN file2)，当 file1 比 file2 新，或者 file1/file2 其中有一个不存在时为真，文件名请使用完整路径。</p>
+<p>IF(IS_DIRECTORY dirname)，当 dirname 是目录时，为真。</p>
+<p>IF(variable MATCHES regex)</p>
+<p>IF(string MATCHES regex)<br>当给定的变量或者字符串能够匹配正则表达式 regex 时为真。比如：</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">IF</span>(<span class="string">&quot;hello&quot;</span> <span class="keyword">MATCHES</span> <span class="string">&quot;ell&quot;</span>)</span><br><span class="line">    <span class="keyword">MESSAGE</span>(<span class="string">&quot;true&quot;</span>)</span><br><span class="line"><span class="keyword">ENDIF</span>(<span class="string">&quot;hello&quot;</span> <span class="keyword">MATCHES</span> <span class="string">&quot;ell&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>数字比较表达式:</p>
+<ul>
+<li>IF(variable LESS number)</li>
+<li>IF(string LESS number)</li>
+<li>IF(variable GREATER number)</li>
+<li>IF(string GREATER number)</li>
+<li>IF(variable EQUAL number)</li>
+<li>IF(string EQUAL number)</li>
+</ul>
+<p>按照字母序的排列进行比较:</p>
+<ul>
+<li>IF(variable STRLESS string)</li>
+<li>IF(string STRLESS string)</li>
+<li>IF(variable STRGREATER string)</li>
+<li>IF(string STRGREATER string)</li>
+<li>IF(variable STREQUAL string)</li>
+<li>IF(string STREQUAL string)</li>
+</ul>
+<p>IF(DEFINED variable)，如果变量被定义，为真。</p>
+<p>一个小例子，用来判断平台差异：</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">IF</span>(WIN32)</span><br><span class="line">    <span class="keyword">MESSAGE</span>(STATUS “This is windows.”)</span><br><span class="line">    <span class="comment">#作一些 Windows 相关的操作</span></span><br><span class="line"><span class="keyword">ELSE</span>(WIN32)</span><br><span class="line">    <span class="keyword">MESSAGE</span>(STATUS “This is <span class="keyword">not</span> windows”)</span><br><span class="line">    <span class="comment">#作一些非 Windows 相关的操作</span></span><br><span class="line"><span class="keyword">ENDIF</span>(WIN32)</span><br></pre></td></tr></table></figure>
+
+<p>上述代码用来控制在不同的平台进行不同的控制，但是，阅读起来却并不是那么舒服，ELSE(WIN32)之类的语句很容易引起歧义。</p>
+<p>这就用到了我们在“常用变量”一节提到的<code>CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS</code>开<br>关。可以<code>SET(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS ON)</code><br>这时候就可以写成:</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">IF</span>(WIN32)</span><br><span class="line"><span class="keyword">ELSE</span>()</span><br><span class="line"><span class="keyword">ENDIF</span>()</span><br></pre></td></tr></table></figure>
+
+<p>如果配合 ELSEIF 使用，可能的写法是这样:</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">IF</span>(WIN32)</span><br><span class="line">    <span class="comment">#do something related to WIN32</span></span><br><span class="line"><span class="keyword">ELSEIF</span>(UNIX)</span><br><span class="line">    <span class="comment">#do something related to UNIX</span></span><br><span class="line"><span class="keyword">ELSEIF</span>(APPLE)</span><br><span class="line">    <span class="comment">#do something related to APPLE</span></span><br><span class="line"><span class="keyword">ENDIF</span>(WIN32)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>WHILE</code></li>
+</ul>
+<p>WHILE 指令的语法是：</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">WHILE</span>(condition)</span><br><span class="line">    COMMAND1(ARGS ...)</span><br><span class="line">    COMMAND2(ARGS ...)</span><br><span class="line">    ...</span><br><span class="line"><span class="keyword">ENDWHILE</span>(condition)</span><br></pre></td></tr></table></figure>
+
+<p>其真假判断条件可以参考 IF 指令。</p>
+<ul>
+<li><code>FOREACH</code></li>
+</ul>
+<p>FOREACH 指令的使用方法有三种形式：</p>
+<ol>
+<li><p>列表</p>
+ <figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">FOREACH</span>(loop_var arg1 arg2 ...)</span><br><span class="line">    COMMAND1(ARGS ...)</span><br><span class="line">    COMMAND2(ARGS ...)</span><br><span class="line">    ...</span><br><span class="line"><span class="keyword">ENDFOREACH</span>(loop_var)</span><br></pre></td></tr></table></figure>
+
+<p> 像我们前面使用的<code>AUX_SOURCE_DIRECTORY</code>的例子</p>
+ <figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">AUX_SOURCE_DIRECTORY</span>(. SRC_LIST)</span><br><span class="line"><span class="keyword">FOREACH</span>(F <span class="variable">$&#123;SRC_LIST&#125;</span>)</span><br><span class="line">    <span class="keyword">MESSAGE</span>(<span class="variable">$&#123;F&#125;</span>)</span><br><span class="line"><span class="keyword">ENDFOREACH</span>(F)</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>范围</p>
+ <figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">FOREACH</span>(loop_var RANGE total)</span><br><span class="line"><span class="keyword">ENDFOREACH</span>(loop_var)</span><br></pre></td></tr></table></figure>
+
+<p> 从 0 到 total 以1为步进</p>
+<p> 举例如下：</p>
+ <figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">FOREACH</span>(VAR RANGE <span class="number">10</span>)</span><br><span class="line"><span class="keyword">MESSAGE</span>(<span class="variable">$&#123;VAR&#125;</span>)</span><br><span class="line"><span class="keyword">ENDFOREACH</span>(VAR)</span><br><span class="line">最终得到的输出是：</span><br><span class="line"><span class="number">0</span></span><br><span class="line"><span class="number">1</span></span><br><span class="line"><span class="number">2</span></span><br><span class="line"><span class="number">3</span></span><br><span class="line"><span class="number">4</span></span><br><span class="line"><span class="number">5</span></span><br><span class="line"><span class="number">6</span></span><br><span class="line"><span class="number">7</span></span><br><span class="line"><span class="number">8</span></span><br><span class="line"><span class="number">9</span></span><br><span class="line"><span class="number">10</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>范围和步进</p>
+</li>
+</ol>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">FOREACH</span>(loop_var RANGE start stop [step])</span><br><span class="line"><span class="keyword">ENDFOREACH</span>(loop_var)</span><br></pre></td></tr></table></figure>
+
+<p>从start开始到stop结束，以step为步进，举例如下:</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">FOREACH</span>(A RANGE <span class="number">5</span> <span class="number">15</span> <span class="number">3</span>)</span><br><span class="line">    <span class="keyword">MESSAGE</span>(<span class="variable">$&#123;A&#125;</span>)</span><br><span class="line"><span class="keyword">ENDFOREACH</span>(A)</span><br></pre></td></tr></table></figure>
+
+<p>最终得到的结果是：5 8 11 14</p>
+<p>这个指令需要注意的是，知道遇到<code>ENDFOREACH</code>指令，整个语句块才会得到真正的执行。</p>
+<h2 id="模块的使用和自定义模块"><a href="#模块的使用和自定义模块" class="headerlink" title="模块的使用和自定义模块"></a>模块的使用和自定义模块</h2><p>本章我们将着重介绍系统预定义的<code>Find</code>模块的使用以及自己编写<code>Find</code>模块，系统中提供了其他各种模块，一般情况需要使用<code>INCLUDE</code>指令显式的调用，<code>FIND_PACKAGE</code>指令是一个特例，可以直接调用预定义的模块。</p>
+<p>在本章，我们基于我们前面的libhello共享库，编写一个FindHello.cmake模块。</p>
+<p>对于系统预定义的<code>Find&lt;name&gt;.cmake</code>模块，每一个模块都会定义以下几个变量：</p>
+<ul>
+<li><code>&lt;name&gt;_FOUND</code></li>
+<li><code>&lt;name&gt;_INCLUDE_DIR</code> or <code>&lt;name&gt;_INCLUDES</code></li>
+<li><code>&lt;name&gt;_LIBRARY</code> or <code>&lt;name&gt;_LIBRARIES</code></li>
+</ul>
+<p>你可以通过<code>&lt;name&gt;_FOUND</code>来判断模块是否被找到，如果没有找到，按照工程的需要关闭某些特性、给出提醒或者中止编译。</p>
+<p>如果<code>&lt;name&gt;_FOUND</code>为真，则将<code>&lt;name&gt;_INCLUDE_DIR</code>加入<code>INCLUDE_DIRECTORIES</code>，将<code>&lt;name&gt;_LIBRARY</code>加入 <code>TARGET_LINK_LIBRARIES</code>中。</p>
+<h4 id="编写FindHello模块"><a href="#编写FindHello模块" class="headerlink" title="编写FindHello模块"></a>编写FindHello模块</h4><p>我们在此前的test3实例中，演示了构建动态库、静态库的过程并进行了安装。接下来，我们在test6示例中演示如何自定义<code>FindHello</code>模块并使用这个模块构建工程：</p>
+<p>请在建立<code>/home/workspace/cmake_practice</code>中建立test6目录，并在其中建立cmake目录用于存放我们自己定义的<code>FindHello.cmake</code>模块，同时建立<code>src</code>目录，用于存放我们的源文件。</p>
+<p>定义<code>cmake/FindHello.cmake</code>模块</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">FIND_PATH</span>(HELLO_INCLUDE_DIR hello.h /usr/local/<span class="keyword">include</span>/hello /usr/<span class="keyword">include</span>/hello)</span><br><span class="line"><span class="keyword">FIND_LIBRARY</span>(HELLO_LIBRARY NAMES hello PATH /usr/local/lib /usr/lib)</span><br><span class="line"><span class="keyword">IF</span>(HELLO_INCLUDE_DIR <span class="keyword">AND</span> HELLO_LIBRARY)</span><br><span class="line">        <span class="keyword">SET</span>(HELLO_FOUND <span class="keyword">TRUE</span>)</span><br><span class="line"><span class="keyword">ENDIF</span>()</span><br><span class="line"><span class="keyword">IF</span>(HELLO_FOUND)</span><br><span class="line">        <span class="keyword">IF</span>(<span class="keyword">NOT</span> Hello_FIND_QUIETLY)</span><br><span class="line">                <span class="keyword">MESSAGE</span>(STATUS <span class="string">&quot;Found Hello: $&#123;HELLO_LIBRARY&#125;&quot;</span>)</span><br><span class="line">        <span class="keyword">ENDIF</span>()</span><br><span class="line"><span class="keyword">ELSE</span>()</span><br><span class="line">        <span class="keyword">IF</span>(Hello_FIND_REQUIRED)</span><br><span class="line">                <span class="keyword">MESSAGE</span>(FATAL_ERROR <span class="string">&quot;Cound not find hello library&quot;</span>)</span><br><span class="line">        <span class="keyword">ENDIF</span>()</span><br><span class="line"><span class="keyword">ENDIF</span>()</span><br></pre></td></tr></table></figure>
+
+<p><code>QUIET</code>参数，对应与我们编写的<code>FindHello</code>中的 <code>HELLO_FIND_QUIETLY</code>，如果不指定这个参数，就会执行：<br><code>MESSAGE(STATUS &quot;Found Hello: $&#123;HELLO_LIBRARY&#125;&quot;)</code></p>
+<p><code>REQUIRED</code>参数，其含义是指这个共享库是否是工程必须的，如果使用了这个参数，说明这个链接库是必备库，如果找不到这个链接库，则工程不能编译。对应于<code>FindHello.cmake</code>模块中的<code>HELLO_FIND_REQUIRED</code>变量。<br>同样，我们在上面的模块中定义了<code>HELLO_FOUND</code>,<code>HELLO_INCLUDE_DIR</code>,<code>HELLO_LIBRARY</code>变量供开发者在<code>FIND_PACKAGE</code>指令中使用。</p>
+<p>在src/main.c中写入如下内容：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;hello.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">        print_hello();</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>建立src/CMakeLists.txt文件，内容如下：</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">FIND_PACKAGE</span>(Hello)</span><br><span class="line"><span class="keyword">IF</span>(HELLO_FOUND)</span><br><span class="line">        <span class="keyword">ADD_EXECUTABLE</span>(hello main.c)</span><br><span class="line">        <span class="keyword">INCLUDE_DIRECTORIES</span>(<span class="variable">$&#123;HELLO_INCLUDE_DIR&#125;</span>)</span><br><span class="line">        <span class="keyword">TARGET_LINK_LIBRARIES</span>(hello <span class="variable">$&#123;HELLO_LIBRARY&#125;</span>)</span><br><span class="line"><span class="keyword">ENDIF</span>(HELLO_FOUND)</span><br></pre></td></tr></table></figure>
+
+<p>为了能够让工程找到<code>FindHello.cmake</code>模块(存放在工程中的cmake目录)我们在主工程文件CMakeLists.txt中加入：<br><code>SET(CMAKE_MODULE_PATH $&#123;PROJECT_SOURCE_DIR&#125;/cmake)</code></p>
+<p>仍然采用外部编译的方式，建立build目录，进入目录运行：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cmake ..</span><br></pre></td></tr></table></figure>
+
+<p>我们可以从输出中看到：</p>
+<figure class="highlight txt"><table><tr><td class="code"><pre><span class="line">-- Found Hello: /usr/local/lib/libhello.so</span><br></pre></td></tr></table></figure>
+
+<p>如果没有找到hello library呢？</p>
+<p>我们可以尝试将/usr/local/lib/libhello.x 移动到/tmp目录，这样，按照FindHello模块的定义，就找不到hello library了，我们再来看一下构建结果：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cmake ..</span><br></pre></td></tr></table></figure>
+
+<p>仍然可以成功进行构建，但是这时候是没有办法编译的。修改 <code>FIND_PACKAGE(HELLO)</code>为<code>FIND_PACKAGE(HELLO REQUIRED)</code>，将 hello library定义为工程必须的共享库。</p>
+<p>这时候再次运行 cmake ..</p>
+<p>我们得到如下输出：</p>
+<p><code>CMake Error: Could not find hello library.</code></p>
+<p>因为找不到libhello.x，所以，整个Makefile生成过程被出错中止。</p>
+</div><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:leosocy@gmail.com" rel="external nofollow noopener noreferrer" target="_blank">Leosocy</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://blog.leosocy.top/posts/5096/">https://blog.leosocy.top/posts/5096/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="external nofollow noopener noreferrer">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://blog.leosocy.top" target="_blank">Leosocy's Blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/CMake/">CMake</a><a class="post-meta__tags" href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/">开发工具</a></div><div class="post_share"><div class="social-share" data-image="/img/cmake-logo.png" data-sites="wechat,weibo,qq,facebook,twitter"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/posts/71b3/"><img class="prev-cover" data-lazy-src="https://cdn.leosocy.top/img/code-style-1.jpg" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">Google C++ 编程风格</div></div></a></div><div class="next-post pull-right"><a href="/posts/4354/"><img class="next-cover" data-lazy-src="https://cdn.leosocy.top/img/edcc.png" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">关于EDCC算法的诞生、原理、效果</div></div></a></div></nav><hr><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div><div class="comment-switch"><span class="first-comment">Valine</span><label><input id="switch-comments-btn" type="checkbox"><span class="slider"></span></label><span class="second-comment">Gitalk</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div><div><div id="gitalk-container"></div></div></div></div></article></main><footer id="footer" data-type="color"><div id="footer-wrap"><div class="copyright">&copy;2017 - 2023   <i id="heartbeat" class="fa fas fa-heartbeat"></i>  Leosocy</div><div class="icp"><a target="_blank" rel="external nofollow noopener noreferrer" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=32011302320676"><span>苏ICP备19003706号-1</span></a></div></div><head><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/heartbeat.min.css"></head></footer><script>var bg_index = Math.floor(Math.random() * 21);
+if (true === true)
+  var res = 'background-image: url("https://cdn.leosocy.top/img/background/' + bg_index + '-bg.jpg");'
+else
+  var res = 'background-image: url("https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn/img/background/' + bg_index + '-bg.jpg");'
+document.getElementById('web_bg').style = res
+</script></div><section id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="font_plus" type="button" title="放大字体"><i class="fas fa-plus"></i></button><button id="font_minus" type="button" title="缩小字体"><i class="fas fa-minus"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></section><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"></div></div></div><hr><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module" defer></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js" async></script><script>function panguFn () {
+  if (typeof pangu === 'object') pangu.spacingElementById('content-inner')
+  else {
+    $.getScript('https://cdn.jsdelivr.net/npm/pangu/dist/browser/pangu.min.js', () => {
+      pangu.spacingElementById('content-inner')
+    })
+  }
+}
+
+function panguInit () {
+  if (false){
+    GLOBAL_CONFIG_SITE.isPost && panguFn()
+  } else {
+    panguFn()
+  }
+}
+
+document.addEventListener('DOMContentLoaded', panguFn)</script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadValine () {
+  function initValine () {
+    window.valine = new Valine({
+      el: '#vcomment',
+      appId: 'HrxT0ob97kYUTuWuUo08mkqc-gzGzoHsz',
+      appKey: 'oeKW9UqjBpN6MNv7ENaikdwP',
+      placeholder: '请输入内容',
+      avatar: 'retro',
+      meta: 'nick,mail,link'.split(','),
+      pageSize: '10',
+      lang: 'zh-CN',
+      recordIP: false,
+      serverURLs: 'https://lcapi.leosocy.top',
+      emojiCDN: '',
+      emojiMaps: "",
+      enableQQ: false,
+      path: window.location.pathname,
+      visitor: true
+    });
+    if ('nick') { valine.config.requiredFields= 'nick'.split(',') }
+  }
+
+  if (typeof Valine === 'function') initValine() 
+  else $.getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js', initValine)
+}
+
+if ('Valine' === 'Valine' || !true) {
+  if (true && !true) loadComment(document.querySelector('#vcomment'),loadValine)
+  else setTimeout(() => loadValine(), 0)
+} else {
+  function loadOtherComment () {
+    loadValine()
+  }
+}</script><script>function addGitalkSource () {
+  const ele = document.createElement('link')
+  ele.rel = 'stylesheet'
+  ele.href= 'https://cdn.jsdelivr.net/npm/gitalk/dist/gitalk.min.css'
+  document.getElementsByTagName('head')[0].appendChild(ele)
+}
+
+function loadGitalk () {
+  function initGitalk () {
+    var gitalk = new Gitalk({
+      clientID: '32b06a1ce1ba2d645bb5',
+      clientSecret: 'c4e9c93c5a16234ecb67a9b83b9315f763436cdd',
+      repo: 'comments',
+      owner: 'LeosocyBlog',
+      admin: ['Leosocy'],
+      id: 'b30e4b2d29c3752b6fd360d445cc95a6',
+      language: 'zh-CN',
+      perPage: 10,
+      distractionFreeMode: true,
+      pagerDirection: 'last',
+      createIssueManually: false,
+      updateCountCallback: commentCount
+    })
+    gitalk.render('gitalk-container')
+  }
+
+  if (typeof Gitalk === 'function') initGitalk()
+  else {
+    addGitalkSource()
+    $.getScript('https://cdn.jsdelivr.net/npm/gitalk@latest/dist/gitalk.min.js', initGitalk)
+  }
+}
+
+function commentCount(n){
+  let isCommentCount = document.querySelector('#post-meta .gitalk-comment-count')
+  if (isCommentCount) {
+    isCommentCount.innerHTML= n
+  }
+}
+
+if ('Valine' === 'Gitalk' || !true) {
+  if (true) loadComment(document.getElementById('gitalk-container'), loadGitalk)
+  else loadGitalk()
+} else {
+  function loadOtherComment () {
+    loadGitalk()
+  }
+}</script><script>cdn_url = "https://cdn.leosocy.top"</script><script src="/"></script></div><script src="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/js/leosocy.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>$(function () {
+  var pjax = new Pjax({
+    selectors: [
+      'title',
+      'meta[name=description]',
+      '#config_change',
+      '#body-wrap',
+      '#rightside-config-hide',
+      '#rightside-config-show',
+      '.js-pjax'
+    ],
+    cacheBust: false,
+  })
+
+  document.addEventListener('pjax:complete', function () {
+    refreshFn()
+
+    $('script[data-pjax]').each(function () {
+      $(this).parent().append($(this).remove())
+    })
+
+    GLOBAL_CONFIG.islazyload && lazyLoadInstance.update()
+
+    typeof chatBtnFn === 'function' && chatBtnFn()
+    typeof panguInit === 'function' && panguInit()
+
+    if (typeof gtag === 'function') {
+      gtag('config', 'G-8EGQPPW7GQ', {'page_path': window.location.pathname});
+    }
+
+    if (document.getElementsByClassName('aplayer').length){
+      typeof loadMeting === 'function' && loadMeting()
+    }
+  })
+
+  document.addEventListener('pjax:send', function () {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+
+    typeof typed === 'object' && typed.destroy()
+
+    $(window).off('scroll')
+
+    //reset readmode
+    $('body').hasClass('read-mode') && $('body').removeClass('read-mode')
+
+    //reset font-size
+    $('body').css('font-size') !== originFontSize && $('body').css('font-size', parseFloat(originFontSize))
+  })
+})</script></div></body></html>

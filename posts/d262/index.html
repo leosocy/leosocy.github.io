@@ -1,0 +1,441 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>零基础学习kubernetes(四): 利用闲置主机搭建并暴露本地k8s集群 | Leosocy's Blog</title><meta name="description" content="前三章的学习，笔者经历了从使用ECS的k8s集群到本地的Minikube，说白了，还是穷，买不起高配置的ECS，而当资源(cpu&#x2F;memory)不足时，要想充分发挥k8s的强大功能可以说是难上加难。 恰巧笔者有一台尘封已久的笔记本，很早之前折腾过一阵archlinux系统，如果我们能用它在内网搭建一个k8s集群，然后通过某种方式暴露在公网上供使用，是不是就很nice了呢？ 如果你也有类似的烦恼，想"><meta name="keywords" content="k8s,NAT"><meta name="author" content="Leosocy,leosocy@gmail.com"><meta name="copyright" content="Leosocy"><meta name="format-detection" content="telephone=no"><link rel="shortcut icon" href="https://cdn.leosocy.top/img/LEO-logo.jpg"><link rel="canonical" href="https://blog.leosocy.top/posts/d262/"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="preconnect" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//www.google-analytics.com" crossorigin="crossorigin"><link rel="preconnect" href="//fonts.googleapis.com" crossorigin="crossorigin"><meta name="google-site-verification" content="oh1OfqVAIxCAFZ8w5KBBtK7tJK48Z0HuFl2XXbRiM-E"><meta name="baidu-site-verification" content="code-7jpxSWptMj"><meta property="og:type" content="article"><meta property="og:title" content="零基础学习kubernetes(四): 利用闲置主机搭建并暴露本地k8s集群"><meta property="og:url" content="https://blog.leosocy.top/posts/d262/"><meta property="og:site_name" content="Leosocy's Blog"><meta property="og:description" content="前三章的学习，笔者经历了从使用ECS的k8s集群到本地的Minikube，说白了，还是穷，买不起高配置的ECS，而当资源(cpu&#x2F;memory)不足时，要想充分发挥k8s的强大功能可以说是难上加难。 恰巧笔者有一台尘封已久的笔记本，很早之前折腾过一阵archlinux系统，如果我们能用它在内网搭建一个k8s集群，然后通过某种方式暴露在公网上供使用，是不是就很nice了呢？ 如果你也有类似的烦恼，想"><meta property="og:image" content="https://blog.leosocy.top/img/kubernetes_tutorials.png"><meta property="article:published_time" content="2018-12-25T13:24:10.000Z"><meta property="article:modified_time" content="2023-11-05T07:26:20.240Z"><meta name="twitter:card" content="summary"><script>var activateDarkMode = function () {
+  document.documentElement.setAttribute('data-theme', 'dark')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#000')
+  }
+}
+var activateLightMode = function () {
+  document.documentElement.setAttribute('data-theme', 'light')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#fff')
+  }
+}
+
+var getCookies = function (name) {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop().split(';').shift()
+}
+
+var autoChangeMode = 'false'
+var t = getCookies('theme')
+if (autoChangeMode === '1') {
+  var isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+  var isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+  var isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+  var hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+
+  if (t === undefined) {
+    if (isLightMode) activateLightMode()
+    else if (isDarkMode) activateDarkMode()
+    else if (isNotSpecified || hasNoSupport) {
+      console.log('You specified no preference for a color scheme or your browser does not support it. I Schedule dark mode during night time.')
+      var now = new Date()
+      var hour = now.getHours()
+      var isNight = hour <= 6 || hour >= 18
+      isNight ? activateDarkMode() : activateLightMode()
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+      if (Cookies.get('theme') === undefined) {
+        e.matches ? activateDarkMode() : activateLightMode()
+      }
+    })
+  } else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else if (autoChangeMode === '2') {
+  now = new Date()
+  hour = now.getHours()
+  isNight = hour <= 6 || hour >= 18
+  if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+  else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else {
+  if (t === 'dark') activateDarkMode()
+  else if (t === 'light') activateLightMode()
+}</script><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css"><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-8EGQPPW7GQ"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-8EGQPPW7GQ');
+</script><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Titillium+Web&amp;display=swap"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  bookmark: {
+    message_prev: '按',
+    message_next: '键将本页加入书签'
+  },
+  runtime_unit: '天',
+  runtime: false,
+  copyright: undefined,
+  ClickShowText: undefined,
+  medium_zoom: false,
+  fancybox: true,
+  Snackbar: {"bookmark":{"message_prev":"按","message_next":"键将本页加入书签"},"chs_to_cht":"你已切换为繁体","cht_to_chs":"你已切换为简体","day_to_night":"你已切换为深色模式","night_to_day":"你已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#121212","position":"bottom-left"},
+  justifiedGallery: {
+    js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+    css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+  },
+  baiduPush: false,
+  highlightCopy: true,
+  highlightLang: true,
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: false    
+}</script><script>(function(win, export_obj) {
+win['TeaAnalyticsObject'] = export_obj;
+if (!win[export_obj]) {
+function _collect() {
+_collect.q.push(arguments);
+}
+_collect.q = _collect.q || [];
+win[export_obj] = _collect;
+}
+win[export_obj].l = +new Date();
+})(window, 'collectEvent');</script><script async src="https://sf1-scmcdn-tos.pstatp.com/goofy/log-sdk/collect/collect-autotrack-rangers.js"></script><script>window.collectEvent('init', {
+app_id: 190292,//  必须替换成申请的 app_id
+channel: 'cn',
+log: true, // 开启调试日志
+autotrack: true // 开启全埋点采集，默认关闭，需要热力图及圈选功能可开启
+});
+window.collectEvent('start');</script><script>var _wr = function(type) {
+  var orig = history[type];
+  return function() {
+    var rv = orig.apply(this, arguments);
+    var e = new Event(type);
+    e.arguments = arguments;
+    window.dispatchEvent(e);
+    return rv;
+  };
+};
+history.pushState = _wr('pushState');
+history.replaceState = _wr('replaceState');
+window.addEventListener("popstate", function(event) {
+  window.collectEvent('predefinePageView');
+});
+window.addEventListener("pushState", function(event) {
+  window.collectEvent('predefinePageView');
+});</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isSidebar: true,
+  postUpdate: '2023-11-05 15:26:20'
+}</script><noscript><style>
+#nav {
+  opacity: 1
+}
+.justified-gallery img {
+  opacity: 1
+}
+</style></noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/leosocy.min.css"><meta name="referrer" content="no-referrer-when-downgrade"><meta name="generator" content="Hexo 7.0.0"></head><body><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" data-lazy-src="https://cdn.leosocy.top/img/avatar-leosocy.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">文章</div><div class="length_num">26</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">标签</div><div class="length_num">40</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">分类</div><div class="length_num">21</div></a></div></div></div><hr><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div></div></div><div id="body-wrap"><div id="web_bg" data-type="photo"></div><div id="sidebar"><i class="fas fa-arrow-right on" id="toggle-sidebar"></i><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar">     </div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F%EF%BC%8C%E2%80%9D%E5%85%8D%E8%B4%B9%E2%80%9C%E7%9A%84ECS"><span class="toc-number">1.</span> <span class="toc-text">内网穿透，”免费“的ECS</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#frps"><span class="toc-number">1.1.</span> <span class="toc-text">frps</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%AE%89%E8%A3%85"><span class="toc-number">1.1.1.</span> <span class="toc-text">安装</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE"><span class="toc-number">1.1.2.</span> <span class="toc-text">配置</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%90%AF%E5%8A%A8"><span class="toc-number">1.1.3.</span> <span class="toc-text">启动</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#frpc"><span class="toc-number">1.2.</span> <span class="toc-text">frpc</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%AE%89%E8%A3%85-1"><span class="toc-number">1.2.1.</span> <span class="toc-text">安装</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE-1"><span class="toc-number">1.2.2.</span> <span class="toc-text">配置</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%90%AF%E5%8A%A8-1"><span class="toc-number">1.2.3.</span> <span class="toc-text">启动</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%95%88%E6%9E%9C"><span class="toc-number">1.3.</span> <span class="toc-text">效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8kubeadm%E5%9C%A8%E6%9C%AC%E5%9C%B0%E6%90%AD%E5%BB%BAcluster"><span class="toc-number">2.</span> <span class="toc-text">使用kubeadm在本地搭建cluster</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%89%E8%A3%85kubelet%E3%80%81kubeadm%E3%80%81kubectl"><span class="toc-number">2.1.</span> <span class="toc-text">安装kubelet、kubeadm、kubectl</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%90%AF%E5%8A%A8%E9%9B%86%E7%BE%A4"><span class="toc-number">2.2.</span> <span class="toc-text">启动集群</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8kubectl%E5%9C%A8%E5%85%AC%E7%BD%91%E4%B8%8A%E6%93%8D%E4%BD%9C%E5%86%85%E7%BD%91cluster"><span class="toc-number">2.3.</span> <span class="toc-text">使用kubectl在公网上操作内网cluster</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%88%9B%E5%BB%BA%E7%94%A8%E6%88%B7%E5%87%AD%E8%AF%81"><span class="toc-number">2.3.1.</span> <span class="toc-text">创建用户凭证</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%A0%B9%E6%8D%AE%E9%9C%80%E6%B1%82%E5%88%9B%E5%BB%BARoleBinding-ClusterRoleBinding"><span class="toc-number">2.3.2.</span> <span class="toc-text">根据需求创建RoleBinding&#x2F;ClusterRoleBinding</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%95%88%E6%9E%9C-1"><span class="toc-number">2.4.</span> <span class="toc-text">效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E6%95%88%E6%9E%9C"><span class="toc-number">3.</span> <span class="toc-text">使用效果</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#What%E2%80%99s-next"><span class="toc-number">4.</span> <span class="toc-text">What’s next?</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%AB%A0"><span class="toc-number">5.</span> <span class="toc-text">参考文章</span></a></li></ol></div></div></div><header class="post-bg" id="page-header" style="background-image: url(https://cdn.leosocy.top/img/kubernetes_tutorials.png)"><nav id="nav"><span class="pull-left" id="blog_name"><a class="blog_title" id="site-name" href="/">Leosocy's Blog</a></span><span class="pull-right menus"><div id="search_button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page"><i class="fa-fw fas fa-github"></i><span> 我的开源项目</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/EDCC-Palmprint-Recognition"><i class="fa-fw fas fa-id-card"></i><span> EDCC高效、准确的掌纹识别算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/RobustPalmRoi"><i class="fa-fw fas fa-hand-paper"></i><span> RobustPalmRoi鲁棒性好的掌纹ROI提取算法</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/IntelliProxy"><i class="fa-fw fas fa-cloud"></i><span> Go实现的持久实时高质量的HTTP代理</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/cacheorm"><i class="fa-fw fas fa-database"></i><span> 基于缓存的Python ORM框架</span></a></li><li><a class="site-page" target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/Leosocy/SmartThreadPool"><i class="fa-fw fas fa-sitemap"></i><span> C++11实现的智能线程池库</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/gossip/"><i class="fa-fw fas fa-book"></i><span> 随笔</span></a></div></div><span class="toggle-menu close"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><div id="post-title"><div class="posttitle">零基础学习kubernetes(四): 利用闲置主机搭建并暴露本地k8s集群</div></div><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="fa-fw post-meta-icon far fa-calendar-alt"></i><span class="post-meta-label">发表于</span><time datetime="2018-12-25T13:24:10.000Z" title="undefined 2018-12-25 21:24:10">2018-12-25</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/Kubernetes/">Kubernetes</a></span></div><div class="meta-secondline"> <span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">3.6k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>18分钟</span></span><span class="post-meta-separator">|</span><span class="leancloud_visitors" id="/posts/d262/" data-flag-title="零基础学习kubernetes(四): 利用闲置主机搭建并暴露本地k8s集群"><i class="far fa-fire fa-fw post-meta-icon"></i><span class="post-meta-label">热度:</span><span class="leancloud-visitors-count"></span><span class="du"> °C</span></span></div></div></div></header><main class="layout_post" id="content-inner"><article id="post"><div class="post-content" id="article-container"><p>前三章的学习，笔者经历了从使用ECS的k8s集群到本地的Minikube，说白了，还是穷，买不起高配置的ECS，而当资源(cpu/memory)不足时，要想充分发挥k8s的强大功能可以说是难上加难。</p>
+<p>恰巧笔者有一台尘封已久的笔记本，很早之前折腾过一阵<code>archlinux</code>系统，如果我们能用它在内网搭建一个k8s集群，然后通过某种方式暴露在公网上供使用，是不是就很nice了呢？</p>
+<p>如果你也有类似的烦恼，想利用闲置的主机搭建一个经济实惠的k8s集群，那么希望本篇文章能带给你一些帮助。下面我们就一步步完成这个伟(diao)大(si)的理想吧！</p>
+<span id="more"></span>
+
+<h2 id="内网穿透，”免费“的ECS"><a href="#内网穿透，”免费“的ECS" class="headerlink" title="内网穿透，”免费“的ECS"></a>内网穿透，”免费“的ECS</h2><p>对于没有公网IP的内网用户来说，远程管理或在外网访问内网机器上的服务是一个问题。通常解决方案就是用内网穿透工具将内网的服务穿透到公网中，便于远程管理和在外部访问。</p>
+<p><a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/fatedier/frp"><code>FRP</code></a> (Fast Reverse Proxy)，一个使用Go语言开发的高性能反向代理工具，可以通过简单的配置实现内网穿透。<code>FRP</code>支持TCP、UDP、HTTP、HTTPS等协议类型，并且支持Web服务根据域名进行路由转发。</p>
+<h3 id="frps"><a href="#frps" class="headerlink" title="frps"></a>frps</h3><p>frp的服务端，即我们的ECS服务器，可以将公网的请求(TCP/HTTP…)转发到内网上。</p>
+<h4 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h4><p>首先去frp的release页面查看最新的版本以及ECS处理器架构对应的安装包。</p>
+<p>如何知道处理器架构，执行</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">uname -a</span><br><span class="line">Linux izuf6bp8e6ra9rqb1vneypz 3.10.0-862.11.6.el7.x86_64 #1 SMP Tue Aug 14 21:49:04 UTC 2018 x86_64 x86_64 x86_64 GNU/Linux</span><br></pre></td></tr></table></figure>
+
+<p>如果输出中含有*.x86_64则需要下载带<code>linux_amd64</code>的压缩包。</p>
+<p>这里笔者选择的是<code>x86_64</code>架构，本文撰写时frp最新版本是<code>0.22.0</code></p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">wget https://github.com/fatedier/frp/releases/download/v0.22.0/frp_0.22.0_linux_amd64.tar.gz</span><br><span class="line">tar -zxvf frp_0.22.0_linux_amd64.tar.gz</span><br><span class="line">cd frp_0.22.0_linux_amd64/</span><br></pre></td></tr></table></figure>
+
+<p>尝试运行frps</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">./frps --help</span><br></pre></td></tr></table></figure>
+
+<p>正常情况下会输出一堆帮助信息，说明你下载了正确架构的版本，反之如果输出<code>Exec format error</code>，就说明版本下载错了。</p>
+<p>拷贝可执行文件以及配置文件</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cp frps /usr/bin</span><br><span class="line">mkdir -p ~/.frp</span><br><span class="line">cp frps_full.ini ~/.frp</span><br></pre></td></tr></table></figure>
+
+<h4 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h4><p>下面的配置仅为作者使用到的一些基本配置及说明，如需研究完整配置说明请看<code>~/.frp/frps_full.ini</code>，以及参考<a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/fatedier/frp/blob/master/README_zh.md">frp官方文档</a></p>
+<figure class="highlight toml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 下面这句开头必须要有，表示配置的开始</span></span><br><span class="line"><span class="section">[common]</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># frp 服务端端口（必须）</span></span><br><span class="line"><span class="attr">bind_port</span> = <span class="number">7000</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># frp 服务端密码（必须）</span></span><br><span class="line"><span class="attr">token</span> = xxxxxx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 仪表盘端口，只有设置了才能使用仪表盘（即后台）</span></span><br><span class="line"><span class="attr">dashboard_port</span> = <span class="number">7500</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 仪表盘访问的用户名密码，如果不设置，则默认都是 admin</span></span><br><span class="line"><span class="attr">dashboard_user</span> = admin</span><br><span class="line"><span class="attr">dashboard_pwd</span> = admin</span><br><span class="line"></span><br><span class="line"><span class="comment"># 如果你想要用 frp 穿透访问内网中的网站（例如路由器设置页面）</span></span><br><span class="line"><span class="comment"># 则必须要设置以下两个监听端口，不设置则不会开启这项功能</span></span><br><span class="line"><span class="attr">vhost_http_port</span> = <span class="number">80</span></span><br><span class="line"><span class="attr">vhost_https_port</span> = <span class="number">443</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 此设置需要配合客户端设置，仅在穿透到内网中的 http 或 https 时有用（可选）</span></span><br><span class="line"><span class="comment"># 假设此项设置为 example.com，客户端配置 http 时将 subdomain 设置为 test，</span></span><br><span class="line"><span class="comment"># 则你将 test.example.com 解析到服务端后，可以使用此域名来访问客户端对应的 http</span></span><br><span class="line"><span class="attr">subdomain_host</span> = example.com</span><br></pre></td></tr></table></figure>
+
+<p>将上述配置写入<code>~/.frp/frps.ini</code>中，然后执行</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">frps -c ~/.frp/frps.ini</span><br></pre></td></tr></table></figure>
+
+<p>如果没有出现错误提示就说明配置没有问题，可以正常使用</p>
+<p>然后<code>Ctrl + C</code>终止进程</p>
+<h4 id="启动"><a href="#启动" class="headerlink" title="启动"></a>启动</h4><p>直接使用前面的命令行来运行是不行的，因为在关掉ssh窗口后程序frps就会停止运行，因此要使用nohup [command] &amp;这种操作来使其在后台运行</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">nohup frps -c ~/.frp/frps.ini &amp;</span><br></pre></td></tr></table></figure>
+
+<p>如果想停止，可以执行<code>pkill frps</code></p>
+<p><em>加入开机自启动</em></p>
+<p>编辑<code>/etc/rc.local</code>，将启动那句命令加到<code>exit 0</code>语句之前（如果有）</p>
+<h3 id="frpc"><a href="#frpc" class="headerlink" title="frpc"></a>frpc</h3><p>frp的客户端，即为内网机器，接收frpc转发的请求，并作出响应。</p>
+<h4 id="安装-1"><a href="#安装-1" class="headerlink" title="安装"></a>安装</h4><p>同frps的安装，不过要注意此处需要下载内网机器处理器架构对应的压缩包。</p>
+<h4 id="配置-1"><a href="#配置-1" class="headerlink" title="配置"></a>配置</h4><p>下面的配置仅为作者使用到的一些基本配置及说明，如需研究完整配置说明请看<code>~/.frp/frpc_full.ini</code>，以及参考<a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/fatedier/frp/blob/master/README_zh.md">frp官方文档</a></p>
+<p><em>基本配置</em></p>
+<figure class="highlight toml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># frp 服务端地址，可以填ip或者域名</span></span><br><span class="line"><span class="attr">server_addr</span> = <span class="number">0.0</span>.<span class="number">0.0</span></span><br><span class="line"><span class="comment"># frp 服务端端口，即填写服务端配置中的 bind_port</span></span><br><span class="line"><span class="attr">server_port</span> = <span class="number">7000</span></span><br><span class="line"><span class="comment"># 填写 frp 服务端密码</span></span><br><span class="line"><span class="attr">token</span> = <span class="number">12345678</span></span><br></pre></td></tr></table></figure>
+
+<p><em>TCP/UDP</em></p>
+<p>以转发ssh为例</p>
+<figure class="highlight toml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 自定义一个配置名称，格式为“[名称]”，放在开头</span></span><br><span class="line"><span class="section">[ssh]</span></span><br><span class="line"><span class="comment"># 连接类型，填 tcp 或 udp</span></span><br><span class="line"><span class="attr">type</span> = tcp</span><br><span class="line"></span><br><span class="line"><span class="comment"># 本地ip，填你需要转发到的目的ip</span></span><br><span class="line"><span class="comment"># 如果是转发到frp客户端所在本机（比如路由器）则填 127.0.0.1</span></span><br><span class="line"><span class="comment"># 否则填对应机器的内网ip</span></span><br><span class="line"><span class="attr">local_ip</span> = <span class="number">127.0</span>.<span class="number">0.1</span></span><br><span class="line"><span class="comment"># 需要转发到的端口，比如 ssh 端口是 22</span></span><br><span class="line"><span class="attr">local_port</span> = <span class="number">22</span></span><br></pre></td></tr></table></figure>
+
+<p><em>HTTP/HTTPS</em></p>
+<figure class="highlight toml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 自定义一个配置名称，格式为“[名称]”，放在开头</span></span><br><span class="line"><span class="section">[router-web]</span></span><br><span class="line"><span class="comment"># 连接类型，填 http 或 https</span></span><br><span class="line"><span class="attr">type</span> = http</span><br><span class="line"></span><br><span class="line"><span class="attr">local_ip</span> = <span class="number">127.0</span>.<span class="number">0.1</span></span><br><span class="line"><span class="attr">local_port</span> = <span class="number">80</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># http 可以考虑加密和压缩一下</span></span><br><span class="line"><span class="attr">use_encryption</span> = <span class="literal">true</span></span><br><span class="line"><span class="attr">use_compression</span> = <span class="literal">true</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 自定义访问网站的用户名和密码，如果不定义的话谁都可以访问，会不安全</span></span><br><span class="line"><span class="comment"># 有些路由器如果从内部访问web是不需要用户名密码的，因此需要在这里加一层密码保护</span></span><br><span class="line"><span class="comment"># 如果你发现不加这个密码保护，路由器配置页面原本的用户认证能正常生效的话，可以不加</span></span><br><span class="line"><span class="attr">http_user</span> = admin</span><br><span class="line"><span class="attr">http_pwd</span> = admin</span><br><span class="line"></span><br><span class="line"><span class="comment"># 还记得我们在服务端配置的 subdomain_host = example.com 吗</span></span><br><span class="line"><span class="comment"># 假设这里我们填 web01，那么你将 web01.example.com 解析到服务端ip后</span></span><br><span class="line"><span class="comment"># 你就可以使用 域名:端口 来访问你的 http 了</span></span><br><span class="line"><span class="comment"># 这个域名的作用是用来区分不同的 http，因为你可以配置多个这样的配置</span></span><br><span class="line"><span class="attr">subdomain</span> = web01</span><br><span class="line"></span><br><span class="line"><span class="comment"># 自定义域名，这个不同于 subdomain，你可以设置与 subdomain_host 无关的其他域名</span></span><br><span class="line"><span class="comment"># subdomain 与 custom_domains 中至少有一个必须要设置</span></span><br><span class="line"><span class="attr">custom_domains</span> = web02.yourdomain.com</span><br><span class="line"></span><br><span class="line"><span class="comment"># 匹配路径，可以设置多个，用逗号分隔，比如你设置 locations 为以下这个，</span></span><br><span class="line"><span class="comment"># 那么所有 http://xxx/abc 和 http://xxx/def 都会被转发到 http://xxx/</span></span><br><span class="line"><span class="comment"># 如果不需要这个功能可以不写这项，就直接该怎么访问就怎么访问</span></span><br><span class="line"><span class="attr">locations</span> = /abc,/def</span><br></pre></td></tr></table></figure>
+
+<h4 id="启动-1"><a href="#启动-1" class="headerlink" title="启动"></a>启动</h4><p>根据你的需求，将配置写入<code>~/.frp/frpc.ini</code>中，并执行</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">nohup frpc -c ~/.frp/frpc.ini &amp;</span><br></pre></td></tr></table></figure>
+
+<h3 id="效果"><a href="#效果" class="headerlink" title="效果"></a>效果</h3><p>这是笔者frpc部分配置</p>
+<figure class="highlight toml"><table><tr><td class="code"><pre><span class="line"><span class="section">[ssh]</span></span><br><span class="line"><span class="attr">type</span> = tcp</span><br><span class="line"><span class="attr">local_ip</span> = <span class="number">127.0</span>.<span class="number">0.1</span></span><br><span class="line"><span class="attr">local_port</span> = <span class="number">22</span></span><br><span class="line"><span class="attr">remote_port</span> = <span class="number">10022</span></span><br><span class="line"><span class="section">[k8s-router]</span></span><br><span class="line"><span class="attr">type</span> = https</span><br><span class="line"><span class="attr">local_ip</span> = <span class="number">127.0</span>.<span class="number">0.1</span></span><br><span class="line"><span class="attr">local_port</span> = <span class="number">6443</span></span><br><span class="line"><span class="attr">subdomain</span> = k8s-pro</span><br></pre></td></tr></table></figure>
+
+<p>此时随意找一台机器试一试能不能通过ECS的ip地址+<code>10022</code>这个端口ssh到内网的机器上</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">ssh xxx@xx.xx.xx -p 10022</span><br></pre></td></tr></table></figure>
+
+<p>如果提示需要输入密码，则表示配置生效，可以通过公网地址链接到内网机器上。</p>
+<blockquote>
+<p>PS: k8s的https路由我们会在下面使用到。</p>
+</blockquote>
+<h2 id="使用kubeadm在本地搭建cluster"><a href="#使用kubeadm在本地搭建cluster" class="headerlink" title="使用kubeadm在本地搭建cluster"></a>使用kubeadm在本地搭建cluster</h2><p><em>基本配置</em></p>
+<ul>
+<li>安装docker</li>
+<li>关闭swap</li>
+<li>关闭SELinux</li>
+<li>确认cgroup drive</li>
+</ul>
+<p>以上具体配置可以参考<a href="./%E9%9B%B6%E5%9F%BA%E7%A1%80%E5%AD%A6%E4%B9%A0kubernetes-%E4%BA%8C-ECS%E4%B8%8A%E9%83%A8%E7%BD%B2%E9%9B%86%E7%BE%A4.md">零基础学习 kubernetes(二): 在 ECS 上部署集群</a></p>
+<h3 id="安装kubelet、kubeadm、kubectl"><a href="#安装kubelet、kubeadm、kubectl" class="headerlink" title="安装kubelet、kubeadm、kubectl"></a>安装kubelet、kubeadm、kubectl</h3><p>您需要在每台机器上都安装以下的软件包：</p>
+<ul>
+<li><code>kubeadm</code>: 用来初始化集群的指令</li>
+<li><code>kubelet</code>: 在集群中的每个节点上用来启动pod和container等</li>
+<li><code>kubectl</code>: 用来与集群通信的命令行工具</li>
+</ul>
+<p><em>安装CNI插件</em></p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">CNI_VERSION=&quot;v0.6.0&quot;</span><br><span class="line">mkdir -p /opt/cni/bin</span><br><span class="line">curl -L &quot;https://github.com/containernetworking/plugins/releases/download/$&#123;CNI_VERSION&#125;/cni-plugins-amd64-$&#123;CNI_VERSION&#125;.tgz&quot; | tar -C /opt/cni/bin -xz</span><br></pre></td></tr></table></figure>
+
+<p><em>安装crictl(kubeadm/Kubelet的容器运行时接口(CRI)要求)</em></p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">CRICTL_VERSION=&quot;v1.11.1&quot;</span><br><span class="line">mkdir -p /opt/bin</span><br><span class="line">curl -L &quot;https://github.com/kubernetes-incubator/cri-tools/releases/download/$&#123;CRICTL_VERSION&#125;/crictl-$&#123;CRICTL_VERSION&#125;-linux-amd64.tar.gz&quot; | tar -C /opt/bin -xz</span><br></pre></td></tr></table></figure>
+
+<p><em>安装<code>kubeadm</code>,<code>kubelet</code>,<code>kubectl</code>并且添加一个<code>kubelet</code>systemd服务</em></p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">RELEASE=&quot;$(curl -sSL https://dl.k8s.io/release/stable.txt)&quot;</span><br><span class="line"></span><br><span class="line">mkdir -p /opt/bin</span><br><span class="line">cd /opt/bin</span><br><span class="line">curl -L --remote-name-all https://storage.googleapis.com/kubernetes-release/release/$&#123;RELEASE&#125;/bin/linux/amd64/&#123;kubeadm,kubelet,kubectl&#125;</span><br><span class="line">chmod +x &#123;kubeadm,kubelet,kubectl&#125;</span><br><span class="line"></span><br><span class="line">curl -sSL &quot;https://raw.githubusercontent.com/kubernetes/kubernetes/$&#123;RELEASE&#125;/build/debs/kubelet.service&quot; | sed &quot;s:/usr/bin:/opt/bin:g&quot; &gt; /etc/systemd/system/kubelet.service</span><br><span class="line">mkdir -p /etc/systemd/system/kubelet.service.d</span><br><span class="line">curl -sSL &quot;https://raw.githubusercontent.com/kubernetes/kubernetes/$&#123;RELEASE&#125;/build/debs/10-kubeadm.conf&quot; | sed &quot;s:/usr/bin:/opt/bin:g&quot; &gt; /etc/systemd/system/kubelet.service.d/10-kubeadm.conf</span><br></pre></td></tr></table></figure>
+
+<p><em>启用并启动<code>kubelet</code></em></p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">systemctl enable kubelet &amp;&amp; systemctl start kubelet</span><br></pre></td></tr></table></figure>
+
+<p>kubelet 现在每隔几秒就会重启，因为它陷入了一个等待 kubeadm 指令的死循环。</p>
+<h3 id="启动集群"><a href="#启动集群" class="headerlink" title="启动集群"></a>启动集群</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">kubeadm init --kubernetes-version=v1.13.1 --image-repository=bluenet13 --apiserver-advertise-address=0.0.0.0 --pod-network-cidr=10.244.0.0/16 --apiserver-cert-extra-sans=k8s-pro.leosocy.top</span><br></pre></td></tr></table></figure>
+
+<p><em>Options</em></p>
+<ul>
+<li><code>--kubernetes-version</code>: 截止笔者撰写此博客时，最新的stable版本为1.13.1</li>
+<li><code>--image-repository</code>: 配置指定的docker registry，避免默认的<code>k8s.gcr.io</code>由于被墙导致的镜像拉取失败</li>
+<li><code>--apiserver-advertise-address</code>: 指定“0.0.0.0”来使用默认网络接口的地址</li>
+<li><code>--apiserver-cert-extra-sans</code>: 用于apiserver服务证书的可选额外SANs，可以是IP地址和DNS名称。还记得我们在上面配置的frpc的<code>k8s-router</code>的https路由规则，以笔者的配置为例，当外网用户配置好了<code>kubectl</code>的cluster、签名用户、以及context后，请求操作apiserver <code>https://k8s-pro.leosocy.top</code>时，阿里云DNS解析首先将请求根据域名解析到配置的ECS公网IP上，然后frps根据客户端配置，将请求路由到指定的内网端口上(即内网k8s apiserver)，apiserver根据Host判断是否在证书的SANs中，如果在则执行响应操作并响应。所以外界根本感知不到是在操作一个内网的k8s集群</li>
+<li><code>--pod-network-cidr</code>: 选择pod网络对应的cidr(笔者这里选择的是flannel)</li>
+</ul>
+<p>稍等几分钟之后，cluster master就安装成功了，启动成功之后还要创建pod网络、设置工作节点等等，具体可以参考<a href="./%E9%9B%B6%E5%9F%BA%E7%A1%80%E5%AD%A6%E4%B9%A0kubernetes-%E4%BA%8C-ECS%E4%B8%8A%E9%83%A8%E7%BD%B2%E9%9B%86%E7%BE%A4.md">零基础学习kubernetes(二): 在ECS上部署集群</a></p>
+<h3 id="使用kubectl在公网上操作内网cluster"><a href="#使用kubectl在公网上操作内网cluster" class="headerlink" title="使用kubectl在公网上操作内网cluster"></a>使用kubectl在公网上操作内网cluster</h3><p>上面我们已经成功的在内网搭建了一个k8s集群(虽然只有一个master节点)，现在如果我们想通过公网的ip/域名操作这个集群该怎么办呢？</p>
+<h4 id="创建用户凭证"><a href="#创建用户凭证" class="headerlink" title="创建用户凭证"></a>创建用户凭证</h4><p>集群启动后，k8s帮我们创建了一个master账号，拥有操作集群的超级权限，很显然如果想在外部网络操作集群，是不可能配置这个账号的。所以，我们要按需创建用户账号(即RBAC)，并赋予相关权限。</p>
+<ol>
+<li>为用户创建私钥。在这个例子中，我们将命名文件<code>employee.key</code>: <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">openssl genrsa -out employee.key 2048</span><br></pre></td></tr></table></figure></li>
+<li>创建证书签名请求<code>employee.csr</code>使用刚刚创建的私钥<code>employee.key</code>。确保在<code>-subj</code>部分中指定了用户名(CN是用户名) <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">openssl req -new -key employee.key -out employee.csr -subj &quot;/CN=employee&quot;</span><br></pre></td></tr></table></figure></li>
+<li>使用集群证书颁发机构(CA)给employee.csr签发证书，ca根证书一般在集群master的<code>/etc/kubernetes/pki/</code>下 <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">openssl x509 -req -in employee.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out employee.crt -days 3650</span><br></pre></td></tr></table></figure></li>
+<li>将<code>ca.crt</code>, <code>employee.key</code>, <code>employee.crt</code>保存到需要操作集群的机器上(例如你的ECS)的一个目录下，例如<code>~/.kube/crts</code></li>
+<li>设置cluster、credentials以及context <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">k config set-cluster `your-cluster-name` --server=`your-cluster-domain` --certificate-authority=~/.kube/crts/cluster/ca.key</span><br><span class="line">k config set-credentials employee --client-certificate=~/.kube/crts/user/employee.crt --client-key=~/.kube/crts/user/employee.key</span><br><span class="line">k config set-context employee-context --cluster=`your-cluster-name` --user=employee</span><br></pre></td></tr></table></figure>
+
+</li>
+</ol>
+<p>现在，在使用带有此配置文件的kubectl CLI时，应该会出现访问拒绝错误。这是预期的，因为我们还没有为该用户定义任何允许的操作。</p>
+<h4 id="根据需求创建RoleBinding-ClusterRoleBinding"><a href="#根据需求创建RoleBinding-ClusterRoleBinding" class="headerlink" title="根据需求创建RoleBinding/ClusterRoleBinding"></a>根据需求创建RoleBinding/ClusterRoleBinding</h4><ol>
+<li><p>创建一个名为<code>office</code>的命名空间</p>
+ <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">k create ns office</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>创建一个<code>role-deployment-manager.yml</code>文件包含以下内容。在这个yaml文件中，我们创建了一个规则，允许用户在<code>Deployment</code>、<code>Pod</code>和<code>ReplicaSets</code>(创建Deployment所必需的)上执行一些操作，这些操作属于核心(在yaml文件中以“”表示)、应用程序和扩展API组:</p>
+ <figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">kind:</span> <span class="string">Role</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1beta1</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line"><span class="attr">namespace:</span> <span class="string">office</span></span><br><span class="line"><span class="attr">name:</span> <span class="string">deployment-manager</span></span><br><span class="line"><span class="attr">rules:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">apiGroups:</span> [<span class="string">&quot;&quot;</span>, <span class="string">&quot;extensions&quot;</span>, <span class="string">&quot;apps&quot;</span>]</span><br><span class="line"><span class="attr">resources:</span> [<span class="string">&quot;deployments&quot;</span>, <span class="string">&quot;replicasets&quot;</span>, <span class="string">&quot;pods&quot;</span>]</span><br><span class="line"><span class="attr">verbs:</span> [<span class="string">&quot;get&quot;</span>, <span class="string">&quot;list&quot;</span>, <span class="string">&quot;watch&quot;</span>, <span class="string">&quot;create&quot;</span>, <span class="string">&quot;update&quot;</span>, <span class="string">&quot;patch&quot;</span>, <span class="string">&quot;delete&quot;</span>] <span class="comment"># You can also use [&quot;*&quot;]</span></span><br></pre></td></tr></table></figure>
+ <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">k apply -f role-deployment-manager.yml</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>绑定角色到employee用户，创建一个<code>rolebinding-deployment-manager.yml</code>文件包含以下内容。在这个文件中，我们将<code>deployment-manager</code>角色绑定到office名称空间中的用户帐户employee:</p>
+ <figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">kind:</span> <span class="string">RoleBinding</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1beta1</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">deployment-manager-binding</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">office</span></span><br><span class="line"><span class="attr">subjects:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">kind:</span> <span class="string">User</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">employee</span></span><br><span class="line">  <span class="attr">apiGroup:</span> <span class="string">&quot;&quot;</span></span><br><span class="line"><span class="attr">roleRef:</span></span><br><span class="line">  <span class="attr">kind:</span> <span class="string">Role</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">deployment-manager</span></span><br><span class="line">  <span class="attr">apiGroup:</span> <span class="string">&quot;&quot;</span></span><br></pre></td></tr></table></figure>
+ <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">k apply -f rolebinding-deployment-manager.yaml</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>测试RBAC角色，可以看到employee用户已经有了相应的操作资源的权限了</p>
+ <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">k config use-context employee-context   # 切换context</span><br><span class="line">k run --image nginx mynginx</span><br></pre></td></tr></table></figure>
+
+</li>
+</ol>
+<h3 id="效果-1"><a href="#效果-1" class="headerlink" title="效果"></a>效果</h3><p>搭建一个nginx service试试</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx-deployment</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">office</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">2</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">nginx:1.14</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx-service</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">office</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">80</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">ClusterIP</span></span><br><span class="line">  <span class="attr">clusterIP:</span> <span class="string">None</span></span><br></pre></td></tr></table></figure>
+
+<p>然后<code>port-forward</code>将服务的端口映射到本地端口</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">k port-forward svc/nginx-service 8080:80</span><br></pre></td></tr></table></figure>
+
+<p>curl下看看</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">curl localhost:8080</span><br></pre></td></tr></table></figure>
+
+<p>可以看到如下输出</p>
+<figure class="highlight txt"><table><tr><td class="code"><pre><span class="line">...</span><br><span class="line">Welcome to nginx!</span><br><span class="line">If you see this page, the nginx web server is successfully installed and</span><br><span class="line">working. Further configuration is required.</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<h2 id="使用效果"><a href="#使用效果" class="headerlink" title="使用效果"></a>使用效果</h2><p>通过上面的一顿操作，我们在内网的机器上部署了k8s集群，然后通过<code>frp</code>工具，将来自外网的请求通过具有公网ip的ECS转发到了内网，从而实现了调用内网k8s apiserver。</p>
+<p>现在你就可以丢掉资源受限的ECS k8s了，将家里闲置的笔记本电脑(例如笔者已经服役五年依旧坚挺的Dell)重新利用起来，搭建一个真正意义上的k8s集群，并在其上部署/监控你的应用吧！</p>
+<h2 id="What’s-next"><a href="#What’s-next" class="headerlink" title="What’s next?"></a>What’s next?</h2><p>在集群中部署Istio，让外部请求(HTTP/HTTPS)通过ECS上的frps转发到内网集群的指定端口，进而将请求路由进入mesh，并根据路由策略，路由到对应的svc。</p>
+<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><p><a target="_blank" rel="external nofollow noopener noreferrer" href="https://lolico.moe/tutorial/frp.html">https://lolico.moe/tutorial/frp.html</a><br><a target="_blank" rel="external nofollow noopener noreferrer" href="https://docs.bitnami.com/kubernetes/how-to/configure-rbac-in-your-kubernetes-cluster/">https://docs.bitnami.com/kubernetes/how-to/configure-rbac-in-your-kubernetes-cluster/</a></p>
+</div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/NAT/">NAT</a></div><div class="post_share"><div class="social-share" data-image="/img/kubernetes_tutorials.png" data-sites="wechat,weibo,qq,facebook,twitter"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/posts/96ab/"><img class="prev-cover" data-lazy-src="https://cdn.leosocy.top/img/service-mesh-1680.png" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">零基础学习kubernetes(五): ServiceMesh--微服务的最后一块拼图</div></div></a></div><div class="next-post pull-right"><a href="/posts/5513/"><img class="next-cover" data-lazy-src="https://cdn.leosocy.top/img/protobuf.png" onerror="onerror=null;src='https://cdn.leosocy.top/img/404.jpg'"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Protobuf——更高、更快、更强</div></div></a></div></nav><div class="relatedPosts"><div class="relatedPosts_headline"><i class="fas fa-thumbs-up fa-fw"></i><span> 相关推荐</span></div><div class="relatedPosts_list"><div class="relatedPosts_item"><a href="/posts/26b4/" title="零基础学习kubernetes(一): 基础知识"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.topimg/k8s-1.png"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2018-09-11</div><div class="relatedPosts_title">零基础学习kubernetes(一): 基础知识</div></div></a></div><div class="relatedPosts_item"><a href="/posts/9327/" title="零基础学习kubernetes(三): 资源对象"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.topimg/k8s-3.png"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2018-11-12</div><div class="relatedPosts_title">零基础学习kubernetes(三): 资源对象</div></div></a></div><div class="relatedPosts_item"><a href="/posts/1a2d/" title="零基础学习kubernetes(二): 在ECS上部署集群"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.topimg/k8s-2.png"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2018-09-22</div><div class="relatedPosts_title">零基础学习kubernetes(二): 在ECS上部署集群</div></div></a></div><div class="relatedPosts_item"><a href="/posts/96ab/" title="零基础学习kubernetes(五): ServiceMesh--微服务的最后一块拼图"><img class="relatedPosts_cover" data-lazy-src="https://cdn.leosocy.top/img/service-mesh-1680.png"><div class="relatedPosts_main is-center"><div class="relatedPosts_date"><i class="far fa-calendar-alt fa-fw"></i> 2019-01-14</div><div class="relatedPosts_title">零基础学习kubernetes(五): ServiceMesh--微服务的最后一块拼图</div></div></a></div></div></div><hr><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div><div class="comment-switch"><span class="first-comment">Valine</span><label><input id="switch-comments-btn" type="checkbox"><span class="slider"></span></label><span class="second-comment">Gitalk</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div><div><div id="gitalk-container"></div></div></div></div></article></main><footer id="footer" data-type="color"><div id="footer-wrap"><div class="copyright">&copy;2017 - 2023   <i id="heartbeat" class="fa fas fa-heartbeat"></i>  Leosocy</div><div class="icp"><a target="_blank" rel="external nofollow noopener noreferrer" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=32011302320676"><span>苏ICP备19003706号-1</span></a></div></div><head><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/css/heartbeat.min.css"></head></footer><script>var bg_index = Math.floor(Math.random() * 21);
+if (true === true)
+  var res = 'background-image: url("https://cdn.leosocy.top/img/background/' + bg_index + '-bg.jpg");'
+else
+  var res = 'background-image: url("https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn/img/background/' + bg_index + '-bg.jpg");'
+document.getElementById('web_bg').style = res
+</script></div><section id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="font_plus" type="button" title="放大字体"><i class="fas fa-plus"></i></button><button id="font_minus" type="button" title="缩小字体"><i class="fas fa-minus"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></section><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"></div></div></div><hr><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="external nofollow noopener noreferrer" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module" defer></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js" async></script><script>function panguFn () {
+  if (typeof pangu === 'object') pangu.spacingElementById('content-inner')
+  else {
+    $.getScript('https://cdn.jsdelivr.net/npm/pangu/dist/browser/pangu.min.js', () => {
+      pangu.spacingElementById('content-inner')
+    })
+  }
+}
+
+function panguInit () {
+  if (false){
+    GLOBAL_CONFIG_SITE.isPost && panguFn()
+  } else {
+    panguFn()
+  }
+}
+
+document.addEventListener('DOMContentLoaded', panguFn)</script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadValine () {
+  function initValine () {
+    window.valine = new Valine({
+      el: '#vcomment',
+      appId: 'HrxT0ob97kYUTuWuUo08mkqc-gzGzoHsz',
+      appKey: 'oeKW9UqjBpN6MNv7ENaikdwP',
+      placeholder: '请输入内容',
+      avatar: 'retro',
+      meta: 'nick,mail,link'.split(','),
+      pageSize: '10',
+      lang: 'zh-CN',
+      recordIP: false,
+      serverURLs: 'https://lcapi.leosocy.top',
+      emojiCDN: '',
+      emojiMaps: "",
+      enableQQ: false,
+      path: window.location.pathname,
+      visitor: true
+    });
+    if ('nick') { valine.config.requiredFields= 'nick'.split(',') }
+  }
+
+  if (typeof Valine === 'function') initValine() 
+  else $.getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js', initValine)
+}
+
+if ('Valine' === 'Valine' || !true) {
+  if (true && !true) loadComment(document.querySelector('#vcomment'),loadValine)
+  else setTimeout(() => loadValine(), 0)
+} else {
+  function loadOtherComment () {
+    loadValine()
+  }
+}</script><script>function addGitalkSource () {
+  const ele = document.createElement('link')
+  ele.rel = 'stylesheet'
+  ele.href= 'https://cdn.jsdelivr.net/npm/gitalk/dist/gitalk.min.css'
+  document.getElementsByTagName('head')[0].appendChild(ele)
+}
+
+function loadGitalk () {
+  function initGitalk () {
+    var gitalk = new Gitalk({
+      clientID: '32b06a1ce1ba2d645bb5',
+      clientSecret: 'c4e9c93c5a16234ecb67a9b83b9315f763436cdd',
+      repo: 'comments',
+      owner: 'LeosocyBlog',
+      admin: ['Leosocy'],
+      id: 'ddd401441e717d0804d58156d778eac6',
+      language: 'zh-CN',
+      perPage: 10,
+      distractionFreeMode: true,
+      pagerDirection: 'last',
+      createIssueManually: false,
+      updateCountCallback: commentCount
+    })
+    gitalk.render('gitalk-container')
+  }
+
+  if (typeof Gitalk === 'function') initGitalk()
+  else {
+    addGitalkSource()
+    $.getScript('https://cdn.jsdelivr.net/npm/gitalk@latest/dist/gitalk.min.js', initGitalk)
+  }
+}
+
+function commentCount(n){
+  let isCommentCount = document.querySelector('#post-meta .gitalk-comment-count')
+  if (isCommentCount) {
+    isCommentCount.innerHTML= n
+  }
+}
+
+if ('Valine' === 'Gitalk' || !true) {
+  if (true) loadComment(document.getElementById('gitalk-container'), loadGitalk)
+  else loadGitalk()
+} else {
+  function loadOtherComment () {
+    loadGitalk()
+  }
+}</script><script>cdn_url = "https://cdn.leosocy.top"</script><script src="/"></script></div><script src="https://cdn.jsdelivr.net/gh/LeosocyBlog/cdn@master/js/leosocy.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>$(function () {
+  var pjax = new Pjax({
+    selectors: [
+      'title',
+      'meta[name=description]',
+      '#config_change',
+      '#body-wrap',
+      '#rightside-config-hide',
+      '#rightside-config-show',
+      '.js-pjax'
+    ],
+    cacheBust: false,
+  })
+
+  document.addEventListener('pjax:complete', function () {
+    refreshFn()
+
+    $('script[data-pjax]').each(function () {
+      $(this).parent().append($(this).remove())
+    })
+
+    GLOBAL_CONFIG.islazyload && lazyLoadInstance.update()
+
+    typeof chatBtnFn === 'function' && chatBtnFn()
+    typeof panguInit === 'function' && panguInit()
+
+    if (typeof gtag === 'function') {
+      gtag('config', 'G-8EGQPPW7GQ', {'page_path': window.location.pathname});
+    }
+
+    if (document.getElementsByClassName('aplayer').length){
+      typeof loadMeting === 'function' && loadMeting()
+    }
+  })
+
+  document.addEventListener('pjax:send', function () {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+
+    typeof typed === 'object' && typed.destroy()
+
+    $(window).off('scroll')
+
+    //reset readmode
+    $('body').hasClass('read-mode') && $('body').removeClass('read-mode')
+
+    //reset font-size
+    $('body').css('font-size') !== originFontSize && $('body').css('font-size', parseFloat(originFontSize))
+  })
+})</script></div></body></html>
